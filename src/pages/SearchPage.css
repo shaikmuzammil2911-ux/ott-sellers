@@ -1,0 +1,116 @@
+.search-page {
+  padding: 24px 0 60px;
+}
+
+.search-header-box {
+  background-color: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 36px 30px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  text-align: center;
+}
+
+.search-page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+
+.search-bar-expanded {
+  position: relative;
+  max-width: 640px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+}
+
+.expanded-search-icon {
+  position: absolute;
+  left: 18px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.expanded-search-input {
+  width: 100%;
+  height: 54px;
+  padding: 0 110px 0 52px;
+  border-radius: var(--radius-full);
+  border: 2px solid #e2e8f0;
+  font-size: 1rem;
+  background-color: #f8fafc;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.expanded-search-input:focus {
+  background-color: #ffffff;
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.12);
+  outline: none;
+}
+
+.btn-search-submit {
+  position: absolute;
+  right: 6px;
+  height: 42px;
+  padding: 0 20px;
+  background-color: var(--brand-blue);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+
+.btn-search-submit:hover {
+  background-color: var(--brand-blue-hover);
+}
+
+.quick-tags-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-tags-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.quick-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.quick-tag-chip:hover,
+.quick-tag-chip.active {
+  background-color: var(--brand-blue-light);
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+}
+
+.search-results-summary {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+}
+
+.search-results-summary strong {
+  color: var(--text-primary);
+}

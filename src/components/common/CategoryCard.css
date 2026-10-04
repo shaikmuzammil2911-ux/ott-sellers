@@ -1,0 +1,106 @@
+.main-category-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  min-height: 140px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: block;
+}
+
+.main-category-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 28px rgba(11, 19, 43, 0.15);
+  border-color: #cbd5e1;
+}
+
+.category-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 18px 20px;
+  gap: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.category-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.cat-brand-letter {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.category-card-info {
+  flex-grow: 1;
+}
+
+.category-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+}
+
+.category-card-count {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.category-arrow-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.main-category-card:hover .category-arrow-btn {
+  transform: translateX(4px);
+  background-color: var(--brand-blue);
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .category-card-overlay {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .category-icon-wrapper {
+    width: 44px;
+    height: 44px;
+  }
+  .cat-brand-letter {
+    font-size: 1.4rem;
+  }
+  .category-card-title {
+    font-size: 1rem;
+  }
+  .category-arrow-btn {
+    width: 32px;
+    height: 32px;
+  }
+}

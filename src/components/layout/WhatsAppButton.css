@@ -1,0 +1,99 @@
+.floating-whatsapp-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+  .floating-whatsapp-container {
+    bottom: 76px; /* Above the 64px mobile bottom nav */
+    right: 16px;
+  }
+}
+
+.whatsapp-float-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--brand-whatsapp);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 18px rgba(37, 211, 102, 0.45);
+  font-weight: 700;
+  font-size: 0.92rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.whatsapp-float-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(37, 211, 102, 0.6);
+  color: #ffffff;
+}
+
+.whatsapp-label {
+  display: inline;
+}
+
+@media (max-width: 480px) {
+  .whatsapp-label {
+    display: none;
+  }
+  .whatsapp-float-btn {
+    padding: 14px;
+  }
+}
+
+.online-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 11px;
+  height: 11px;
+  background-color: #22c55e;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.whatsapp-tooltip-card {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  padding: 14px 16px;
+  width: 250px;
+  margin-bottom: 12px;
+  animation: fadeIn 0.2s ease;
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.tooltip-close {
+  color: #94a3b8;
+  padding: 2px;
+}
+
+.tooltip-text {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}

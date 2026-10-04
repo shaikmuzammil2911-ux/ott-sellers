@@ -1,0 +1,15 @@
+.product-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+.product-card .btn-add-cart.added-state {
+  background-color: var(--brand-green);
+}
+.product-card .btn-add-cart.added-state:hover {
+  background-color: var(--brand-green-hover);
+}
+
+.star-filled {
+  flex-shrink: 0;
+}
