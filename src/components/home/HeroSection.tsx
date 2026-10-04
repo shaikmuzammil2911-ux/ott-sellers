@@ -1,23 +1,90 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, CheckCircle2, Play, Flame } from 'lucide-react';
+import { ArrowRight, Sparkles, CheckCircle2, Play, Flame, ShieldCheck, Zap } from 'lucide-react';
 import './HeroSection.css';
 
 export const HeroSection: React.FC = () => {
+  const [activeBrand, setActiveBrand] = useState<string | null>(null);
+
+  const streamingBrands = [
+    {
+      id: 'netflix',
+      name: 'NETFLIX',
+      sub: '4K Ultra HD',
+      color: '#e50914',
+      badgeClass: 'screen-netflix',
+      link: '/category/netflix',
+      offer: '20% OFF'
+    },
+    {
+      id: 'prime',
+      name: 'prime video',
+      sub: 'Included With Fast Activation',
+      color: '#00A8E1',
+      badgeClass: 'screen-prime',
+      link: '/category/amazon-prime',
+      offer: '15% OFF'
+    },
+    {
+      id: 'hotstar',
+      name: 'Disney+ hotstar',
+      sub: 'Live Cricket & HBO',
+      color: '#0c3b8a',
+      badgeClass: 'screen-hotstar',
+      link: '/category/disney-hotstar',
+      offer: '18% OFF'
+    },
+    {
+      id: 'zee5',
+      name: 'ZEE5',
+      sub: 'Originals & Regional',
+      color: '#8E24AA',
+      badgeClass: 'screen-zee5',
+      link: '/category/zee5',
+      offer: '16% OFF'
+    },
+    {
+      id: 'sonyliv',
+      name: 'SONY LIV',
+      sub: 'Champions League & WWE',
+      color: '#002B49',
+      badgeClass: 'screen-sonyliv',
+      link: '/category/sonyliv',
+      offer: '10% OFF'
+    },
+    {
+      id: 'youtube',
+      name: 'YouTube Premium',
+      sub: 'Zero Ads + Music',
+      color: '#FF0000',
+      badgeClass: 'screen-youtube',
+      link: '/category/youtube-premium',
+      offer: '12% OFF'
+    }
+  ];
+
   return (
     <section className="hero-section">
       <div className="container">
-        <div className="hero-banner-card">
-          {/* Subtle Ambient Glows */}
-          <div className="hero-ambient-glow glow-red"></div>
-          <div className="hero-ambient-glow glow-blue"></div>
+        <div className="hero-banner-card cinematic-bg-container">
+          {/* Animated Light Sweep Effect */}
+          <div className="hero-light-sweep"></div>
+          
+          {/* Ambient Glow Orbs */}
+          <div className="hero-ambient-orb orb-red"></div>
+          <div className="hero-ambient-orb orb-blue"></div>
+          <div className="hero-ambient-orb orb-gold"></div>
+
+          {/* Left Dark Gradient Overlay for Maximum Readability */}
+          <div className="hero-content-gradient-overlay"></div>
 
           <div className="hero-grid">
             {/* Left Content Column */}
             <div className="hero-text-col">
-              <div className="hero-pill-badge">
+              <div className="hero-pill-badge animated-badge">
                 <Sparkles size={14} className="hero-sparkle-icon" />
                 <span>Your Entertainment, Our Priority</span>
+                <span className="live-pulse-dot"></span>
               </div>
 
               <h1 className="hero-title">
@@ -31,21 +98,21 @@ export const HeroSection: React.FC = () => {
               </h1>
 
               <div className="hero-genre-tags">
-                <span>Movies</span>
+                <span className="genre-pill">Movies</span>
                 <span className="bullet">•</span>
-                <span>Web Series</span>
+                <span className="genre-pill">Web Series</span>
                 <span className="bullet">•</span>
-                <span>Live TV</span>
+                <span className="genre-pill">Live TV</span>
                 <span className="bullet">•</span>
-                <span>Sports</span>
+                <span className="genre-pill">Sports</span>
                 <span className="bullet">•</span>
-                <span>More</span>
+                <span className="genre-pill">More</span>
               </div>
 
               <div className="hero-ctas-row">
-                <Link to="/catalogs" className="btn-hero-primary">
+                <Link to="/catalogs" className="btn-hero-primary animated-cta">
                   <span>Shop Now</span>
-                  <ArrowRight size={18} />
+                  <ArrowRight size={18} className="cta-arrow" />
                 </Link>
 
                 <a href="#categories" className="btn-hero-secondary">
@@ -56,78 +123,57 @@ export const HeroSection: React.FC = () => {
               {/* Instant Trust Micro-points */}
               <div className="hero-trust-bullets">
                 <div className="trust-bullet-item">
-                  <CheckCircle2 size={16} className="trust-bullet-icon" />
+                  <Zap size={16} className="trust-bullet-icon zap" />
                   <span>Instant WhatsApp Delivery</span>
                 </div>
                 <div className="trust-bullet-item">
-                  <CheckCircle2 size={16} className="trust-bullet-icon" />
+                  <ShieldCheck size={16} className="trust-bullet-icon shield" />
                   <span>Full Replacement Warranty</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Cinematic Showcase Graphic Column */}
-            <div className="hero-media-col">
-              <div className="hero-collage-container">
-                {/* Streaming Badges Showcase */}
-                <div className="streaming-services-floating-grid">
-                  <div className="floating-brand-badge brand-netflix">
-                    <span className="brand-badge-text">NETFLIX</span>
-                    <span className="brand-badge-sub">4K UHD</span>
-                  </div>
+            {/* Right Interactive Animated Screens Area */}
+            <div className="hero-interactive-screens-col">
+              {/* Floating Animated OTT Brand Screen Cards */}
+              <div className="interactive-screen-overlays">
+                {streamingBrands.map((brand, idx) => (
+                  <Link
+                    key={brand.id}
+                    to={brand.link}
+                    className={`floating-screen-badge ${brand.badgeClass} ${activeBrand === brand.id ? 'hovered' : ''}`}
+                    onMouseEnter={() => setActiveBrand(brand.id)}
+                    onMouseLeave={() => setActiveBrand(null)}
+                    style={{ animationDelay: `${idx * 0.25}s` }}
+                  >
+                    <div className="badge-glow-ring"></div>
+                    <span className="floating-badge-logo">{brand.name}</span>
+                    <span className="floating-badge-offer">{brand.offer}</span>
+                  </Link>
+                ))}
+              </div>
 
-                  <div className="floating-brand-badge brand-prime">
-                    <span className="brand-badge-text">prime video</span>
-                    <span className="brand-badge-sub">Included</span>
-                  </div>
-
-                  <div className="floating-brand-badge brand-hotstar">
-                    <span className="brand-badge-text">Disney+ hotstar</span>
-                    <span className="brand-badge-sub">Live Sports</span>
-                  </div>
-
-                  <div className="floating-brand-badge brand-zee5">
-                    <span className="brand-badge-text">ZEE5</span>
-                    <span className="brand-badge-sub">Originals</span>
-                  </div>
-
-                  <div className="floating-brand-badge brand-sonyliv">
-                    <span className="brand-badge-text">SONY LIV</span>
-                    <span className="brand-badge-sub">Champions League</span>
-                  </div>
-
-                  <div className="floating-brand-badge brand-youtube">
-                    <span className="brand-badge-text">YouTube Premium</span>
-                    <span className="brand-badge-sub">Zero Ads</span>
-                  </div>
-                </div>
-
-                {/* Center Cinema Screen Card */}
-                <div className="hero-main-screen-preview">
-                  <img
-                    src="https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=900&auto=format&fit=crop&q=80"
-                    alt="Cinematic Streaming Showcase"
-                    className="hero-screen-img"
-                  />
-                  <div className="hero-screen-overlay">
-                    <div className="hero-play-icon-glow">
-                      <Play size={22} fill="#ffffff" color="#ffffff" />
-                    </div>
-                    <div className="hero-screen-caption">
-                      <div className="hero-screen-badge">
-                        <Flame size={14} /> Hot Releases
-                      </div>
-                      <p className="hero-screen-title">5,000+ Movies, Originals & Sports</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Discount Pill */}
-                <div className="hero-floating-offer-badge">
+              {/* Floating Center Badge with 3D Hover & Pulsing Glow */}
+              <div className="hero-floating-offer-badge animated-floating-badge">
+                <div className="floating-badge-inner">
                   <span className="offer-badge-title">SPECIAL DISCOUNT</span>
                   <span className="offer-badge-value">UP TO 70% OFF</span>
+                  <span className="offer-badge-subtext">Instant WhatsApp Activation</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Bottom Live Streaming Ticker Strip */}
+          <div className="hero-bottom-ticker">
+            <div className="ticker-track">
+              <span className="ticker-item"><Flame size={13} color="#f97316" /> 240+ Subscriptions Activated Today</span>
+              <span className="ticker-dot">•</span>
+              <span className="ticker-item"><Zap size={13} color="#38bdf8" /> Average Dispatch Speed: 5-15 Mins</span>
+              <span className="ticker-dot">•</span>
+              <span className="ticker-item"><ShieldCheck size={13} color="#22c55e" /> 100% Genuine Profiles with PIN Lock</span>
+              <span className="ticker-dot">•</span>
+              <span className="ticker-item"><Sparkles size={13} color="#f59e0b" /> 50,000+ Verified Customers Nationwide</span>
             </div>
           </div>
         </div>

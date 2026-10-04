@@ -1,0 +1,146 @@
+.live-purchase-popup {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 998;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  box-shadow: 0 12px 35px -4px rgba(11, 19, 43, 0.18), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
+  max-width: 320px;
+  animation: slideUpPopup 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s ease;
+}
+
+@keyframes slideUpPopup {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .live-purchase-popup {
+    bottom: 80px; /* Above mobile bottom bar */
+    left: 14px;
+    max-width: 290px;
+    padding: 10px 12px;
+  }
+}
+
+.close-popup-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: #94a3b8;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.close-popup-btn:hover {
+  background-color: #f1f5f9;
+  color: #ef4444;
+}
+
+.popup-content-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.popup-media-box {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: #0b132b;
+  flex-shrink: 0;
+}
+
+.popup-media-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-indicator-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--brand-green);
+  border: 1.5px solid #ffffff;
+  animation: pulseGreen 1.5s infinite;
+}
+
+.popup-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.popup-buyer-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.buyer-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.buyer-loc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.popup-product-title {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.popup-product-title strong {
+  color: var(--brand-blue);
+}
+
+.popup-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 0.7rem;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #059669;
+  font-weight: 700;
+}
+
+.popup-time {
+  color: var(--text-muted);
+}

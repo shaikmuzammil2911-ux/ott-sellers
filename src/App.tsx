@@ -10,6 +10,10 @@ import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { Footer } from './components/layout/Footer';
 import { WhatsAppButton } from './components/layout/WhatsAppButton';
 
+// Interactive Popups
+import { LivePurchasePopup } from './components/common/LivePurchasePopup';
+import { PromoOfferModal } from './components/common/PromoOfferModal';
+
 // Pages
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
@@ -73,6 +77,12 @@ export const App: React.FC = () => {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
+
+          {/* Live Recent Purchase Popup Notification */}
+          <LivePurchasePopup />
+
+          {/* Promotional Offer Discount Modal */}
+          <PromoOfferModal />
 
           {/* Floating WhatsApp Support Button */}
           <WhatsAppButton />
