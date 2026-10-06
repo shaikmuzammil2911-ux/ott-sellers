@@ -71,14 +71,25 @@
   border-radius: 2px;
 }
 
-.trending-link {
-  color: #ea580c;
+.trending-link,
+.offers-nav-link {
+  color: #e50914;
+  font-weight: 700;
 }
-.trending-link:hover {
-  color: #c2410c;
+.trending-link:hover,
+.offers-nav-link:hover {
+  color: #b80710;
 }
-.trending-icon {
-  color: #f97316;
+.trending-icon,
+.offers-nav-icon {
+  color: #e50914;
+}
+.drawer-link.offer-highlight {
+  color: #e50914;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Categories Dropdown */

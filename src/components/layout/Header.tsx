@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User as UserIcon, Menu, X, ChevronDown, Flame, Film, Tv, Trophy, Smile, Crown } from 'lucide-react';
+import { Search, ShoppingCart, User as UserIcon, Menu, X, ChevronDown, Flame, Film, Tv, Trophy, Smile, Crown, Layers, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import './Header.css';
@@ -19,7 +19,7 @@ export const Header: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsSticky(window.scrollY > 40);
+      setIsSticky(window.scrollY > 30);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -66,12 +66,12 @@ export const Header: React.FC = () => {
         <Link to="/" className="header-logo" aria-label="OTT Sellers Home">
           <img 
             src="/logo.png" 
-            alt="OTT Sellers" 
+            alt="OTT Sellers - Stream More. Pay Less." 
             className="brand-logo-img"
           />
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation: Home | Categories | Items | Offers */}
         <nav className="desktop-nav" aria-label="Main Navigation">
           <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
             Home
@@ -86,12 +86,12 @@ export const Header: React.FC = () => {
               aria-expanded={isCategoryMenuOpen}
             >
               <span>Categories</span>
-              <ChevronDown size={15} className={`dropdown-chevron ${isCategoryMenuOpen ? 'open' : ''}`} />
+              <ChevronDown size={14} className={`dropdown-chevron ${isCategoryMenuOpen ? 'open' : ''}`} />
             </button>
 
             {isCategoryMenuOpen && (
               <div className="categories-dropdown-menu">
-                <div className="dropdown-header-note">Browse by Category</div>
+                <div className="dropdown-header-note">Browse Categories</div>
                 {categoriesList.map(cat => {
                   const Icon = cat.icon;
                   return (
@@ -102,27 +102,27 @@ export const Header: React.FC = () => {
                       onClick={() => setIsCategoryMenuOpen(false)}
                     >
                       <span className="dropdown-item-icon" style={{ color: cat.color }}>
-                        <Icon size={18} />
+                        <Icon size={17} />
                       </span>
                       <span className="dropdown-item-name">{cat.name}</span>
                     </Link>
                   );
                 })}
                 <div className="dropdown-divider"></div>
-                <Link to="/catalogs" className="dropdown-footer-link" onClick={() => setIsCategoryMenuOpen(false)}>
-                  View All Catalogs & Bundles →
+                <Link to="/items" className="dropdown-footer-link" onClick={() => setIsCategoryMenuOpen(false)}>
+                  View All Subscriptions Catalog →
                 </Link>
               </div>
             )}
           </div>
 
-          <Link to="/catalogs" className={`nav-link ${location.pathname.startsWith('/catalog') ? 'active' : ''}`}>
-            Catalogs
+          <Link to="/items" className={`nav-link ${location.pathname === '/items' ? 'active' : ''}`}>
+            Items
           </Link>
 
-          <Link to="/search?q=trending" className="nav-link trending-link">
-            <Flame size={16} className="trending-icon" />
-            <span>Trending</span>
+          <Link to="/offers" className={`nav-link offers-nav-link ${location.pathname === '/offers' ? 'active' : ''}`}>
+            <Flame size={15} className="offers-nav-icon" />
+            <span>Offers</span>
           </Link>
         </nav>
 
@@ -131,12 +131,12 @@ export const Header: React.FC = () => {
           <input
             type="text"
             className="desktop-search-input"
-            placeholder="Search for OTT, Movies, Subscriptions..."
+            placeholder="Search OTT, Movies, Plans..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button type="submit" className="desktop-search-btn" aria-label="Search">
-            <Search size={17} />
+            <Search size={16} />
           </button>
         </form>
 
@@ -150,7 +150,7 @@ export const Header: React.FC = () => {
           ) : (
             <Link to="/login" className="auth-pill-btn">
               <UserIcon size={18} />
-              <span className="auth-btn-text">Login / Register</span>
+              <span className="auth-btn-text">Login</span>
             </Link>
           )}
 
@@ -181,7 +181,7 @@ export const Header: React.FC = () => {
             <input
               type="text"
               className="mobile-search-input"
-              placeholder="Search OTT, Netflix, Prime, Hotstar..."
+              placeholder="Search OTT, Netflix, Hotstar, Plans..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -198,7 +198,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Navigation */}
+      {/* Mobile Drawer Navigation (Home | Categories | Items | Offers + Existing) */}
       {isMobileDrawerOpen && (
         <div className="mobile-drawer-overlay" onClick={() => setIsMobileDrawerOpen(false)}>
           <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
@@ -218,11 +218,15 @@ export const Header: React.FC = () => {
               <Link to="/" className="drawer-link" onClick={() => setIsMobileDrawerOpen(false)}>
                 Home
               </Link>
+              <Link to="/items" className="drawer-link" onClick={() => setIsMobileDrawerOpen(false)}>
+                Items / All Subscriptions
+              </Link>
+              <Link to="/offers" className="drawer-link offer-highlight" onClick={() => setIsMobileDrawerOpen(false)}>
+                <Flame size={18} color="#e50914" />
+                <span>Special Offers</span>
+              </Link>
               <Link to="/catalogs" className="drawer-link" onClick={() => setIsMobileDrawerOpen(false)}>
                 Catalogs & Bundles
-              </Link>
-              <Link to="/search?q=trending" className="drawer-link" onClick={() => setIsMobileDrawerOpen(false)}>
-                🔥 Trending Subscriptions
               </Link>
 
               <div className="drawer-section-title">Categories</div>

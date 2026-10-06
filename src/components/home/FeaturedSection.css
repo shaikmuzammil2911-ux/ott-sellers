@@ -1,0 +1,26 @@
+.featured-section {
+  padding: 24px 0 32px;
+}
+
+.featured-star-icon {
+  margin-right: 2px;
+}
+
+.product-skeleton-card {
+  min-height: 280px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: prodSkeletonShimmer 1.5s infinite;
+}
+
+@keyframes prodSkeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (max-width: 768px) {
+  .featured-section {
+    padding: 18px 0 24px;
+  }
+}

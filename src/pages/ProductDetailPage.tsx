@@ -4,7 +4,7 @@ import {
   Star, ShoppingCart, Zap, MessageCircle, ShieldCheck, Check, 
   HelpCircle, ChevronDown, ChevronUp, Clock, AlertTriangle, ArrowRight 
 } from 'lucide-react';
-import { ottApi } from '../services/api';
+import { ottApi, getCleanImageUrl } from '../services/api';
 import { Product, PlanDuration, ProductPlan } from '../types';
 import { useCart } from '../context/CartContext';
 import { Breadcrumb } from '../components/common/Breadcrumb';
@@ -101,7 +101,7 @@ export const ProductDetailPage: React.FC = () => {
               style={{ backgroundColor: product.brandColor || '#0b132b' }}
             >
               <img 
-                src={product.image} 
+                src={getCleanImageUrl(product.image, product.updatedAt)} 
                 alt={product.name} 
                 className="product-detail-img"
               />

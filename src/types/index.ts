@@ -41,10 +41,41 @@ export interface Product {
   faqs: { question: string; answer: string }[];
   isTrending?: boolean;
   isPopular?: boolean;
+  isFeatured?: boolean;
+  inOffers?: boolean;
+  offerPrice?: number;
+  offerOriginalPrice?: number;
+  offerDiscountPercentage?: number;
+  displayOrder?: number;
+  status?: 'ON' | 'OFF';
   inStock: boolean;
   stockCount?: number;
   warrantyPeriod: string;
   badge?: string;
+  updatedAt?: number;
+}
+
+export type BannerImageMode = 'solid-color' | 'image-blur' | 'image-only';
+export type BannerTextPosition = 'left' | 'center' | 'right';
+
+export interface HeroBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaLink: string;
+  secondaryCtaText?: string;
+  secondaryCtaLink?: string;
+  desktopImage: string;
+  mobileImage: string;
+  mode: BannerImageMode;
+  solidColor?: string;
+  textPosition: BannerTextPosition;
+  displayOrder: number;
+  status: 'ON' | 'OFF';
+  badgeText?: string;
+  showText?: boolean;
+  updatedAt?: number;
 }
 
 export interface Category {
@@ -57,6 +88,9 @@ export interface Category {
   bgGradient: string;
   titlesCount: string;
   image: string;
+  status?: 'ON' | 'OFF';
+  displayOrder?: number;
+  updatedAt?: number;
 }
 
 export interface SubCategory {

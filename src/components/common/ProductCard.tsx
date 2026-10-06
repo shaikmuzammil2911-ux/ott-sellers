@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { getCleanImageUrl } from '../../services/api';
 import './ProductCard.css';
 
 interface ProductCardProps {
@@ -25,12 +26,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     addToCart(product, defaultPlan.duration, 1);
   };
 
+  const imgUrl = getCleanImageUrl(product.image, product.updatedAt);
+
   return (
     <div className="product-card" onClick={handleCardClick} role="button" tabIndex={0}>
       {/* Media Banner with Brand Styling */}
       <div className="product-card-media" style={{ backgroundColor: product.brandColor || '#0b132b' }}>
         <img 
-          src={product.image} 
+          src={imgUrl} 
           alt={product.name} 
           loading="lazy"
         />

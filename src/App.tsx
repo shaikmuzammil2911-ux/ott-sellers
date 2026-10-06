@@ -30,6 +30,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { AccountPage } from './pages/AccountPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
+import { ItemsPage } from './pages/ItemsPage';
+import { OffersPage } from './pages/OffersPage';
 
 // Toast Notification Renderer
 const CartToast: React.FC = () => {
@@ -58,6 +60,9 @@ export const App: React.FC = () => {
           <main style={{ minHeight: 'calc(100vh - 450px)' }}>
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/items" element={<ItemsPage />} />
+              <Route path="/offers" element={<OffersPage />} />
+              <Route path="/categories" element={<ItemsPage />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/product/:slug" element={<ProductDetailPage />} />
               <Route path="/catalogs" element={<CatalogsPage />} />

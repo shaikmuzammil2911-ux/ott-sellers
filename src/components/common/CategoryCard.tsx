@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Film, Tv, Trophy, Smile, Crown } from 'lucide-react';
 import { Category } from '../../types';
+import { getCleanImageUrl } from '../../services/api';
 import './CategoryCard.css';
 
 interface CategoryCardProps {
@@ -12,25 +13,27 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
   const getIcon = () => {
     switch (category.iconName) {
       case 'Film':
-        return <span className="cat-brand-letter">N</span>;
+        return <Film size={22} />;
       case 'Tv':
-        return <Tv size={28} />;
+        return <Tv size={22} />;
       case 'Trophy':
-        return <Trophy size={28} />;
+        return <Trophy size={22} />;
       case 'Smile':
-        return <Smile size={28} />;
+        return <Smile size={22} />;
       case 'Crown':
-        return <Crown size={28} />;
+        return <Crown size={22} />;
       default:
-        return <Film size={28} />;
+        return <Film size={22} />;
     }
   };
+
+  const bgImage = getCleanImageUrl(category.image, category.updatedAt);
 
   return (
     <Link 
       to={`/category/${category.slug}`} 
       className="main-category-card"
-      style={{ backgroundImage: `url(${category.image})` }}
+      style={{ backgroundImage: bgImage ? `url(${bgImage})` : undefined }}
     >
       <div className="category-card-overlay" style={{ background: category.bgGradient }}>
         <div className="category-icon-wrapper" style={{ backgroundColor: category.badgeColor }}>
@@ -42,7 +45,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
           <p className="category-card-count">{category.titlesCount}</p>
         </div>
 
-        <div className="category-arrow-btn">
+        <div className="category-arrow-btn" aria-hidden="true">
           <ChevronRight size={18} />
         </div>
       </div>

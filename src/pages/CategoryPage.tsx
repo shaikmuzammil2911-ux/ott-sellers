@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronDown, SlidersHorizontal, Sparkles, AlertCircle } from 'lucide-react';
-import { ottApi } from '../services/api';
+import { ottApi, getCleanImageUrl } from '../services/api';
 import { Product, Category, SubCategory } from '../types';
 import { Breadcrumb } from '../components/common/Breadcrumb';
 import { ProductCard } from '../components/common/ProductCard';
@@ -115,7 +115,7 @@ export const CategoryPage: React.FC = () => {
         <div 
           className="category-hero-banner" 
           style={{ 
-            backgroundImage: category?.image ? `url(${category.image})` : undefined,
+            backgroundImage: category?.image ? `url(${getCleanImageUrl(category.image, category.updatedAt)})` : undefined,
             backgroundColor: subcategory?.brandColor || '#0b132b'
           }}
         >
