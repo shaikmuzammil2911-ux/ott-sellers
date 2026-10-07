@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User as UserIcon, Menu, X, ChevronDown, Flame, Film, Tv, Trophy, Smile, Crown, Layers, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -24,6 +25,18 @@ export const Header: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Lock body scroll when mobile drawer is open so scrolling the menu doesn't leak to background
+  useEffect(() => {
+    if (isMobileDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileDrawerOpen]);
 
   // Close menus on page route changes
   useEffect(() => {
@@ -198,8 +211,8 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Navigation (Home | Categories | Items | Offers + Existing) */}
-      {isMobileDrawerOpen && (
+      {/* Mobile Drawer Navigation rendered via Portal to escape sticky header stacking & backdrop-filter context */}
+      {isMobileDrawerOpen && createPortal(
         <div className="mobile-drawer-overlay" onClick={() => setIsMobileDrawerOpen(false)}>
           <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-drawer-header">
@@ -278,7 +291,8 @@ export const Header: React.FC = () => {
               </a>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );
