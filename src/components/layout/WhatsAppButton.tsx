@@ -29,7 +29,7 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ customMessage })
     return 'Hi OTT Sellers! I have an enquiry regarding subscription plans and instant delivery.';
   };
 
-  const phone = '919876543210';
+  const phone = '919441323332';
   const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(getWhatsAppMessage())}`;
 
   return (

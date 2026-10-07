@@ -36,7 +36,7 @@ export const CartPage: React.FC = () => {
   }
 
   const whatsappCartMessage = `Hi OTT Sellers, I need help with my cart containing ${items.length} subscription(s) worth ₹${totalPrice}.`;
-  const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(whatsappCartMessage)}`;
+  const whatsappUrl = `https://wa.me/919441323332?text=${encodeURIComponent(whatsappCartMessage)}`;
 
   return (
     <div className="cart-page">

@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ShoppingBag, ArrowRight, MessageCircle, FileText, Clock, Zap } from 'lucide-react';
 import { Order } from '../types';
+import { paymentService } from '../services/paymentService';
 import './CheckoutResult.css';
 
 export const CheckoutSuccessPage: React.FC = () => {
@@ -11,10 +12,22 @@ export const CheckoutSuccessPage: React.FC = () => {
 
   const orderId = order?.id || 'OTS-2026-00004';
   const amountPaid = order?.total || 999;
-  const whatsappNumber = order?.customerWhatsApp || '+91 98765 43210';
+  const whatsappNumber = order?.customerWhatsApp || '+91 9441323332';
 
-  const whatsappMessage = `Hi OTT Sellers, I just completed order ${orderId} for ₹${amountPaid}. Please verify and dispatch my credentials.`;
-  const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(whatsappMessage)}`;
+  // Direct WhatsApp Sales & Activation redirect to 9441323332
+  const whatsappUrl = order 
+    ? paymentService.generateWhatsAppOrderUrl(order)
+    : `https://wa.me/919441323332?text=${encodeURIComponent(`Hi OTT Sellers, I just completed order ${orderId} for ₹${amountPaid}. Please verify and dispatch my credentials.`)}`;
+
+  React.useEffect(() => {
+    // Automatically trigger WhatsApp redirect after 1.5 seconds if order is present
+    if (order) {
+      const timer = setTimeout(() => {
+        window.open(whatsappUrl, '_blank');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [order, whatsappUrl]);
 
   return (
     <div className="checkout-result-page success-theme">
@@ -89,7 +102,7 @@ export const CheckoutSuccessPage: React.FC = () => {
               className="btn-result-whatsapp"
             >
               <MessageCircle size={18} />
-              <span>WhatsApp Support</span>
+              <span>Open WhatsApp & Receive Credentials (9441323332)</span>
             </a>
 
             <Link to="/" className="btn-result-outline">

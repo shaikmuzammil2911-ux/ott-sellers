@@ -50,7 +50,7 @@ export const CheckoutFailedPage: React.FC = () => {
             </Link>
 
             <a 
-              href="https://wa.me/919876543210?text=Hi%20OTT%20Sellers%2C%20my%20payment%20failed%20at%20checkout.%20Can%20you%20help%20me%20complete%20the%20order%3F" 
+              href="https://wa.me/919441323332?text=Hi%20OTT%20Sellers%2C%20my%20payment%20failed%20at%20checkout.%20Can%20you%20help%20me%20complete%20the%20order%3F" 
               target="_blank" 
               rel="noreferrer" 
               className="btn-result-whatsapp"

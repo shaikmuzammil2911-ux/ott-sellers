@@ -56,7 +56,7 @@ export const OrderDetailPage: React.FC = () => {
   }
 
   const whatsappMessage = `Hi OTT Sellers, I need help with Order ${order.id}.`;
-  const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(whatsappMessage)}`;
+  const whatsappUrl = `https://wa.me/919441323332?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <div className="account-page order-detail-view">
@@ -100,41 +100,57 @@ export const OrderDetailPage: React.FC = () => {
                   <h4 className="item-vault-name">{item.name}</h4>
                   
                   {item.credentials ? (
-                    <div className="credentials-fields">
-                      {item.credentials.email && (
+                    typeof item.credentials === 'string' ? (
+                      <div className="credentials-fields">
                         <div className="cred-field-row">
-                          <span className="cred-label">Login Account:</span>
-                          <span className="cred-val">{item.credentials.email}</span>
+                          <span className="cred-label">Credentials:</span>
+                          <span className="cred-val">{item.credentials}</span>
                           <button
                             type="button"
                             className="btn-copy-cred"
-                            onClick={() => copyToClipboard(item.credentials?.email || '', `email-${idx}`)}
+                            onClick={() => copyToClipboard(typeof item.credentials === 'string' ? item.credentials : '', `cred-${idx}`)}
                           >
-                            {copiedText === `email-${idx}` ? <Check size={14} /> : <Copy size={14} />}
+                            {copiedText === `cred-${idx}` ? <Check size={14} /> : <Copy size={14} />}
                           </button>
                         </div>
-                      )}
+                      </div>
+                    ) : (
+                      <div className="credentials-fields">
+                        {item.credentials.email && (
+                          <div className="cred-field-row">
+                            <span className="cred-label">Login Account:</span>
+                            <span className="cred-val">{item.credentials.email}</span>
+                            <button
+                              type="button"
+                              className="btn-copy-cred"
+                              onClick={() => copyToClipboard(typeof item.credentials === 'object' ? item.credentials.email || '' : '', `email-${idx}`)}
+                            >
+                              {copiedText === `email-${idx}` ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        )}
 
-                      {item.credentials.profilePin && (
-                        <div className="cred-field-row">
-                          <span className="cred-label">Profile / PIN:</span>
-                          <span className="cred-val highlight">{item.credentials.profilePin}</span>
-                          <button
-                            type="button"
-                            className="btn-copy-cred"
-                            onClick={() => copyToClipboard(item.credentials?.profilePin || '', `pin-${idx}`)}
-                          >
-                            {copiedText === `pin-${idx}` ? <Check size={14} /> : <Copy size={14} />}
-                          </button>
-                        </div>
-                      )}
+                        {item.credentials.profilePin && (
+                          <div className="cred-field-row">
+                            <span className="cred-label">Profile / PIN:</span>
+                            <span className="cred-val highlight">{item.credentials.profilePin}</span>
+                            <button
+                              type="button"
+                              className="btn-copy-cred"
+                              onClick={() => copyToClipboard(typeof item.credentials === 'object' ? item.credentials.profilePin || '' : '', `pin-${idx}`)}
+                            >
+                              {copiedText === `pin-${idx}` ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        )}
 
-                      {item.credentials.instruction && (
-                        <div className="cred-instruction-note">
-                          <strong>Instructions:</strong> {item.credentials.instruction}
-                        </div>
-                      )}
-                    </div>
+                        {item.credentials.instruction && (
+                          <div className="cred-instruction-note">
+                            <strong>Instructions:</strong> {item.credentials.instruction}
+                          </div>
+                        )}
+                      </div>
+                    )
                   ) : (
                     <div className="cred-pending-state">
                       <Clock size={16} />

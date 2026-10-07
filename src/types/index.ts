@@ -35,6 +35,8 @@ export interface Product {
   reviewsCount: number;
   defaultPlan: PlanDuration;
   plans: ProductPlan[];
+  price?: number;
+  comparePrice?: number;
   features: string[];
   deliverables: string[];
   rules: string[];
@@ -82,10 +84,11 @@ export interface Category {
   id: string;
   slug: string;
   name: string;
+  description?: string;
   shortDescription: string;
-  iconName: string;
-  badgeColor: string;
-  bgGradient: string;
+  iconName?: string;
+  badgeColor?: string;
+  bgGradient?: string;
   titlesCount: string;
   image: string;
   status?: 'ON' | 'OFF';
@@ -129,7 +132,7 @@ export interface CartItem {
 }
 
 export type OrderStatus = 'Pending' | 'Paid' | 'Processing' | 'Delivered' | 'Completed' | 'Cancelled';
-export type PaymentStatus = 'Pending' | 'Success' | 'Failed';
+export type PaymentStatus = 'Pending' | 'Success' | 'Failed' | 'Paid';
 
 export interface OrderItem {
   productId: string;
@@ -141,7 +144,7 @@ export interface OrderItem {
     email?: string;
     profilePin?: string;
     instruction?: string;
-  };
+  } | string;
 }
 
 export interface Order {
@@ -168,5 +171,61 @@ export interface User {
   email: string;
   mobile: string;
   whatsapp: string;
+  role?: 'customer' | 'admin';
   joinedDate: string;
+}
+
+export interface Course {
+  id: string;
+  title: string;
+  slug: string;
+  shortDescription?: string;
+  description: string;
+  content?: string;
+  imageUrl: string;
+  price: number;
+  comparePrice?: number;
+  duration?: string;
+  status: 'published' | 'draft' | 'archived';
+  isFeatured?: boolean;
+  sortOrder?: number;
+  features?: string[];
+  curriculum?: string[];
+  faqs?: { question: string; answer: string }[];
+  categorySlug?: string;
+  updatedAt?: number;
+}
+
+export interface HomepageSectionCMS {
+  id: string;
+  sectionKey: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  imageUrl?: string;
+  settings?: Record<string, any>;
+  isActive?: boolean;
+}
+
+export interface AdminSettings {
+  id: string;
+  siteName: string;
+  supportEmail: string;
+  supportPhone: string;
+  supportWhatsApp: string;
+  announcementText: string;
+  razorpayKeyId?: string;
+  smtpHost?: string;
+  smtpUser?: string;
+  updatedAt?: number;
+}
+
+export interface AuditLog {
+  id: string;
+  adminUser: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  details?: any;
+  timestamp: string;
 }

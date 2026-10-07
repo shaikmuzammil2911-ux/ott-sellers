@@ -208,7 +208,7 @@ export const ItemsPage: React.FC = () => {
                   className={`cat-filter-btn ${selectedCategory === cat.slug ? 'active' : ''}`}
                   onClick={() => handleCategorySelect(cat.slug)}
                 >
-                  {getCategoryIcon(cat.iconName)}
+                  {getCategoryIcon(cat.iconName || 'Compass')}
                   <span>{cat.name}</span>
                   <span className="badge-count">{count}</span>
                 </button>

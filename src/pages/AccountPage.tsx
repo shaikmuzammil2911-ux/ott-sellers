@@ -179,7 +179,7 @@ export const AccountPage: React.FC = () => {
 
                 <div className="support-channels-grid">
                   <a 
-                    href="https://wa.me/919876543210?text=Hi%20OTT%20Sellers%2C%20I%20need%20customer%20support%20assistance."
+                    href="https://wa.me/919441323332?text=Hi%20OTT%20Sellers%2C%20I%20need%20customer%20support%20assistance."
                     target="_blank"
                     rel="noreferrer"
                     className="support-channel-card whatsapp"

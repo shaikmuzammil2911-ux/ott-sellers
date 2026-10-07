@@ -24,7 +24,7 @@ export const TrustSection: React.FC = () => {
     {
       title: 'WhatsApp Order Updates',
       desc: 'Get real-time order notifications',
-      to: 'https://wa.me/919876543210',
+      to: 'https://wa.me/919441323332',
       isExternal: true,
       icon: MessageCircle,
       bgColor: '#dcfce7',

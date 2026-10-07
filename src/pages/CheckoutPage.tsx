@@ -7,6 +7,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ottApi } from '../services/api';
+import { paymentService } from '../services/paymentService';
 import { Breadcrumb } from '../components/common/Breadcrumb';
 import './CheckoutPage.css';
 
@@ -16,10 +17,10 @@ export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Form states
-  const [fullName, setFullName] = useState(user?.name || 'Muzammil Shaik');
-  const [mobileNumber, setMobileNumber] = useState(user?.mobile || '+91 98765 43210');
-  const [email, setEmail] = useState(user?.email || 'muzammil@example.com');
-  const [whatsappNumber, setWhatsappNumber] = useState(user?.whatsapp || '+91 98765 43210');
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [mobileNumber, setMobileNumber] = useState(user?.mobile || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(user?.whatsapp || user?.mobile || '');
 
   // Payment states
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
@@ -68,36 +69,63 @@ export const CheckoutPage: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      const orderItems = items.map(i => ({
-        productId: i.productId,
-        name: `${i.name} (${i.planDuration})`,
-        planDuration: i.planDuration,
-        price: i.price,
-        quantity: i.quantity,
-        credentials: {
-          instruction: 'Credentials and login guide will be sent directly to your WhatsApp Number shortly.'
-        }
-      }));
+      // Authoritative database pricing verification
+      const dbProducts = await ottApi.getProducts();
+      let verifiedSubtotal = 0;
+      const orderItems = items.map(i => {
+        const dbProd = dbProducts.find(p => p.id === i.productId || p.slug === i.productSlug);
+        const plan = dbProd?.plans.find(p => p.duration === i.planDuration);
+        const authoritativePrice = plan ? plan.price : i.price;
+        verifiedSubtotal += authoritativePrice * i.quantity;
 
-      const newOrder = await ottApi.createOrder({
-        customerName: fullName,
-        customerEmail: email,
-        customerMobile: mobileNumber,
-        customerWhatsApp: whatsappNumber,
-        items: orderItems,
-        subtotal,
-        discount: discountTotal,
-        total: totalPrice,
-        paymentMethod: paymentMethod === 'upi' ? 'UPI (QR / Google Pay / PhonePe)' : paymentMethod === 'card' ? 'Credit / Debit Card' : 'Net Banking',
-        paymentStatus: 'Success',
-        orderStatus: 'Processing',
-        screenshotUrl: screenshotPreview || undefined,
-        notes: 'Order placed via OTT Sellers Web UI.'
+        return {
+          productId: i.productId,
+          name: `${i.name} (${i.planDuration})`,
+          planDuration: i.planDuration,
+          price: authoritativePrice,
+          quantity: i.quantity,
+          credentials: {
+            instruction: 'Credentials and login guide will be sent directly to your WhatsApp Number shortly.'
+          }
+        };
       });
 
-      clearCart();
-      setIsProcessing(false);
-      navigate('/checkout/success', { state: { order: newOrder } });
+      const finalTotal = Math.max(verifiedSubtotal - discountTotal, 0);
+
+      // Open Razorpay Checkout or Direct Verification
+      await paymentService.openCheckout({
+        orderId: `OTS_${Date.now()}`,
+        amount: finalTotal,
+        customerName: fullName,
+        customerEmail: email,
+        customerPhone: whatsappNumber,
+        description: `OTT Sellers - ${items.length} Subscriptions Order`,
+        onSuccess: async (paymentId: string) => {
+          const newOrder = await ottApi.createOrder({
+            customerName: fullName,
+            customerEmail: email,
+            customerMobile: mobileNumber,
+            customerWhatsApp: whatsappNumber,
+            items: orderItems,
+            subtotal: verifiedSubtotal,
+            discount: discountTotal,
+            total: finalTotal,
+            paymentMethod: paymentMethod === 'upi' ? 'UPI (QR / Google Pay / PhonePe)' : paymentMethod === 'card' ? 'Credit / Debit Card' : 'Net Banking',
+            paymentStatus: 'Success',
+            orderStatus: 'Paid',
+            screenshotUrl: screenshotPreview || undefined,
+            notes: `Payment Ref: ${paymentId}`
+          });
+
+          clearCart();
+          setIsProcessing(false);
+          navigate('/checkout/success', { state: { order: newOrder } });
+        },
+        onFailure: (err: string) => {
+          setIsProcessing(false);
+          setErrorMsg(err || 'Payment was cancelled or failed.');
+        }
+      });
     } catch {
       setIsProcessing(false);
       navigate('/checkout/failed', { state: { error: 'Payment processing encountered an unexpected issue.' } });
@@ -376,7 +404,7 @@ export const CheckoutPage: React.FC = () => {
 
               <div className="checkout-support-box">
                 <a 
-                  href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hi OTT Sellers, I am at checkout for ₹${totalPrice}. Need help with payment.`)}`}
+                  href={`https://wa.me/919441323332?text=${encodeURIComponent(`Hi OTT Sellers, I am at checkout for ₹${totalPrice}. Need help with payment.`)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="checkout-whatsapp-btn"

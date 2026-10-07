@@ -269,12 +269,12 @@ export const Header: React.FC = () => {
 
             <div className="mobile-drawer-footer">
               <a 
-                href="https://wa.me/919876543210?text=Hi%20OTT%20Sellers%2C%20I%20have%20an%20enquiry%20regarding%20subscriptions."
+                href="https://wa.me/919441323332?text=Hi%20OTT%20Sellers%2C%20I%20have%20an%20enquiry%20regarding%20subscriptions."
                 target="_blank" 
                 rel="noreferrer"
                 className="drawer-whatsapp-btn"
               >
-                WhatsApp Support: +91 98765 43210
+                WhatsApp Support: +91 9441323332
               </a>
             </div>
           </div>

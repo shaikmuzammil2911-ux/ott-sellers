@@ -42,7 +42,7 @@ export const Footer: React.FC = () => {
           <h4 className="footer-col-title">Customer Support</h4>
           <ul className="footer-links">
             <li><Link to="/account/orders">Track Order Status</Link></li>
-            <li><a href="https://wa.me/919876543210" target="_blank" rel="noreferrer">WhatsApp 24/7 Helpline</a></li>
+            <li><a href="https://wa.me/919441323332" target="_blank" rel="noreferrer">WhatsApp 24/7 Helpline (+91 9441323332)</a></li>
             <li><Link to="/search?q=faq">FAQs & Help Center</Link></li>
             <li><a href="#terms">Terms & Conditions</a></li>
             <li><a href="#privacy">Privacy Policy</a></li>

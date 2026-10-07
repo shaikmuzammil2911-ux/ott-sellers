@@ -78,7 +78,7 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const whatsappMessage = `Hi OTT Sellers, I am interested in ${product.name} - ${selectedDuration} (₹${selectedPlan.price}). Can you assist with activation?`;
-  const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(whatsappMessage)}`;
+  const whatsappUrl = `https://wa.me/919441323332?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <div className="product-detail-page">
