@@ -43,6 +43,18 @@ export const AdminCategoriesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    const handleUpdate = (e: any) => {
+      if (!e?.detail || e.detail.entityType === 'categories') {
+        setCategories(ottApi.getCachedCategoriesAdmin());
+      }
+    };
+    window.addEventListener('ott_data_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('ott_data_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const handleOpenAddModal = () => {
@@ -108,28 +120,23 @@ export const AdminCategoriesPage: React.FC = () => {
       description: formDescription.trim(),
       shortDescription: formDescription.trim(),
       image: formImageUrl || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=60',
-      badgeColor: formBadgeColor,
-      titlesCount: formTitlesCount,
+      iconName: editingCategory?.iconName || 'Compass',
+      badgeColor: formBadgeColor || '#0284c7',
+      bgGradient: editingCategory?.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
+      titlesCount: formTitlesCount || '10+ Plans',
       displayOrder: Number(formDisplayOrder) || 1,
       status: formStatus,
       updatedAt: Date.now()
     };
 
-    // Optimistically update local view immediately
-    setCategories(prev => {
-      const idx = prev.findIndex(item => item.id === categoryData.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = categoryData;
-        return copy;
-      }
-      return [...prev, categoryData];
-    });
-
+    // 1. Immediately save to API (which saves to cache and broadcasts live update)
     await ottApi.saveCategory(categoryData);
     await ottApi.logAudit(editingCategory ? 'UPDATE_CATEGORY' : 'CREATE_CATEGORY', 'categories', categoryData.id, { name: categoryData.name, slug: categoryData.slug });
 
-    setSaveSuccessMsg(`Category "${categoryData.name}" saved successfully to Supabase! Live storefront updated.`);
+    // 2. Immediately update state from fresh cache
+    setCategories(ottApi.getCachedCategoriesAdmin());
+
+    setSaveSuccessMsg(`Category "${categoryData.name}" saved! Directly visible in admin panel and live website.`);
     setTimeout(() => setSaveSuccessMsg(null), 4000);
     setIsModalOpen(false);
     await loadData();

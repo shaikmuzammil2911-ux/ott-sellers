@@ -258,48 +258,28 @@ export const ottApi = {
   // 3. CATEGORIES & SUBCATEGORIES
   // ====================================================================
   async getCategories(): Promise<Category[]> {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('sort_order', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        const categories: Category[] = data.map(c => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-          description: c.description || '',
-          shortDescription: c.short_description || c.description || '',
-          image: c.image_url || '',
-          iconName: c.icon_name || 'Compass',
-          badgeColor: c.badge_color || '#0284c7',
-          bgGradient: c.bg_gradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
-          titlesCount: c.titles_count || '10+ Plans',
-          status: c.status || (c.is_active ? 'ON' : 'OFF'),
-          displayOrder: c.sort_order || 0,
-          updatedAt: new Date(c.updated_at || Date.now()).getTime()
-        }));
-
-        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-        return categories.filter(c => c.status !== 'OFF');
-      }
-    } catch (e) {
-      console.warn('Supabase getCategories fallback:', e);
-    }
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      if (stored) {
-        const parsed: Category[] = JSON.parse(stored);
-        return parsed.filter(c => c.status !== 'OFF').sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-      }
-    } catch {}
-
-    return [...CATEGORIES_DATA].filter(c => c.status !== 'OFF');
+    const all = await this.getAllCategoriesAdmin();
+    return all.filter(c => c.status !== 'OFF');
   },
 
   async getAllCategoriesAdmin(): Promise<Category[]> {
+    // 1. Always load current local categories first as safety baseline
+    let localCategories: Category[] = [];
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localCategories = parsed;
+        }
+      }
+    } catch {}
+
+    if (localCategories.length === 0) {
+      localCategories = [...CATEGORIES_DATA];
+    }
+
+    // 2. Fetch from Supabase
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -307,7 +287,7 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        return data.map(c => ({
+        const dbCategories: Category[] = data.map(c => ({
           id: c.id,
           name: c.name,
           slug: c.slug,
@@ -322,62 +302,107 @@ export const ottApi = {
           displayOrder: c.sort_order || 0,
           updatedAt: new Date(c.updated_at || Date.now()).getTime()
         }));
+
+        // SMART MERGE: Start with DB categories, preserve any local additions or recently updated categories
+        const mergedMap = new Map<string, Category>();
+        dbCategories.forEach(c => {
+          mergedMap.set(c.slug.toLowerCase(), c);
+        });
+
+        localCategories.forEach(localCat => {
+          const key = localCat.slug.toLowerCase();
+          const existing = mergedMap.get(key);
+          if (!existing) {
+            // Category was added locally and is not yet in DB -> KEEP IT
+            mergedMap.set(key, localCat);
+          } else if ((localCat.updatedAt || 0) > (existing.updatedAt || 0)) {
+            // Local version was modified more recently -> KEEP IT
+            mergedMap.set(key, localCat);
+          }
+        });
+
+        const merged = Array.from(mergedMap.values()).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(merged));
+        return merged;
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Supabase getAllCategoriesAdmin fallback:', e);
+    }
 
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      if (stored) return JSON.parse(stored);
-    } catch {}
-
-    return [...CATEGORIES_DATA];
+    return localCategories;
   },
 
   async saveCategory(cat: Category): Promise<void> {
-    const all = await this.getAllCategoriesAdmin();
-    const existingIndex = all.findIndex(c => c.id === cat.id || c.slug === cat.slug);
+    const all = this.getCachedCategoriesAdmin();
+    const existingIndex = all.findIndex(c => c.id === cat.id || c.slug.toLowerCase() === cat.slug.toLowerCase());
+    const categoryToSave: Category = {
+      ...cat,
+      bgGradient: cat.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
+      badgeColor: cat.badgeColor || '#0284c7',
+      iconName: cat.iconName || 'Compass',
+      titlesCount: cat.titlesCount || '10+ Plans',
+      updatedAt: Date.now()
+    };
+
     let updated: Category[];
     if (existingIndex >= 0) {
       updated = [...all];
-      updated[existingIndex] = { ...cat, updatedAt: Date.now() };
+      updated[existingIndex] = categoryToSave;
     } else {
-      updated = [...all, { ...cat, updatedAt: Date.now() }];
+      updated = [...all, categoryToSave];
     }
 
+    // Immediately persist locally and broadcast event to all open tabs and pages
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
     broadcastDataUpdate('categories');
 
+    // Sync to Supabase PostgreSQL table
     try {
-      await supabase.from('categories').upsert({
-        id: cat.id,
-        name: cat.name,
-        slug: cat.slug,
-        description: cat.description,
-        short_description: cat.shortDescription,
-        image_url: cat.image,
-        icon_name: cat.iconName,
-        badge_color: cat.badgeColor,
-        bg_gradient: cat.bgGradient,
-        titles_count: cat.titlesCount,
-        status: cat.status || 'ON',
-        is_active: cat.status !== 'OFF',
-        sort_order: cat.displayOrder || 0,
+      const payload: any = {
+        name: categoryToSave.name,
+        slug: categoryToSave.slug,
+        description: categoryToSave.description || '',
+        short_description: categoryToSave.shortDescription || categoryToSave.description || '',
+        image_url: categoryToSave.image || '',
+        icon_name: categoryToSave.iconName || 'Compass',
+        badge_color: categoryToSave.badgeColor || '#0284c7',
+        bg_gradient: categoryToSave.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
+        titles_count: categoryToSave.titlesCount || '10+ Plans',
+        status: categoryToSave.status || 'ON',
+        is_active: categoryToSave.status !== 'OFF',
+        sort_order: categoryToSave.displayOrder || 0,
         updated_at: new Date().toISOString()
-      });
+      };
+      if (categoryToSave.id) {
+        payload.id = categoryToSave.id;
+      }
+
+      const { error } = await supabase.from('categories').upsert(payload, { onConflict: 'slug' });
+      if (error) {
+        console.warn('Supabase category upsert notice:', error.message || error);
+        // Fallback insert attempt
+        await supabase.from('categories').insert(payload);
+      }
     } catch (e) {
-      console.error('Failed to sync category to Supabase:', e);
+      console.warn('Failed to sync category to Supabase:', e);
     }
   },
 
   async deleteCategory(id: string): Promise<void> {
-    const all = await this.getAllCategoriesAdmin();
-    const updated = all.filter(c => c.id !== id);
+    const all = this.getCachedCategoriesAdmin();
+    const target = all.find(c => c.id === id || c.slug === id);
+    const updated = all.filter(c => c.id !== id && c.slug !== id);
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
     broadcastDataUpdate('categories');
 
     try {
+      if (target?.slug) {
+        await supabase.from('categories').delete().eq('slug', target.slug);
+      }
       await supabase.from('categories').delete().eq('id', id);
-    } catch {}
+    } catch (e) {
+      console.warn('Failed to delete category in Supabase:', e);
+    }
   },
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {

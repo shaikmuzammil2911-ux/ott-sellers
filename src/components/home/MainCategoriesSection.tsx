@@ -7,13 +7,17 @@ import { CategoryCard } from '../common/CategoryCard';
 import './MainCategoriesSection.css';
 
 export const MainCategoriesSection: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(() => 
+    ottApi.getCachedCategoriesAdmin().filter(c => c.status !== 'OFF')
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadCategories = useCallback(async () => {
     try {
       const data = await ottApi.getCategories();
-      setCategories(data);
+      if (data && data.length > 0) {
+        setCategories(data);
+      }
     } catch (err) {
       console.error('Error fetching categories:', err);
     } finally {
@@ -24,7 +28,12 @@ export const MainCategoriesSection: React.FC = () => {
   useEffect(() => {
     loadCategories();
 
-    const handleUpdate = () => loadCategories();
+    const handleUpdate = (e: any) => {
+      if (!e?.detail || e.detail.entityType === 'categories') {
+        setCategories(ottApi.getCachedCategoriesAdmin().filter(c => c.status !== 'OFF'));
+        loadCategories();
+      }
+    };
     window.addEventListener('ott_data_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
