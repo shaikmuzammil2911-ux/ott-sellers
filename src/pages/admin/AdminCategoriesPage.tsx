@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Edit2, Trash2, Check, X, Upload, 
-  FolderTree, RefreshCw, AlertCircle, Eye, EyeOff 
+  Plus, Search, Edit2, Trash2, Check, X, 
+  FolderTree, RefreshCw, AlertCircle, Eye, EyeOff, Layers, Hash 
 } from 'lucide-react';
-import { ottApi, getCleanImageUrl } from '../../services/api';
-import { uploadService } from '../../services/uploadService';
+import { ottApi } from '../../services/api';
 import { Category } from '../../types';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
   // Modal State
@@ -18,15 +18,8 @@ export const AdminCategoriesPage: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formImageUrl, setFormImageUrl] = useState('');
-  const [formBadgeColor, setFormBadgeColor] = useState('#0284c7');
-  const [formTitlesCount, setFormTitlesCount] = useState('10+ Plans');
   const [formDisplayOrder, setFormDisplayOrder] = useState('1');
   const [formStatus, setFormStatus] = useState<'ON' | 'OFF'>('ON');
-
-  // Uploading state
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -57,17 +50,18 @@ export const AdminCategoriesPage: React.FC = () => {
     };
   }, []);
 
+  const showToast = (msg: string) => {
+    setSaveSuccessMsg(msg);
+    setTimeout(() => setSaveSuccessMsg(null), 4000);
+  };
+
   const handleOpenAddModal = () => {
     setEditingCategory(null);
     setFormName('');
     setFormSlug('');
     setFormDescription('');
-    setFormImageUrl('');
-    setFormBadgeColor('#0284c7');
-    setFormTitlesCount('12+ Plans');
     setFormDisplayOrder(String(categories.length + 1));
     setFormStatus('ON');
-    setUploadError(null);
     setIsModalOpen(true);
   };
 
@@ -76,36 +70,23 @@ export const AdminCategoriesPage: React.FC = () => {
     setFormName(c.name);
     setFormSlug(c.slug);
     setFormDescription(c.description || '');
-    setFormImageUrl(c.image || '');
-    setFormBadgeColor(c.badgeColor || '#0284c7');
-    setFormTitlesCount(c.titlesCount || '10+ Plans');
     setFormDisplayOrder(String(c.displayOrder || 1));
     setFormStatus(c.status || 'ON');
-    setUploadError(null);
     setIsModalOpen(true);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    const res = await uploadService.uploadImage(file, 'categories');
-    setIsUploading(false);
-
-    if (res.success && res.url) {
-      setFormImageUrl(res.url);
-    } else {
-      setUploadError(res.error || 'Failed to upload image. Please try again or paste image URL.');
+  const handleNameChange = (name: string) => {
+    setFormName(name);
+    if (!editingCategory) {
+      const autoSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      setFormSlug(autoSlug);
     }
   };
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
-      alert('Category name is required');
+      alert('Category name is required.');
       return;
     }
 
@@ -119,51 +100,47 @@ export const AdminCategoriesPage: React.FC = () => {
       slug,
       description: formDescription.trim(),
       shortDescription: formDescription.trim(),
-      image: formImageUrl || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=60',
-      iconName: editingCategory?.iconName || 'Compass',
-      badgeColor: formBadgeColor || '#0284c7',
-      bgGradient: editingCategory?.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
-      titlesCount: formTitlesCount || '10+ Plans',
       displayOrder: Number(formDisplayOrder) || 1,
       status: formStatus,
       updatedAt: Date.now()
     };
 
-    // 1. Immediately save to API (which saves to cache and broadcasts live update)
     await ottApi.saveCategory(categoryData);
-    await ottApi.logAudit(editingCategory ? 'UPDATE_CATEGORY' : 'CREATE_CATEGORY', 'categories', categoryData.id, { name: categoryData.name, slug: categoryData.slug });
+    await ottApi.logAudit(editingCategory ? 'UPDATE_CATEGORY' : 'CREATE_CATEGORY', 'categories', categoryData.id, { 
+      name: categoryData.name, 
+      slug: categoryData.slug 
+    });
 
-    // 2. Immediately update state from fresh cache
     setCategories(ottApi.getCachedCategoriesAdmin());
-
-    setSaveSuccessMsg(`Category "${categoryData.name}" saved! Directly visible in admin panel and live website.`);
-    setTimeout(() => setSaveSuccessMsg(null), 4000);
+    showToast(`Category "${categoryData.name}" saved! Live website updated.`);
     setIsModalOpen(false);
     await loadData();
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to permanently delete category "${name}"?`)) {
-      setCategories(prev => prev.filter(c => c.id !== id));
+    if (confirm(`Are you sure you want to delete category "${name}"?`)) {
       await ottApi.deleteCategory(id);
       await ottApi.logAudit('DELETE_CATEGORY', 'categories', id, { name });
+      showToast(`Category "${name}" deleted.`);
       await loadData();
     }
   };
 
   const handleToggleStatus = async (c: Category) => {
     const newStatus = c.status === 'ON' ? 'OFF' : 'ON';
-    const updated: Category = { ...c, status: newStatus };
-    setCategories(prev => prev.map(item => item.id === c.id ? updated : item));
+    const updated: Category = { ...c, status: newStatus, updatedAt: Date.now() };
     await ottApi.saveCategory(updated);
-    await ottApi.logAudit('TOGGLE_CATEGORY_STATUS', 'categories', c.id, { status: newStatus });
+    showToast(`Category is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
     await loadData();
   };
 
-  const filteredCategories = categories.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCategories = categories.filter(c => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+    return true;
+  });
 
   return (
     <div className="admin-page-container">
@@ -171,11 +148,11 @@ export const AdminCategoriesPage: React.FC = () => {
       <div className="admin-header-row">
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
-            <FolderTree className="admin-heading-icon" />
-            <span>Categories Management</span>
+            <FolderTree className="admin-heading-icon" style={{ color: '#0284c7' }} />
+            <span>Category Management</span>
           </h1>
           <p className="admin-sub-text">
-            Organize subscription collections, movies, sports, music, and combo categories linked to Supabase.
+            Add, edit, reorder, and moderate OTT categories. No image required. Automatically mapped to customer storefront.
           </p>
         </div>
 
@@ -186,7 +163,7 @@ export const AdminCategoriesPage: React.FC = () => {
             className="btn-refresh-action"
             title="Refresh database"
           >
-            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
+            <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
           </button>
           <button
             onClick={handleOpenAddModal}
@@ -200,281 +177,221 @@ export const AdminCategoriesPage: React.FC = () => {
 
       {saveSuccessMsg && (
         <div className="admin-alert-banner">
-          <Check size={18} />
+          <Check size={16} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
       {/* Filter Bar */}
-      <div className="admin-toolbar-card">
-        <div className="admin-search-wrapper">
-          <Search className="admin-search-icon" />
+      <div className="admin-filter-bar">
+        <div className="admin-search-wrap">
+          <Search size={16} className="search-icon" />
           <input
             type="text"
             placeholder="Search categories by name or slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="admin-search-input"
           />
         </div>
 
-        <div className="admin-count-badge">
-          Total Categories: <strong>{filteredCategories.length}</strong>
-        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="admin-select-filter"
+        >
+          <option value="all">All Statuses</option>
+          <option value="ON">Active</option>
+          <option value="OFF">Inactive</option>
+        </select>
       </div>
 
-      {/* Categories Grid / Table */}
-      <div className="admin-table-container">
-        <div className="admin-table-scroll">
-          <table className="admin-data-table">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Slug</th>
-                <th>Plans / Subtitle</th>
-                <th>Sort Order</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {loading && categories.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-500" />
-                    Loading categories from Supabase...
-                  </td>
-                </tr>
-              ) : filteredCategories.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    No categories found.
-                  </td>
-                </tr>
-              ) : (
-                filteredCategories.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={getCleanImageUrl(c.image, c.updatedAt)}
-                          alt={c.name}
-                          className="w-12 h-12 object-cover rounded-xl border border-slate-700/80 bg-slate-800 flex-shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=60';
-                          }}
-                        />
-                        <div>
-                          <div className="font-bold text-white text-base leading-snug">{c.name}</div>
-                          <div className="text-xs text-slate-400 line-clamp-1 max-w-xs mt-0.5">{c.description}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-primary-400">
-                      /{c.slug}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700">
-                        {c.titlesCount || 'Multiple Plans'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-slate-300">
-                      #{c.displayOrder || 1}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggleStatus(c)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
-                          c.status === 'ON'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
-                        }`}
-                      >
-                        {c.status === 'ON' ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                        {c.status === 'ON' ? 'Active' : 'Disabled'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenEditModal(c)}
-                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors"
-                          title="Edit Category"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(c.id, c.name)}
-                          className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/30 transition-colors"
-                          title="Delete Category"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+      {/* Categories Compact Cards Table */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+        {filteredCategories.map((c) => (
+          <div
+            key={c.id || c.slug}
+            style={{
+              background: '#070d1e',
+              border: `1px solid ${c.status === 'ON' ? '#1e293b' : '#334155'}`,
+              borderRadius: '12px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '10px',
+              opacity: c.status === 'ON' ? 1 : 0.6
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: c.status === 'ON' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.2)',
+                  color: c.status === 'ON' ? '#22c55e' : '#94a3b8'
+                }}>
+                  {c.status === 'ON' ? 'Active' : 'Inactive'}
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                  Order #{c.displayOrder || 1}
+                </span>
+              </div>
+
+              <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                {c.name}
+              </h3>
+              <p style={{ fontSize: '0.76rem', color: '#38bdf8', margin: '3px 0 0', fontFamily: 'monospace' }}>
+                /{c.slug}
+              </p>
+
+              {c.description && (
+                <p style={{ fontSize: '0.76rem', color: '#94a3b8', margin: '6px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {c.description}
+                </p>
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
 
-      {/* Add / Edit Category Modal */}
-      {isModalOpen && (
-        <div className="admin-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div className="admin-modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FolderTree size={20} style={{ color: '#0284c7' }} />
-                <span>{editingCategory ? 'Edit Category' : 'Add New Category'}</span>
-              </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="modal-close-btn"
-                aria-label="Close Modal"
+                onClick={() => handleToggleStatus(c)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #1e293b',
+                  color: c.status === 'ON' ? '#e2e8f0' : '#94a3b8',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer'
+                }}
               >
-                <X size={20} />
+                {c.status === 'ON' ? 'Deactivate' : 'Activate'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenEditModal(c)}
+                style={{
+                  background: 'rgba(2, 132, 199, 0.15)',
+                  border: '1px solid rgba(2, 132, 199, 0.3)',
+                  color: '#38bdf8',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Edit2 size={12} />
+                <span>Edit</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDeleteCategory(c.id, c.name)}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#f87171',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+                title="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filteredCategories.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '36px 20px', color: '#94a3b8', background: '#070d1e', borderRadius: '12px', border: '1px dashed #1e293b' }}>
+          <FolderTree size={32} style={{ opacity: 0.5, marginBottom: '6px' }} />
+          <p>No categories found matching filters.</p>
+        </div>
+      )}
+
+      {/* Compact Add/Edit Modal */}
+      {isModalOpen && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box compact" style={{ maxWidth: '440px' }}>
+            <div className="admin-modal-header">
+              <h3 className="modal-title">
+                {editingCategory ? 'Edit Category' : 'Create New Category'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="btn-modal-close">
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCategory} className="admin-form-grid">
-              <div className="admin-form-group admin-form-full">
+            <form onSubmit={handleSaveCategory} className="admin-modal-body">
+              <div className="form-group-compact">
                 <label>Category Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Movies & TV Shows"
                   value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g. Premium OTT Plans"
                 />
               </div>
 
-              <div className="admin-form-group">
-                <label>URL Slug (auto-generated if empty)</label>
+              <div className="form-group-compact">
+                <label>URL Slug *</label>
                 <input
                   type="text"
-                  placeholder="movies-tv-shows"
+                  required
                   value={formSlug}
                   onChange={(e) => setFormSlug(e.target.value)}
+                  placeholder="e.g. premium-ott-plans"
                 />
               </div>
 
-              <div className="admin-form-group">
-                <label>Display / Sort Order</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formDisplayOrder}
-                  onChange={(e) => setFormDisplayOrder(e.target.value)}
-                />
-              </div>
-
-              <div className="admin-form-group admin-form-full">
-                <label>Badge / Plans Subtitle</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 10+ Streaming Plans"
-                  value={formTitlesCount}
-                  onChange={(e) => setFormTitlesCount(e.target.value)}
-                />
-              </div>
-
-              <div className="admin-form-group admin-form-full">
-                <label>Category Description</label>
+              <div className="form-group-compact">
+                <label>Short Description (Optional)</label>
                 <textarea
-                  rows={3}
-                  placeholder="Short description displayed on category cards..."
+                  rows={2}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
+                  placeholder="e.g. Streaming subscriptions with 4K UHD and instant PIN delivery"
                 />
               </div>
 
-              {/* Category Image Upload & URL */}
-              <div className="admin-form-group admin-form-full">
-                <label>Category Image / Banner *</label>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {formImageUrl && (
-                    <img
-                      src={formImageUrl}
-                      alt="Preview"
-                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #334155', background: '#0f172a' }}
-                    />
-                  )}
-                  <div style={{ flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder="Paste image URL or upload image file..."
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                    />
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', color: '#cbd5e1', cursor: 'pointer', width: 'fit-content' }}>
-                      <Upload size={14} />
-                      <span>{isUploading ? 'Uploading to Cloudinary...' : 'Upload Image File'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="form-group-compact">
+                  <label>Display Order</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formDisplayOrder}
+                    onChange={(e) => setFormDisplayOrder(e.target.value)}
+                  />
                 </div>
-                {uploadError && (
-                  <span style={{ fontSize: '0.78rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                    <AlertCircle size={14} /> {uploadError}
-                  </span>
-                )}
-              </div>
 
-              <div className="admin-form-group">
-                <label>Accent / Badge Color</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="color"
-                    value={formBadgeColor}
-                    onChange={(e) => setFormBadgeColor(e.target.value)}
-                    style={{ width: '40px', height: '40px', padding: 0, borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer', background: 'transparent' }}
-                  />
-                  <input
-                    type="text"
-                    value={formBadgeColor}
-                    onChange={(e) => setFormBadgeColor(e.target.value)}
-                    style={{ flex: 1, fontFamily: 'monospace' }}
-                  />
+                <div className="form-group-compact">
+                  <label>Status</label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as 'ON' | 'OFF')}
+                  >
+                    <option value="ON">Active (Visible)</option>
+                    <option value="OFF">Inactive (Hidden)</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="admin-form-group">
-                <label>Display Status</label>
-                <select
-                  value={formStatus}
-                  onChange={(e) => setFormStatus(e.target.value as 'ON' | 'OFF')}
-                >
-                  <option value="ON">Active (Visible)</option>
-                  <option value="OFF">Disabled (Hidden)</option>
-                </select>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="admin-modal-actions admin-form-full">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', padding: '10px 18px', borderRadius: '10px', fontSize: '0.86rem', fontWeight: 600, cursor: 'pointer' }}
-                >
+              <div className="admin-modal-footer">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-modal-cancel">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isUploading}
-                  className="btn-primary-action"
-                  style={{ padding: '10px 22px' }}
-                >
-                  <Check size={16} />
-                  <span>Save Category to Supabase</span>
+                <button type="submit" className="btn-modal-save">
+                  Save Category
                 </button>
               </div>
             </form>

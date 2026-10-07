@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, Package, GraduationCap, FolderTree, Image, 
+  LayoutDashboard, Package, FolderTree, Image, 
   Sparkles, ShoppingCart, Users, Star, Settings, LogOut, 
-  ExternalLink, Menu, X, ShieldCheck, Database, Bell 
+  ExternalLink, Menu, X, ShieldCheck, Database, Bell, CreditCard, Mail 
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { ADMIN_CONFIG } from '../../services/api';
 import './AdminLayout.css';
 import './AdminMobile.css';
 
@@ -31,43 +32,55 @@ export const AdminLayout: React.FC = () => {
     navigate('/admin/login');
   };
 
+  // Sidebar navigation structure matching Requirement 4
   const navLinks = [
     {
-      group: 'Overview',
+      group: 'MAIN',
       items: [
         { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard }
       ]
     },
     {
-      group: 'Catalog & Inventory',
+      group: 'CONTENT',
       items: [
-        { label: 'Products', to: '/admin/products', icon: Package },
-        { label: 'Courses & Masterclasses', to: '/admin/courses', icon: GraduationCap },
+        { label: 'Homepage', to: '/admin/hero', icon: Sparkles },
+        { label: 'Banners', to: '/admin/banners', icon: Image },
+        { label: 'Categories', to: '/admin/categories', icon: FolderTree },
+        { label: 'Reviews', to: '/admin/reviews', icon: Star },
+        { label: 'Notifications', to: '/admin/notifications', icon: Bell }
+      ]
+    },
+    {
+      group: 'PRODUCTS',
+      items: [
+        { label: 'Items / Products', to: '/admin/products', icon: Package },
         { label: 'Categories', to: '/admin/categories', icon: FolderTree }
       ]
     },
     {
-      group: 'Website Content (CMS)',
+      group: 'ORDERS',
       items: [
-        { label: 'Hero Section CMS', to: '/admin/hero', icon: Sparkles },
-        { label: 'Promotional Banners', to: '/admin/banners', icon: Image }
+        { label: 'Orders', to: '/admin/orders', icon: ShoppingCart },
+        { label: 'Payments', to: '/admin/orders', icon: CreditCard }
       ]
     },
     {
-      group: 'Sales & Customers',
+      group: 'CUSTOMERS',
       items: [
-        { label: 'Orders & Payments', to: '/admin/orders', icon: ShoppingCart },
-        { label: 'Customers', to: '/admin/customers', icon: Users },
-        { label: 'Customer Reviews', to: '/admin/reviews', icon: Star }
+        { label: 'Customers', to: '/admin/customers', icon: Users }
       ]
     },
     {
-      group: 'System',
+      group: 'SETTINGS',
       items: [
-        { label: 'Store Settings', to: '/admin/settings', icon: Settings }
+        { label: 'Admin Profile', to: '/admin/settings', icon: ShieldCheck },
+        { label: 'Email Settings', to: '/admin/settings', icon: Mail },
+        { label: 'Website Settings', to: '/admin/settings', icon: Settings }
       ]
     }
   ];
+
+  const adminEmail = adminUser?.email || ADMIN_CONFIG.EMAIL;
 
   return (
     <div className="admin-wrapper">
@@ -95,7 +108,7 @@ export const AdminLayout: React.FC = () => {
             onClick={() => setIsMobileSidebarOpen(false)}
             aria-label="Close Sidebar"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -113,7 +126,7 @@ export const AdminLayout: React.FC = () => {
                         className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
                         onClick={() => setIsMobileSidebarOpen(false)}
                       >
-                        <Icon size={18} className="admin-nav-icon" />
+                        <Icon size={16} className="admin-nav-icon" />
                         <span>{item.label}</span>
                       </NavLink>
                     </li>
@@ -132,17 +145,17 @@ export const AdminLayout: React.FC = () => {
             rel="noopener noreferrer" 
             className="admin-footer-btn view-store"
           >
-            <ExternalLink size={16} />
+            <ExternalLink size={14} />
             <span>Open Customer Store</span>
           </a>
 
           <div className="admin-user-info-row">
             <div className="admin-user-avatar">
-              <ShieldCheck size={18} />
+              <ShieldCheck size={16} />
             </div>
             <div className="admin-user-meta">
-              <strong className="admin-user-email" title={adminUser?.email}>
-                {adminUser?.email || 'Fixyourmobiles7@gmail.com'}
+              <strong className="admin-user-email" title={adminEmail}>
+                {adminEmail}
               </strong>
               <span className="admin-user-role">Super Administrator</span>
             </div>
@@ -153,7 +166,7 @@ export const AdminLayout: React.FC = () => {
             onClick={handleLogout}
             className="admin-logout-btn"
           >
-            <LogOut size={16} />
+            <LogOut size={14} />
             <span>Sign Out</span>
           </button>
         </div>
@@ -170,17 +183,19 @@ export const AdminLayout: React.FC = () => {
               onClick={() => setIsMobileSidebarOpen(true)}
               aria-label="Toggle navigation menu"
             >
-              <Menu size={22} />
+              <Menu size={20} />
             </button>
             <div className="topbar-title-block">
-              <span className="topbar-breadcrumb">Admin CMS / {location.pathname.replace('/admin/', '').replace('-', ' ') || 'Dashboard'}</span>
+              <span className="topbar-breadcrumb">
+                Admin CMS / {location.pathname.replace('/admin/', '').replace('-', ' ') || 'Dashboard'}
+              </span>
             </div>
           </div>
 
           <div className="topbar-right">
             <div className="db-sync-status-pill">
-              <Database size={14} color="#10b981" />
-              <span>Supabase Database Active</span>
+              <Database size={13} color="#10b981" />
+              <span>Supabase Live Sync</span>
             </div>
 
             <a 
@@ -189,8 +204,8 @@ export const AdminLayout: React.FC = () => {
               rel="noopener noreferrer" 
               className="topbar-live-store-btn"
             >
-              <span>View Live Website</span>
-              <ExternalLink size={14} />
+              <span>View Website</span>
+              <ExternalLink size={13} />
             </a>
           </div>
         </header>

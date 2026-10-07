@@ -5,11 +5,19 @@ import { CATALOGS_DATA } from '../data/catalogsData';
 import { INITIAL_BANNERS } from '../data/bannersData';
 import { INITIAL_COURSES } from '../data/coursesData';
 import { INITIAL_ORDERS, INITIAL_USER } from '../data/mockOrders';
+import { INITIAL_NOTIFICATIONS } from '../data/notificationsData';
+import { INITIAL_HOMEPAGE_SECTIONS } from '../data/sectionsData';
+import { INITIAL_COUPONS } from '../data/couponsData';
 import { 
   Product, Category, SubCategory, Catalog, Order, User, 
   HeroBanner, Course, HomepageSectionCMS, AdminSettings, AuditLog,
-  CustomerReview 
+  CustomerReview, SiteNotification, Coupon 
 } from '../types';
+
+export const ADMIN_CONFIG = {
+  EMAIL: 'OttSellers1@gmail.com',
+  DEFAULT_PASS: 'Fixyourmobiles@2026'
+};
 
 export const STORAGE_KEYS = {
   ORDERS: 'ott_sellers_orders',
@@ -21,9 +29,12 @@ export const STORAGE_KEYS = {
   COURSES: 'ott_sellers_courses',
   SUBCATEGORIES: 'ott_sellers_subcategories',
   HERO: 'ott_sellers_hero_cms',
+  SECTIONS: 'ott_sellers_sections_cms',
   SETTINGS: 'ott_sellers_settings',
   AUDIT: 'ott_sellers_audit_logs',
-  REVIEWS: 'ott_sellers_reviews'
+  REVIEWS: 'ott_sellers_reviews',
+  NOTIFICATIONS: 'ott_sellers_notifications',
+  COUPONS: 'ott_sellers_coupons'
 };
 
 // Cache-busting helper
@@ -45,9 +56,9 @@ export const broadcastDataUpdate = (entityType: string) => {
 
 export const ottApi = {
   // ====================================================================
-  // 1. HERO BANNERS (Admin CMS & Supabase)
+  // 1. BANNERS (Admin CMS & Supabase with Page & Slot mapping)
   // ====================================================================
-  async getBanners(): Promise<HeroBanner[]> {
+  async getBanners(targetPage: string = 'home', slot?: string): Promise<HeroBanner[]> {
     try {
       const { data, error } = await supabase
         .from('banners')
@@ -57,18 +68,25 @@ export const ottApi = {
       if (!error && data && data.length > 0) {
         const banners: HeroBanner[] = data.map(b => ({
           id: b.id,
-          title: b.title,
+          name: b.name || b.title,
+          title: b.title || '',
           subtitle: b.subtitle || '',
+          description: b.description || '',
           ctaText: b.button_text || 'Shop Now',
           ctaLink: b.button_url || '/items',
           secondaryCtaText: b.secondary_button_text,
           secondaryCtaLink: b.secondary_button_url,
-          desktopImage: b.image_url,
-          mobileImage: b.mobile_image_url || b.image_url,
+          desktopImage: b.image_url || b.desktop_image_url || '/hero-bg.png',
+          mobileImage: b.mobile_image_url || b.image_url || '/hero-mobile-1.png',
           mode: b.mode || 'image-only',
           solidColor: b.solid_color,
           textPosition: b.text_position || 'left',
-          displayOrder: b.sort_order || 0,
+          displayOrder: b.sort_order || b.display_order || 1,
+          page: (b.page || 'home').toLowerCase() as any,
+          slot: b.slot || '01',
+          style: b.style || 'auto-slide',
+          autoplay: b.autoplay ?? true,
+          interval: Number(b.interval) || 5,
           status: b.status || (b.is_active ? 'ON' : 'OFF'),
           badgeText: b.badge_text,
           titleColor: b.title_color,
@@ -79,7 +97,10 @@ export const ottApi = {
         }));
 
         localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
-        return banners.filter(b => b.status !== 'OFF');
+        return banners
+          .filter(b => b.status !== 'OFF')
+          .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase())
+          .filter(b => !slot || b.slot === slot);
       }
     } catch (e) {
       console.warn('Supabase getBanners fallback:', e);
@@ -90,11 +111,17 @@ export const ottApi = {
       const stored = localStorage.getItem(STORAGE_KEYS.BANNERS);
       if (stored) {
         const parsed: HeroBanner[] = JSON.parse(stored);
-        return parsed.filter(b => b.status !== 'OFF').sort((a, b) => a.displayOrder - b.displayOrder);
+        return parsed
+          .filter(b => b.status !== 'OFF')
+          .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase())
+          .filter(b => !slot || b.slot === slot)
+          .sort((a, b) => a.displayOrder - b.displayOrder);
       }
     } catch {}
 
-    return INITIAL_BANNERS.filter(b => b.status !== 'OFF');
+    return INITIAL_BANNERS
+      .filter(b => b.status !== 'OFF')
+      .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase());
   },
 
   async getAllBannersAdmin(): Promise<HeroBanner[]> {
@@ -107,18 +134,25 @@ export const ottApi = {
       if (!error && data && data.length > 0) {
         return data.map(b => ({
           id: b.id,
-          title: b.title,
+          name: b.name || b.title,
+          title: b.title || '',
           subtitle: b.subtitle || '',
+          description: b.description || '',
           ctaText: b.button_text || 'Shop Now',
           ctaLink: b.button_url || '/items',
           secondaryCtaText: b.secondary_button_text,
           secondaryCtaLink: b.secondary_button_url,
-          desktopImage: b.image_url,
-          mobileImage: b.mobile_image_url || b.image_url,
+          desktopImage: b.image_url || b.desktop_image_url || '/hero-bg.png',
+          mobileImage: b.mobile_image_url || b.image_url || '/hero-mobile-1.png',
           mode: b.mode || 'image-only',
           solidColor: b.solid_color,
           textPosition: b.text_position || 'left',
-          displayOrder: b.sort_order || 0,
+          displayOrder: b.sort_order || b.display_order || 1,
+          page: (b.page || 'home').toLowerCase() as any,
+          slot: b.slot || '01',
+          style: b.style || 'auto-slide',
+          autoplay: b.autoplay ?? true,
+          interval: Number(b.interval) || 5,
           status: b.status || (b.is_active ? 'ON' : 'OFF'),
           badgeText: b.badge_text,
           titleColor: b.title_color,
@@ -147,18 +181,26 @@ export const ottApi = {
       for (const b of banners) {
         await supabase.from('banners').upsert({
           id: b.id,
+          name: b.name || b.title,
           title: b.title,
           subtitle: b.subtitle,
+          description: b.description,
           button_text: b.ctaText,
           button_url: b.ctaLink,
           secondary_button_text: b.secondaryCtaText,
           secondary_button_url: b.secondaryCtaLink,
           image_url: b.desktopImage,
+          desktop_image_url: b.desktopImage,
           mobile_image_url: b.mobileImage,
           mode: b.mode,
           solid_color: b.solidColor,
           text_position: b.textPosition,
           sort_order: b.displayOrder,
+          page: b.page || 'home',
+          slot: b.slot || '01',
+          style: b.style || 'auto-slide',
+          autoplay: b.autoplay ?? true,
+          interval: b.interval || 5,
           status: b.status,
           is_active: b.status !== 'OFF',
           badge_text: b.badgeText,
@@ -174,6 +216,20 @@ export const ottApi = {
     }
   },
 
+  async saveBanner(banner: HeroBanner): Promise<void> {
+    const all = await this.getAllBannersAdmin();
+    const idx = all.findIndex(b => b.id === banner.id);
+    let updated: HeroBanner[];
+    const bannerToSave = { ...banner, updatedAt: Date.now() };
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = bannerToSave;
+    } else {
+      updated = [...all, bannerToSave];
+    }
+    await this.saveBanners(updated);
+  },
+
   async deleteBanner(id: string): Promise<void> {
     const banners = await this.getAllBannersAdmin();
     const updated = banners.filter(b => b.id !== id);
@@ -185,77 +241,111 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 2. HERO SECTION CMS (Homepage CMS)
+  // 2. HOMEPAGE SECTIONS CMS & VISIBILITY (Hero, Categories, Featured, Reviews, etc.)
   // ====================================================================
-  async getHeroSectionCMS(): Promise<HomepageSectionCMS> {
+  async getHomepageSections(): Promise<HomepageSectionCMS[]> {
     try {
       const { data, error } = await supabase
         .from('homepage_sections')
         .select('*')
-        .eq('section_key', 'hero')
-        .single();
+        .order('display_order', { ascending: true });
 
-      if (!error && data) {
-        return {
-          id: data.id,
-          sectionKey: data.section_key,
-          title: data.title,
-          subtitle: data.subtitle,
-          description: data.description,
-          imageUrl: data.image_url,
-          settings: data.settings || {},
-          isActive: data.is_active
-        };
+      if (!error && data && data.length > 0) {
+        const sections: HomepageSectionCMS[] = data.map(s => ({
+          id: s.id,
+          sectionKey: s.section_key,
+          name: s.name || s.section_key,
+          title: s.title,
+          subtitle: s.subtitle,
+          description: s.description,
+          imageUrl: s.image_url,
+          displayOrder: s.display_order ?? 1,
+          settings: s.settings || {},
+          isActive: s.is_active ?? true,
+          updatedAt: new Date(s.updated_at || Date.now()).getTime()
+        }));
+
+        localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections));
+        return sections;
       }
     } catch {}
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.HERO);
+      const stored = localStorage.getItem(STORAGE_KEYS.SECTIONS);
       if (stored) return JSON.parse(stored);
     } catch {}
 
-    return {
-      id: 'sec-hero',
-      sectionKey: 'hero',
-      title: 'All Your Favourite OTT Subscriptions in One Place',
-      subtitle: 'Stream 4K Ultra HD on Netflix, Prime Video, Disney+ Hotstar, ZEE5 & Sony LIV with instant private PIN activation.',
-      description: 'Verified 4K streaming accounts with instant WhatsApp credentials delivery and full duration replacement warranty.',
-      imageUrl: '/hero-bg.png',
-      settings: {
-        badgeText: 'Your Entertainment, Our Priority',
-        ctaText: 'Shop Now',
-        ctaLink: '/items',
-        secondaryCtaText: 'Explore Categories',
-        secondaryCtaLink: '#categories',
-        mobileImage: '/hero-mobile-1.png'
-      },
-      isActive: true
-    };
+    return [...INITIAL_HOMEPAGE_SECTIONS];
   },
 
-  async saveHeroSectionCMS(cms: HomepageSectionCMS): Promise<void> {
-    try {
-      localStorage.setItem(STORAGE_KEYS.HERO, JSON.stringify(cms));
-      broadcastDataUpdate('hero');
+  async saveHomepageSection(section: HomepageSectionCMS): Promise<void> {
+    const all = await this.getHomepageSections();
+    const idx = all.findIndex(s => s.sectionKey === section.sectionKey || s.id === section.id);
+    let updated: HomepageSectionCMS[];
+    const itemToSave = { ...section, updatedAt: Date.now() };
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = itemToSave;
+    } else {
+      updated = [...all, itemToSave];
+    }
 
+    localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(updated));
+    broadcastDataUpdate('homepage_sections');
+
+    try {
       await supabase.from('homepage_sections').upsert({
-        id: cms.id || 'sec-hero',
-        section_key: 'hero',
-        title: cms.title,
-        subtitle: cms.subtitle,
-        description: cms.description,
-        image_url: cms.imageUrl,
-        settings: cms.settings || {},
-        is_active: cms.isActive ?? true,
+        id: section.id || `sec-${section.sectionKey}`,
+        section_key: section.sectionKey,
+        name: section.name || section.sectionKey,
+        title: section.title,
+        subtitle: section.subtitle,
+        description: section.description,
+        image_url: section.imageUrl,
+        display_order: section.displayOrder || 1,
+        settings: section.settings || {},
+        is_active: section.isActive ?? true,
         updated_at: new Date().toISOString()
       }, { onConflict: 'section_key' });
     } catch (e) {
-      console.error('Failed to save Hero Section CMS to Supabase:', e);
+      console.warn('Supabase homepage_sections sync notice:', e);
     }
   },
 
+  async saveHomepageSections(sections: HomepageSectionCMS[]): Promise<void> {
+    localStorage.setItem(STORAGE_KEYS.SECTIONS, JSON.stringify(sections));
+    broadcastDataUpdate('homepage_sections');
+
+    for (const s of sections) {
+      try {
+        await supabase.from('homepage_sections').upsert({
+          id: s.id || `sec-${s.sectionKey}`,
+          section_key: s.sectionKey,
+          name: s.name || s.sectionKey,
+          title: s.title,
+          subtitle: s.subtitle,
+          description: s.description,
+          image_url: s.imageUrl,
+          display_order: s.displayOrder || 1,
+          settings: s.settings || {},
+          is_active: s.isActive ?? true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'section_key' });
+      } catch {}
+    }
+  },
+
+  async getHeroSectionCMS(): Promise<HomepageSectionCMS> {
+    const sections = await this.getHomepageSections();
+    return sections.find(s => s.sectionKey === 'hero') || INITIAL_HOMEPAGE_SECTIONS[0];
+  },
+
+  async saveHeroSectionCMS(cms: HomepageSectionCMS): Promise<void> {
+    await this.saveHomepageSection({ ...cms, sectionKey: 'hero' });
+  },
+
   // ====================================================================
-  // 3. CATEGORIES & SUBCATEGORIES
+  // 3. CATEGORIES (Authoritative Supabase & Compact Flow)
   // ====================================================================
   async getCategories(): Promise<Category[]> {
     const all = await this.getAllCategoriesAdmin();
@@ -263,7 +353,6 @@ export const ottApi = {
   },
 
   async getAllCategoriesAdmin(): Promise<Category[]> {
-    // 1. Always load current local categories first as safety baseline
     let localCategories: Category[] = [];
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
@@ -279,7 +368,6 @@ export const ottApi = {
       localCategories = [...CATEGORIES_DATA];
     }
 
-    // 2. Fetch from Supabase
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -303,20 +391,12 @@ export const ottApi = {
           updatedAt: new Date(c.updated_at || Date.now()).getTime()
         }));
 
-        // SMART MERGE: Start with DB categories, preserve any local additions or recently updated categories
         const mergedMap = new Map<string, Category>();
-        dbCategories.forEach(c => {
-          mergedMap.set(c.slug.toLowerCase(), c);
-        });
-
+        dbCategories.forEach(c => mergedMap.set(c.slug.toLowerCase(), c));
         localCategories.forEach(localCat => {
           const key = localCat.slug.toLowerCase();
           const existing = mergedMap.get(key);
-          if (!existing) {
-            // Category was added locally and is not yet in DB -> KEEP IT
-            mergedMap.set(key, localCat);
-          } else if ((localCat.updatedAt || 0) > (existing.updatedAt || 0)) {
-            // Local version was modified more recently -> KEEP IT
+          if (!existing || (localCat.updatedAt || 0) > (existing.updatedAt || 0)) {
             mergedMap.set(key, localCat);
           }
         });
@@ -352,11 +432,9 @@ export const ottApi = {
       updated = [...all, categoryToSave];
     }
 
-    // Immediately persist locally and broadcast event to all open tabs and pages
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
     broadcastDataUpdate('categories');
 
-    // Sync to Supabase PostgreSQL table
     try {
       const payload: any = {
         name: categoryToSave.name,
@@ -373,14 +451,10 @@ export const ottApi = {
         sort_order: categoryToSave.displayOrder || 0,
         updated_at: new Date().toISOString()
       };
-      if (categoryToSave.id) {
-        payload.id = categoryToSave.id;
-      }
+      if (categoryToSave.id) payload.id = categoryToSave.id;
 
       const { error } = await supabase.from('categories').upsert(payload, { onConflict: 'slug' });
       if (error) {
-        console.warn('Supabase category upsert notice:', error.message || error);
-        // Fallback insert attempt
         await supabase.from('categories').insert(payload);
       }
     } catch (e) {
@@ -424,7 +498,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 4. PRODUCTS MANAGEMENT (Authoritative Supabase Store)
+  // 4. PRODUCTS MANAGEMENT (Square Image Support & Authoritative Supabase Store)
   // ====================================================================
   async getProducts(): Promise<Product[]> {
     try {
@@ -645,7 +719,7 @@ export const ottApi = {
     const products = await this.getProducts();
     return products.filter(
       p => p.categorySlug.toLowerCase() === categorySlug.toLowerCase() ||
-           p.subcategorySlug.toLowerCase() === categorySlug.toLowerCase()
+           p.subcategorySlug?.toLowerCase() === categorySlug.toLowerCase()
     );
   },
 
@@ -672,7 +746,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 5. COURSES MANAGEMENT (Masterclasses & Learning Bundles)
+  // 5. COURSES MANAGEMENT
   // ====================================================================
   async getCourses(): Promise<Course[]> {
     try {
@@ -836,6 +910,8 @@ export const ottApi = {
           customerWhatsApp: o.customer_whatsapp,
           subtotal: Number(o.subtotal),
           discount: Number(o.discount),
+          couponCode: o.coupon_code,
+          couponDiscount: Number(o.coupon_discount || 0),
           total: Number(o.total),
           paymentMethod: o.payment_method,
           paymentStatus: o.payment_status,
@@ -884,7 +960,6 @@ export const ottApi = {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
     broadcastDataUpdate('orders');
 
-    // Sync to Supabase orders & order_items
     try {
       await supabase.from('orders').insert({
         id: newId,
@@ -895,6 +970,8 @@ export const ottApi = {
         customer_whatsapp: order.customerWhatsApp,
         subtotal: order.subtotal,
         discount: order.discount,
+        coupon_code: order.couponCode,
+        coupon_discount: order.couponDiscount || 0,
         total: order.total,
         currency: 'INR',
         payment_status: order.paymentStatus,
@@ -960,9 +1037,7 @@ export const ottApi = {
     const pendingOrders = orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Processing').length;
     const completedOrders = orders.filter(o => o.orderStatus === 'Completed' || o.orderStatus === 'Delivered').length;
     const cancelledOrders = orders.filter(o => o.orderStatus === 'Cancelled').length;
-
-    // Unique customers by email
-    const uniqueCustomers = new Set(orders.map(o => o.customerEmail.toLowerCase())).size;
+    const uniqueCustomers = new Set(orders.map(o => (o.customerEmail || '').toLowerCase()).filter(Boolean)).size;
 
     return {
       totalProducts: products.length,
@@ -980,7 +1055,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 8. SITE SETTINGS & AUDIT LOGS
+  // 8. SITE SETTINGS & AUDIT LOGS (Admin Email: OttSellers1@gmail.com)
   // ====================================================================
   async getAdminSettings(): Promise<AdminSettings> {
     try {
@@ -993,14 +1068,15 @@ export const ottApi = {
       if (!error && data) {
         return {
           id: data.id,
-          siteName: data.site_name,
-          supportEmail: data.support_email,
-          supportPhone: data.support_phone,
-          supportWhatsApp: data.support_whatsapp,
-          announcementText: data.announcement_text,
+          siteName: data.site_name || 'OTT SELLERS',
+          supportEmail: data.support_email || ADMIN_CONFIG.EMAIL,
+          supportPhone: data.support_phone || '+91 9441323332',
+          supportWhatsApp: data.support_whatsapp || '9441323332',
+          announcementText: data.announcement_text || '🔥 Flash Sale: Flat 70% Off on All Annual OTT Subscriptions! Instant WhatsApp Credentials Delivery.',
           razorpayKeyId: data.razorpay_key_id,
-          smtpHost: data.smtp_host,
-          smtpUser: data.smtp_user,
+          smtpHost: data.smtp_host || 'smtp.gmail.com',
+          smtpUser: data.smtp_user || ADMIN_CONFIG.EMAIL,
+          randomNotificationsActive: data.random_notifications_active ?? true,
           updatedAt: new Date(data.updated_at || Date.now()).getTime()
         };
       }
@@ -1014,13 +1090,14 @@ export const ottApi = {
     return {
       id: 'global',
       siteName: 'OTT SELLERS',
-      supportEmail: 'Fixyourmobiles7@gmail.com',
+      supportEmail: ADMIN_CONFIG.EMAIL,
       supportPhone: '+91 9441323332',
       supportWhatsApp: '9441323332',
       announcementText: '🔥 Flash Sale: Flat 70% Off on All Annual OTT Subscriptions! Instant WhatsApp Credentials Delivery.',
       razorpayKeyId: 'rzp_test_placeholder',
       smtpHost: 'smtp.gmail.com',
-      smtpUser: 'Fixyourmobiles7@gmail.com'
+      smtpUser: ADMIN_CONFIG.EMAIL,
+      randomNotificationsActive: true
     };
   },
 
@@ -1032,13 +1109,14 @@ export const ottApi = {
       await supabase.from('admin_settings').upsert({
         id: 'global',
         site_name: settings.siteName,
-        support_email: settings.supportEmail,
+        support_email: settings.supportEmail || ADMIN_CONFIG.EMAIL,
         support_phone: settings.supportPhone,
         support_whatsapp: settings.supportWhatsApp,
         announcement_text: settings.announcementText,
         razorpay_key_id: settings.razorpayKeyId,
         smtp_host: settings.smtpHost,
-        smtp_user: settings.smtpUser,
+        smtp_user: settings.smtpUser || settings.supportEmail || ADMIN_CONFIG.EMAIL,
+        random_notifications_active: settings.randomNotificationsActive ?? true,
         updated_at: new Date().toISOString()
       });
     } catch (e) {
@@ -1049,7 +1127,7 @@ export const ottApi = {
   async logAudit(action: string, entity: string, entityId?: string, details?: any): Promise<void> {
     const log: AuditLog = {
       id: 'log-' + Date.now(),
-      adminUser: 'Fixyourmobiles7@gmail.com',
+      adminUser: ADMIN_CONFIG.EMAIL,
       action,
       entity,
       entityId,
@@ -1073,31 +1151,269 @@ export const ottApi = {
     } catch {}
   },
 
-  // Catalogs
-  async getCatalogs(): Promise<Catalog[]> {
-    return [...CATALOGS_DATA];
+  // ====================================================================
+  // 9. CUSTOMER REVIEWS (With Page Mapping & Approval Moderation)
+  // ====================================================================
+  async getApprovedReviews(pageType: string = 'home', pageId?: string): Promise<CustomerReview[]> {
+    const all = await this.getAllReviewsAdmin();
+    return all
+      .filter(r => r.status === 'approved')
+      .filter(r => !pageType || r.pageType === 'all' || !r.pageType || r.pageType === pageType)
+      .filter(r => !pageId || !r.pageId || r.pageId === pageId)
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
-  async getCatalogBySlug(slug: string): Promise<Catalog | undefined> {
-    return CATALOGS_DATA.find(c => c.slug.toLowerCase() === slug.toLowerCase());
-  },
-
-  // User Profile
-  async getUser(): Promise<User | null> {
+  async getAllReviewsAdmin(): Promise<CustomerReview[]> {
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.USER);
+      const { data, error } = await supabase
+        .from('customer_reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const reviews: CustomerReview[] = data.map(r => ({
+          id: r.id,
+          userName: r.user_name,
+          userEmail: r.user_email || '',
+          productName: r.product_name,
+          rating: Number(r.rating) || 5,
+          comment: r.comment,
+          status: r.status || 'approved',
+          pageType: (r.page_type || 'home').toLowerCase() as any,
+          pageId: r.page_id,
+          displayOrder: r.display_order || 1,
+          date: r.date_str || new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          updatedAt: new Date(r.updated_at || r.created_at || Date.now()).getTime()
+        }));
+
+        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+        return reviews;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.REVIEWS);
       if (stored) return JSON.parse(stored);
     } catch {}
-    return INITIAL_USER;
+
+    return [...DEFAULT_REVIEWS];
   },
 
-  async updateUser(user: User): Promise<User> {
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    return user;
+  async saveReview(review: CustomerReview): Promise<void> {
+    const all = await this.getAllReviewsAdmin();
+    const idx = all.findIndex(r => r.id === review.id);
+    let updated: CustomerReview[];
+    const itemToSave = { ...review, updatedAt: Date.now() };
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = itemToSave;
+    } else {
+      updated = [itemToSave, ...all];
+    }
+
+    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updated));
+    broadcastDataUpdate('reviews');
+
+    try {
+      await supabase.from('customer_reviews').upsert({
+        id: review.id,
+        user_name: review.userName,
+        user_email: review.userEmail,
+        product_name: review.productName,
+        rating: review.rating,
+        comment: review.comment,
+        status: review.status,
+        page_type: review.pageType || 'home',
+        page_id: review.pageId,
+        display_order: review.displayOrder || 1,
+        date_str: review.date,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase customer_reviews sync notice:', e);
+    }
+  },
+
+  async deleteReview(id: string): Promise<void> {
+    const all = await this.getAllReviewsAdmin();
+    const updated = all.filter(r => r.id !== id);
+    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updated));
+    broadcastDataUpdate('reviews');
+
+    try {
+      await supabase.from('customer_reviews').delete().eq('id', id);
+    } catch {}
   },
 
   // ====================================================================
-  // FAST SYNCHRONOUS HYDRATION CACHE GETTERS (Zero-latency instant rendering in Admin)
+  // 10. RANDOM SMALL MESSAGE NOTIFICATIONS CMS
+  // ====================================================================
+  async getNotifications(): Promise<SiteNotification[]> {
+    try {
+      const { data, error } = await supabase
+        .from('site_notifications')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const notifs: SiteNotification[] = data.map(n => ({
+          id: n.id,
+          buyerName: n.buyer_name,
+          location: n.location,
+          productName: n.product_name,
+          slug: n.slug,
+          plan: n.plan,
+          timeText: n.time_text,
+          imageUrl: n.image_url,
+          message: n.message,
+          isActive: n.is_active ?? true,
+          displayOrder: n.display_order ?? 1,
+          updatedAt: new Date(n.updated_at || Date.now()).getTime()
+        }));
+
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
+        return notifs;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return [...INITIAL_NOTIFICATIONS];
+  },
+
+  async saveNotification(notif: SiteNotification): Promise<void> {
+    const all = await this.getNotifications();
+    const idx = all.findIndex(n => n.id === notif.id);
+    let updated: SiteNotification[];
+    const itemToSave = { ...notif, updatedAt: Date.now() };
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = itemToSave;
+    } else {
+      updated = [...all, itemToSave];
+    }
+
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+    broadcastDataUpdate('notifications');
+
+    try {
+      await supabase.from('site_notifications').upsert({
+        id: notif.id,
+        buyer_name: notif.buyerName,
+        location: notif.location,
+        product_name: notif.productName,
+        slug: notif.slug,
+        plan: notif.plan,
+        time_text: notif.timeText,
+        image_url: notif.imageUrl,
+        message: notif.message,
+        is_active: notif.isActive ?? true,
+        display_order: notif.displayOrder || 1,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase site_notifications sync notice:', e);
+    }
+  },
+
+  async deleteNotification(id: string): Promise<void> {
+    const all = await this.getNotifications();
+    const updated = all.filter(n => n.id !== id);
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+    broadcastDataUpdate('notifications');
+
+    try {
+      await supabase.from('site_notifications').delete().eq('id', id);
+    } catch {}
+  },
+
+  // ====================================================================
+  // 11. COUPONS CMS & CART VALIDATION
+  // ====================================================================
+  async getCoupons(): Promise<Coupon[]> {
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*');
+
+      if (!error && data && data.length > 0) {
+        const coupons: Coupon[] = data.map(c => ({
+          id: c.id,
+          code: c.code,
+          discountType: c.discount_type,
+          discountValue: Number(c.discount_value),
+          minOrderAmount: c.min_order_amount ? Number(c.min_order_amount) : undefined,
+          maxDiscount: c.max_discount ? Number(c.max_discount) : undefined,
+          description: c.description,
+          isActive: c.is_active ?? true,
+          expiresAt: c.expires_at
+        }));
+        localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(coupons));
+        return coupons;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.COUPONS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return [...INITIAL_COUPONS];
+  },
+
+  async validateCoupon(code: string, currentTotal: number): Promise<{ valid: boolean; coupon?: Coupon; discountAmount: number; error?: string }> {
+    const cleanCode = code.trim().toUpperCase();
+    if (!cleanCode) {
+      return { valid: false, discountAmount: 0, error: 'Please enter a coupon code.' };
+    }
+
+    const coupons = await this.getCoupons();
+    const match = coupons.find(c => c.code.toUpperCase() === cleanCode);
+
+    if (!match) {
+      return { valid: false, discountAmount: 0, error: 'Invalid coupon code.' };
+    }
+
+    if (!match.isActive) {
+      return { valid: false, discountAmount: 0, error: 'This coupon is currently inactive.' };
+    }
+
+    if (match.expiresAt && new Date(match.expiresAt).getTime() < Date.now()) {
+      return { valid: false, discountAmount: 0, error: 'This coupon has expired.' };
+    }
+
+    if (match.minOrderAmount && currentTotal < match.minOrderAmount) {
+      return { 
+        valid: false, 
+        discountAmount: 0, 
+        error: `Minimum order amount of ₹${match.minOrderAmount} required for coupon ${match.code}.` 
+      };
+    }
+
+    let discount = 0;
+    if (match.discountType === 'percentage') {
+      discount = Math.round((currentTotal * match.discountValue) / 100);
+      if (match.maxDiscount && discount > match.maxDiscount) {
+        discount = match.maxDiscount;
+      }
+    } else {
+      discount = match.discountValue;
+    }
+
+    discount = Math.min(discount, currentTotal);
+
+    return {
+      valid: true,
+      coupon: match,
+      discountAmount: discount
+    };
+  },
+
+  // ====================================================================
+  // 12. FAST SYNCHRONOUS HYDRATION CACHE GETTERS
   // ====================================================================
   getCachedProductsAdmin(): Product[] {
     try {
@@ -1139,87 +1455,35 @@ export const ottApi = {
     return [...DEFAULT_REVIEWS];
   },
 
-  // ====================================================================
-  // CUSTOMER REVIEWS (Live Storefront Testimonials & Admin Moderation)
-  // ====================================================================
-  async getApprovedReviews(): Promise<CustomerReview[]> {
-    const all = await this.getAllReviewsAdmin();
-    return all.filter(r => r.status === 'approved');
-  },
-
-  async getAllReviewsAdmin(): Promise<CustomerReview[]> {
+  getCachedSectionsAdmin(): HomepageSectionCMS[] {
     try {
-      const { data, error } = await supabase
-        .from('customer_reviews')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        const reviews: CustomerReview[] = data.map(r => ({
-          id: r.id,
-          userName: r.user_name,
-          userEmail: r.user_email || '',
-          productName: r.product_name,
-          rating: Number(r.rating) || 5,
-          comment: r.comment,
-          status: r.status || 'approved',
-          date: r.date_str || new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-          updatedAt: new Date(r.updated_at || r.created_at || Date.now()).getTime()
-        }));
-
-        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
-        return reviews;
-      }
-    } catch {}
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+      const stored = localStorage.getItem(STORAGE_KEYS.SECTIONS);
       if (stored) return JSON.parse(stored);
     } catch {}
-
-    return [...DEFAULT_REVIEWS];
+    return [...INITIAL_HOMEPAGE_SECTIONS];
   },
 
-  async saveReview(review: CustomerReview): Promise<void> {
-    const all = await this.getAllReviewsAdmin();
-    const idx = all.findIndex(r => r.id === review.id);
-    let updated: CustomerReview[];
-    if (idx >= 0) {
-      updated = [...all];
-      updated[idx] = { ...review, updatedAt: Date.now() };
-    } else {
-      updated = [review, ...all];
-    }
-
-    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updated));
-    broadcastDataUpdate('reviews');
-
-    try {
-      await supabase.from('customer_reviews').upsert({
-        id: review.id,
-        user_name: review.userName,
-        user_email: review.userEmail,
-        product_name: review.productName,
-        rating: review.rating,
-        comment: review.comment,
-        status: review.status,
-        date_str: review.date,
-        updated_at: new Date().toISOString()
-      });
-    } catch (e) {
-      console.warn('Supabase customer_reviews sync notice:', e);
-    }
+  // Catalogs
+  async getCatalogs(): Promise<Catalog[]> {
+    return [...CATALOGS_DATA];
   },
 
-  async deleteReview(id: string): Promise<void> {
-    const all = await this.getAllReviewsAdmin();
-    const updated = all.filter(r => r.id !== id);
-    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updated));
-    broadcastDataUpdate('reviews');
+  async getCatalogBySlug(slug: string): Promise<Catalog | undefined> {
+    return CATALOGS_DATA.find(c => c.slug.toLowerCase() === slug.toLowerCase());
+  },
 
+  // User Profile
+  async getUser(): Promise<User | null> {
     try {
-      await supabase.from('customer_reviews').delete().eq('id', id);
+      const stored = localStorage.getItem(STORAGE_KEYS.USER);
+      if (stored) return JSON.parse(stored);
     } catch {}
+    return INITIAL_USER;
+  },
+
+  async updateUser(user: User): Promise<User> {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    return user;
   }
 };
 
@@ -1232,6 +1496,8 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     rating: 5,
     comment: 'Got my 4-digit PIN within 60 seconds on WhatsApp! Streaming UHD HDR flawlessly on my LG OLED.',
     status: 'approved',
+    pageType: 'home',
+    displayOrder: 1,
     date: '06 Oct 2026'
   },
   {
@@ -1240,8 +1506,10 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     userEmail: 'ananya@example.com',
     productName: 'Prime Video 4K UHD',
     rating: 5,
-    comment: 'Super fast delivery and prompt customer support on WhatsApp number 9441323332. Highly recommended!',
+    comment: 'Super fast delivery and prompt customer support on WhatsApp. Highly recommended!',
     status: 'approved',
+    pageType: 'home',
+    displayOrder: 2,
     date: '05 Oct 2026'
   },
   {
@@ -1252,6 +1520,8 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     rating: 4,
     comment: 'Working fine for cricket matches, high quality stream without buffering.',
     status: 'approved',
+    pageType: 'home',
+    displayOrder: 3,
     date: '04 Oct 2026'
   },
   {
@@ -1262,6 +1532,8 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     rating: 5,
     comment: 'Best rates in the market with full duration warranty. Worth every rupee.',
     status: 'approved',
+    pageType: 'home',
+    displayOrder: 4,
     date: '07 Oct 2026'
   }
 ];

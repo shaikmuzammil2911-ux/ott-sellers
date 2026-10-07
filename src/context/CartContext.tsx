@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CartItem, PlanDuration, Product } from '../types';
+import { CartItem, PlanDuration, Product, Coupon } from '../types';
+import { ottApi } from '../services/api';
 
 interface CartContextType {
   items: CartItem[];
@@ -11,13 +12,19 @@ interface CartContextType {
   subtotal: number;
   discountTotal: number;
   totalPrice: number;
+  appliedCoupon: Coupon | null;
+  couponDiscount: number;
+  couponError: string | null;
+  applyCoupon: (code: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  removeCoupon: () => void;
   toastMessage: string | null;
   dismissToast: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'ott_sellers_cart_v1';
+const CART_STORAGE_KEY = 'ott_sellers_cart_v2';
+const COUPON_STORAGE_KEY = 'ott_sellers_applied_coupon_v2';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
@@ -27,32 +34,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Ignore
     }
-    return [
-      {
-        productId: 'prod-netflix-premium',
-        productSlug: 'netflix-premium',
-        name: 'Netflix Premium',
-        image: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=80',
-        categoryName: 'Movies & Series',
-        planDuration: '1 Month',
-        price: 399,
-        originalPrice: 499,
-        quantity: 1
-      },
-      {
-        productId: 'prod-amazon-prime',
-        productSlug: 'amazon-prime-video',
-        name: 'Amazon Prime Video',
-        image: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=600&auto=format&fit=crop&q=80',
-        categoryName: 'Movies & Series',
-        planDuration: '1 Month',
-        price: 299,
-        originalPrice: 349,
-        quantity: 1
-      }
-    ];
+    return [];
   });
 
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(() => {
+    try {
+      const saved = localStorage.getItem(COUPON_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,6 +56,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [items]);
 
+  useEffect(() => {
+    try {
+      if (appliedCoupon) {
+        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem(COUPON_STORAGE_KEY);
+      }
+    } catch {}
+  }, [appliedCoupon]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -71,8 +74,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addToCart = (product: Product, planDuration?: PlanDuration, quantity: number = 1) => {
-    const selectedDuration = planDuration || product.defaultPlan;
-    const plan = product.plans.find(p => p.duration === selectedDuration) || product.plans[0];
+    const selectedDuration = planDuration || product.defaultPlan || '1 Month';
+    const plan = product.plans?.find(p => p.duration === selectedDuration) || product.plans?.[0] || {
+      duration: selectedDuration,
+      price: product.price || 199,
+      originalPrice: product.comparePrice || 499
+    };
+
+    const effectivePrice = product.inOffers && product.offerPrice ? product.offerPrice : plan.price;
+    const originalPrice = product.inOffers && product.offerOriginalPrice ? product.offerOriginalPrice : plan.originalPrice;
 
     setItems(prev => {
       const existingIndex = prev.findIndex(
@@ -85,7 +95,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...next[existingIndex],
           quantity: next[existingIndex].quantity + quantity
         };
-        showToast(`Updated ${product.name} (${selectedDuration}) in cart!`);
+        showToast(`Updated ${product.name} (${selectedDuration}) quantity in cart!`);
         return next;
       }
 
@@ -99,8 +109,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           image: product.image,
           categoryName: product.categoryName,
           planDuration: selectedDuration,
-          price: plan.price,
-          originalPrice: plan.originalPrice,
+          price: effectivePrice,
+          originalPrice: originalPrice,
           quantity
         }
       ];
@@ -128,13 +138,64 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = () => {
     setItems([]);
+    setAppliedCoupon(null);
   };
 
+  // Pricing calculations
   const totalItemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
   const subtotal = items.reduce((sum, item) => sum + item.originalPrice * item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const discountTotal = subtotal - totalPrice;
+  const rawTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const regularDiscount = Math.max(0, subtotal - rawTotal);
+
+  // Calculate Coupon Discount
+  let couponDiscount = 0;
+  if (appliedCoupon && rawTotal > 0) {
+    if (appliedCoupon.discountType === 'percentage') {
+      couponDiscount = Math.round((rawTotal * appliedCoupon.discountValue) / 100);
+      if (appliedCoupon.maxDiscount && couponDiscount > appliedCoupon.maxDiscount) {
+        couponDiscount = appliedCoupon.maxDiscount;
+      }
+    } else {
+      couponDiscount = appliedCoupon.discountValue;
+    }
+    couponDiscount = Math.min(couponDiscount, rawTotal);
+  }
+
+  const totalPrice = Math.max(0, rawTotal - couponDiscount);
+  const discountTotal = regularDiscount + couponDiscount;
+
+  const applyCoupon = async (code: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    setCouponError(null);
+    if (!code.trim()) {
+      const err = 'Please enter a valid coupon code.';
+      setCouponError(err);
+      return { success: false, error: err };
+    }
+
+    try {
+      const res = await ottApi.validateCoupon(code, rawTotal);
+      if (res.valid && res.coupon) {
+        setAppliedCoupon(res.coupon);
+        setCouponError(null);
+        showToast(`Coupon "${res.coupon.code}" applied! You saved ₹${res.discountAmount}.`);
+        return { success: true, message: `Coupon applied successfully!` };
+      } else {
+        const err = res.error || 'Invalid or expired coupon code.';
+        setCouponError(err);
+        return { success: false, error: err };
+      }
+    } catch {
+      const err = 'Unable to validate coupon at this moment.';
+      setCouponError(err);
+      return { success: false, error: err };
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+    showToast('Coupon removed.');
+  };
 
   return (
     <CartContext.Provider
@@ -148,6 +209,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subtotal,
         discountTotal,
         totalPrice,
+        appliedCoupon,
+        couponDiscount,
+        couponError,
+        applyCoupon,
+        removeCoupon,
         toastMessage,
         dismissToast: () => setToastMessage(null)
       }}

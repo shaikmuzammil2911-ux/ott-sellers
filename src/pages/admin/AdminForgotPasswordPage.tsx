@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { ADMIN_CONFIG } from '../../services/api';
 import './AdminAuth.css';
 
 export const AdminForgotPasswordPage: React.FC = () => {
   const { requestPasswordReset } = useAdminAuth();
 
-  const [email, setEmail] = useState('Fixyourmobiles7@gmail.com');
+  const [email, setEmail] = useState(ADMIN_CONFIG.EMAIL);
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -77,7 +78,7 @@ export const AdminForgotPasswordPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Fixyourmobiles7@gmail.com"
+                  placeholder={ADMIN_CONFIG.EMAIL}
                   required
                 />
               </div>

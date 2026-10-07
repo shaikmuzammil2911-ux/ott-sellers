@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, ShoppingCart, Check } from 'lucide-react';
+import { Star, ShoppingCart, Check, Zap } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { getCleanImageUrl } from '../../services/api';
@@ -14,7 +14,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, items } = useCart();
   const navigate = useNavigate();
 
-  const defaultPlan = product.plans.find(p => p.duration === product.defaultPlan) || product.plans[0];
+  const defaultPlan = product.plans?.[0] || {
+    duration: product.defaultPlan || '1 Month',
+    price: product.price || 199,
+    originalPrice: product.comparePrice || 499,
+    discountPercentage: 0
+  };
+
   const isInCart = items.some(i => i.productId === product.id && i.planDuration === defaultPlan.duration);
 
   const handleCardClick = () => {
@@ -27,29 +33,35 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const imgUrl = getCleanImageUrl(product.image, product.updatedAt);
+  const effectivePrice = product.inOffers && product.offerPrice ? product.offerPrice : defaultPlan.price;
+  const originalPrice = product.inOffers && product.offerOriginalPrice ? product.offerOriginalPrice : defaultPlan.originalPrice;
 
   return (
     <div className="product-card" onClick={handleCardClick} role="button" tabIndex={0}>
-      {/* Media Banner with Brand Styling */}
+      {/* 1. Large 1:1 Square Product Image (Main Visual Focus) */}
       <div className="product-card-media" style={{ backgroundColor: product.brandColor || '#0b132b' }}>
         <img 
           src={imgUrl} 
           alt={product.name} 
           loading="lazy"
         />
+        
+        {/* Subtle Brand Watermark */}
         <div className="product-card-media-overlay">
           <span className="product-card-brand-logo">
-            {product.brandLogoText || product.name}
+            {product.brandLogoText || product.name.split(' ')[0]}
           </span>
         </div>
         
         {/* Discount Badge */}
-        {product.badge && (
-          <span className="discount-badge">{product.badge}</span>
+        {(product.badge || (originalPrice > effectivePrice)) && (
+          <span className="discount-badge">
+            {product.badge || `${Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)}% OFF`}
+          </span>
         )}
       </div>
 
-      {/* Card Content */}
+      {/* 2. Card Body: Name -> Price -> Action */}
       <div className="product-card-body">
         <Link 
           to={`/product/${product.slug}`} 
@@ -63,15 +75,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Rating Row */}
         <div className="product-card-rating">
-          <Star size={14} className="star-filled" fill="#f59e0b" color="#f59e0b" />
-          <span>{product.rating.toFixed(1)}</span>
-          <span className="product-card-rating-count">({(product.reviewsCount / 1000).toFixed(1)}k)</span>
+          <Star size={13} className="star-filled" fill="#f59e0b" color="#f59e0b" />
+          <span>{product.rating ? product.rating.toFixed(1) : '4.9'}</span>
+          <span className="product-card-rating-count">({((product.reviewsCount || 120) / 100).toFixed(1)}k)</span>
         </div>
 
-        {/* Price Row */}
+        {/* Price Row (Compact Amount) */}
         <div className="product-card-pricing">
-          <span className="selling-price">₹ {defaultPlan.price}</span>
-          <span className="original-price">₹ {defaultPlan.originalPrice}</span>
+          <span className="selling-price">₹ {effectivePrice}</span>
+          {originalPrice > effectivePrice && (
+            <span className="original-price">₹ {originalPrice}</span>
+          )}
         </div>
 
         {/* Action Button: Add to Cart */}
@@ -83,12 +97,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         >
           {isInCart ? (
             <>
-              <Check size={16} />
+              <Check size={15} />
               <span>Added In Cart</span>
             </>
           ) : (
             <>
-              <ShoppingCart size={16} />
+              <ShoppingCart size={15} />
               <span>Add to Cart</span>
             </>
           )}

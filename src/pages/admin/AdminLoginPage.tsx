@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { ShieldAlert, Lock, Mail, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { ADMIN_CONFIG } from '../../services/api';
 import './AdminAuth.css';
 
 export const AdminLoginPage: React.FC = () => {
@@ -9,7 +10,7 @@ export const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState('Fixyourmobiles7@gmail.com');
+  const [email, setEmail] = useState(ADMIN_CONFIG.EMAIL);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,7 +69,7 @@ export const AdminLoginPage: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Fixyourmobiles7@gmail.com"
+                placeholder={ADMIN_CONFIG.EMAIL}
                 required
                 autoComplete="email"
               />

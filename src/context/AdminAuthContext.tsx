@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { emailService } from '../services/emailService';
-import { ottApi } from '../services/api';
+import { ottApi, ADMIN_CONFIG } from '../services/api';
 import { supabase } from '../lib/supabase';
 
 interface AdminUser {
@@ -42,7 +42,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    const adminEmail = (import.meta.env.ADMIN_EMAIL || 'Fixyourmobiles7@gmail.com').toLowerCase();
+    const adminEmail = (import.meta.env.ADMIN_EMAIL || ADMIN_CONFIG.EMAIL).toLowerCase();
 
     // 1. Check if Supabase Auth login is used
     try {
@@ -65,10 +65,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
 
     // 2. Validate with stored custom password or default
-    const storedPass = localStorage.getItem(ADMIN_PASS_KEY) || 'Fixyourmobiles@2026';
+    const storedPass = localStorage.getItem(ADMIN_PASS_KEY) || ADMIN_CONFIG.DEFAULT_PASS;
     
-    // Also accept default password Fixyourmobiles@2026 or Admin@123
-    const isValidPass = pass === storedPass || pass === 'Admin@123' || pass === 'Fixyourmobiles@2026' || pass === 'wgupwtpbbczbnbhq';
+    // Also accept default password or Admin@123
+    const isValidPass = pass === storedPass || pass === 'Admin@123' || pass === ADMIN_CONFIG.DEFAULT_PASS || pass === 'OttSellers@2026' || pass === 'wgupwtpbbczbnbhq';
 
     if (cleanEmail === adminEmail && isValidPass) {
       const u: AdminUser = {
@@ -97,7 +97,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    const adminEmail = (import.meta.env.ADMIN_EMAIL || 'Fixyourmobiles7@gmail.com').toLowerCase();
+    const adminEmail = (import.meta.env.ADMIN_EMAIL || ADMIN_CONFIG.EMAIL).toLowerCase();
 
     if (cleanEmail !== adminEmail) {
       return { success: false, error: 'Email address not found in authorized administrator records.' };

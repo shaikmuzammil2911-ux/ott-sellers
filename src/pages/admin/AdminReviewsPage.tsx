@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Star, Search, Check, X, Trash2, Plus, Edit2, 
-  ThumbsUp, MessageSquare, AlertCircle, RefreshCw, Filter, Sparkles
+  ThumbsUp, MessageSquare, AlertCircle, RefreshCw, Filter, Sparkles 
 } from 'lucide-react';
 import { ottApi } from '../../services/api';
 import { CustomerReview } from '../../types';
@@ -11,6 +11,7 @@ export const AdminReviewsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [pageFilter, setPageFilter] = useState<string>('all');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +22,8 @@ export const AdminReviewsPage: React.FC = () => {
   const [formRating, setFormRating] = useState(5);
   const [formComment, setFormComment] = useState('');
   const [formStatus, setFormStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
+  const [formPageType, setFormPageType] = useState<CustomerReview['pageType']>('home');
+  const [formDisplayOrder, setFormDisplayOrder] = useState('1');
   const [formDate, setFormDate] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
@@ -40,6 +43,11 @@ export const AdminReviewsPage: React.FC = () => {
     loadData();
   }, []);
 
+  const showToast = (msg: string) => {
+    setSaveSuccessMsg(msg);
+    setTimeout(() => setSaveSuccessMsg(null), 4000);
+  };
+
   const handleOpenAddModal = () => {
     setEditingReview(null);
     setFormUserName('');
@@ -48,6 +56,8 @@ export const AdminReviewsPage: React.FC = () => {
     setFormRating(5);
     setFormComment('');
     setFormStatus('approved');
+    setFormPageType('home');
+    setFormDisplayOrder(String(reviews.length + 1));
     setFormDate(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
     setIsModalOpen(true);
   };
@@ -60,6 +70,8 @@ export const AdminReviewsPage: React.FC = () => {
     setFormRating(r.rating);
     setFormComment(r.comment);
     setFormStatus(r.status);
+    setFormPageType(r.pageType || 'home');
+    setFormDisplayOrder(String(r.displayOrder || 1));
     setFormDate(r.date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
     setIsModalOpen(true);
   };
@@ -67,7 +79,7 @@ export const AdminReviewsPage: React.FC = () => {
   const handleSaveReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formUserName.trim() || !formComment.trim()) {
-      alert('Customer Name and Review Comment are required');
+      alert('Customer name and review comment are required.');
       return;
     }
 
@@ -79,35 +91,28 @@ export const AdminReviewsPage: React.FC = () => {
       rating: Number(formRating) || 5,
       comment: formComment.trim(),
       status: formStatus,
+      pageType: formPageType,
+      displayOrder: Number(formDisplayOrder) || 1,
       date: formDate.trim() || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
       updatedAt: Date.now()
     };
 
-    // Optimistic state update
-    setReviews(prev => {
-      const idx = prev.findIndex(item => item.id === reviewData.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = reviewData;
-        return copy;
-      }
-      return [reviewData, ...prev];
+    await ottApi.saveReview(reviewData);
+    await ottApi.logAudit(editingReview ? 'UPDATE_REVIEW' : 'CREATE_REVIEW', 'reviews', reviewData.id, { 
+      userName: reviewData.userName, 
+      pageType: reviewData.pageType 
     });
 
-    await ottApi.saveReview(reviewData);
-    await ottApi.logAudit(editingReview ? 'UPDATE_REVIEW' : 'CREATE_REVIEW', 'reviews', reviewData.id, { userName: reviewData.userName });
-
-    setSaveSuccessMsg(`Review by "${reviewData.userName}" saved to Supabase! Live storefront updated.`);
-    setTimeout(() => setSaveSuccessMsg(null), 4000);
+    showToast(`Review by "${reviewData.userName}" saved to Supabase! Live store updated.`);
     setIsModalOpen(false);
     await loadData();
   };
 
   const handleDeleteReview = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete the review by "${name}"?`)) {
-      setReviews(prev => prev.filter(r => r.id !== id));
       await ottApi.deleteReview(id);
       await ottApi.logAudit('DELETE_REVIEW', 'reviews', id, { name });
+      showToast('Review deleted.');
       await loadData();
     }
   };
@@ -115,21 +120,22 @@ export const AdminReviewsPage: React.FC = () => {
   const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected') => {
     const target = reviews.find(r => r.id === id);
     if (!target) return;
-    const updated = { ...target, status, updatedAt: Date.now() };
-    setReviews(prev => prev.map(r => r.id === id ? updated : r));
+    const updated: CustomerReview = { ...target, status, updatedAt: Date.now() };
     await ottApi.saveReview(updated);
-    await ottApi.logAudit('UPDATE_REVIEW_STATUS', 'reviews', id, { status });
+    showToast(`Review status updated to ${status}.`);
     await loadData();
   };
 
   const filteredReviews = reviews.filter(r => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch = 
-      r.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.comment.toLowerCase().includes(searchQuery.toLowerCase());
+      r.userName.toLowerCase().includes(q) ||
+      r.productName.toLowerCase().includes(q) ||
+      r.comment.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+    if (pageFilter !== 'all' && r.pageType !== pageFilter && r.pageType !== 'all') return false;
     return true;
   });
 
@@ -140,10 +146,10 @@ export const AdminReviewsPage: React.FC = () => {
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
             <Star className="admin-heading-icon" style={{ color: '#f59e0b' }} />
-            <span>Customer Reviews & Ratings</span>
+            <span>Customer Reviews & Page Mapping</span>
           </h1>
           <p className="admin-sub-text">
-            Manage customer ratings, edit reviews, upload new testimonials, and moderate live website feedback.
+            Add testimonials, moderate ratings, and assign reviews to specific pages (Home, Items, Courses, etc.).
           </p>
         </div>
 
@@ -154,291 +160,291 @@ export const AdminReviewsPage: React.FC = () => {
             className="btn-refresh-action"
             title="Refresh database"
           >
-            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
+            <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
           </button>
           <button
             onClick={handleOpenAddModal}
             className="btn-primary-action"
           >
             <Plus size={16} />
-            <span>Upload New Review</span>
+            <span>Add Review</span>
           </button>
         </div>
       </div>
 
       {saveSuccessMsg && (
         <div className="admin-alert-banner">
-          <Check size={18} />
+          <Check size={16} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="admin-toolbar-card">
-        <div className="admin-search-wrapper">
-          <Search className="admin-search-icon" />
+      {/* Filter Bar */}
+      <div className="admin-filter-bar">
+        <div className="admin-search-wrap">
+          <Search size={16} className="search-icon" />
           <input
             type="text"
-            className="admin-search-input"
-            placeholder="Search reviews by customer name, product, or keywords..."
+            placeholder="Search reviews by customer, product, or comment..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <div className="admin-tabs-row">
-          {(['all', 'approved', 'pending', 'rejected'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setStatusFilter(tab)}
-              className={`admin-tab-btn ${statusFilter === tab ? 'active' : ''}`}
-            >
-              {tab.toUpperCase()}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <select
+            value={pageFilter}
+            onChange={(e) => setPageFilter(e.target.value)}
+            className="admin-select-filter"
+          >
+            <option value="all">All Display Pages</option>
+            <option value="home">Home Page</option>
+            <option value="courses">Courses</option>
+            <option value="items">Items</option>
+            <option value="offers">Offers</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="admin-select-filter"
+          >
+            <option value="all">All Statuses</option>
+            <option value="approved">Approved (Live)</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
       </div>
 
-      {/* Reviews Grid Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-        {loading && reviews.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
-            <RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto 10px', color: '#0284c7' }} />
-            Loading customer reviews from Supabase...
-          </div>
-        ) : filteredReviews.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', padding: '60px 20px', textAlign: 'center', color: '#94a3b8', background: '#070d1e', borderRadius: '16px', border: '1px solid #1e293b' }}>
-            No reviews match the selected filter criteria. Click &quot;Upload New Review&quot; above to create one.
-          </div>
-        ) : (
-          filteredReviews.map((r) => (
-            <div
-              key={r.id}
-              style={{
-                background: '#070d1e',
-                border: '1px solid #1e293b',
-                borderRadius: '16px',
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '16px',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0 0 2px 0' }}>{r.userName}</h3>
-                    <div style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 600 }}>{r.productName}</div>
-                    {r.userEmail && <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{r.userEmail}</div>}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '4px 8px', borderRadius: '8px', color: '#f59e0b', fontSize: '0.82rem', fontWeight: 800 }}>
-                    <Star size={14} fill="#f59e0b" />
-                    <span>{r.rating}.0</span>
-                  </div>
+      {/* Reviews Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
+        {filteredReviews.map((r) => (
+          <div
+            key={r.id}
+            style={{
+              background: '#070d1e',
+              border: `1px solid ${r.status === 'approved' ? '#1e293b' : '#334155'}`,
+              borderRadius: '12px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '10px',
+              opacity: r.status === 'approved' ? 1 : 0.6
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={13}
+                      fill={i < r.rating ? '#f59e0b' : 'transparent'}
+                      color={i < r.rating ? '#f59e0b' : '#64748b'}
+                    />
+                  ))}
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#f59e0b', marginLeft: '4px' }}>
+                    {r.rating}.0
+                  </span>
                 </div>
 
-                <p style={{ fontSize: '0.84rem', color: '#e2e8f0', fontStyle: 'italic', lineHeight: 1.55, background: 'rgba(0,0,0,0.3)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', margin: 0 }}>
-                  &ldquo;{r.comment}&rdquo;
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: '#64748b' }}>
-                  <span>{r.date}</span>
-                  <span
-                    style={{
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      fontSize: '0.7rem',
-                      background: r.status === 'approved' ? 'rgba(16, 185, 129, 0.15)' : r.status === 'pending' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                      color: r.status === 'approved' ? '#34d399' : r.status === 'pending' ? '#fbbf24' : '#f87171',
-                      border: r.status === 'approved' ? '1px solid rgba(16, 185, 129, 0.3)' : r.status === 'pending' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
-                    }}
-                  >
-                    {r.status}
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: r.status === 'approved' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: r.status === 'approved' ? '#22c55e' : '#f87171'
+                  }}>
+                    {r.status.toUpperCase()}
+                  </span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(2, 132, 199, 0.15)',
+                    color: '#38bdf8'
+                  }}>
+                    Page: {(r.pageType || 'home').toUpperCase()}
                   </span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', borderTop: '1px solid #1e293b' }}>
-                {r.status !== 'approved' && (
+              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>
+                {r.userName}
+              </h4>
+              <p style={{ fontSize: '0.74rem', color: '#94a3b8', margin: '2px 0 0' }}>
+                Product: <strong style={{ color: '#cbd5e1' }}>{r.productName}</strong> • {r.date}
+              </p>
+
+              <p style={{ fontSize: '0.78rem', color: '#e2e8f0', margin: '8px 0 0', lineHeight: 1.4 }}>
+                "{r.comment}"
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {r.status !== 'approved' ? (
                   <button
+                    type="button"
                     onClick={() => handleUpdateStatus(r.id, 'approved')}
-                    style={{
-                      padding: '7px 12px',
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#34d399',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      cursor: 'pointer'
-                    }}
+                    style={{ background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
                   >
-                    <Check size={14} /> Approve
+                    Approve
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(r.id, 'rejected')}
+                    style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#f87171', padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer' }}
+                  >
+                    Reject
                   </button>
                 )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '5px' }}>
                 <button
+                  type="button"
                   onClick={() => handleOpenEditModal(r)}
-                  style={{
-                    padding: '7px 12px',
-                    background: '#1e293b',
-                    color: '#cbd5e1',
-                    borderRadius: '8px',
-                    border: '1px solid #334155',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    cursor: 'pointer'
-                  }}
-                  title="Edit Review"
+                  style={{ background: 'rgba(2, 132, 199, 0.15)', border: '1px solid rgba(2, 132, 199, 0.3)', color: '#38bdf8', padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
                 >
-                  <Edit2 size={13} /> Edit
+                  <Edit2 size={12} />
+                  <span>Edit</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDeleteReview(r.id, r.userName)}
-                  style={{
-                    padding: '7px 10px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#f87171',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    cursor: 'pointer'
-                  }}
-                  title="Delete Review"
+                  style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#f87171', padding: '4px 6px', borderRadius: '6px', cursor: 'pointer' }}
+                  title="Delete"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={12} />
                 </button>
               </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
+
+      {filteredReviews.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '36px 20px', color: '#94a3b8', background: '#070d1e', borderRadius: '12px', border: '1px dashed #1e293b' }}>
+          <Star size={32} style={{ opacity: 0.5, marginBottom: '6px' }} />
+          <p>No reviews found matching the filters.</p>
+        </div>
+      )}
 
       {/* Add / Edit Review Modal */}
       {isModalOpen && (
-        <div className="admin-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box compact" style={{ maxWidth: '460px' }}>
             <div className="admin-modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Star size={20} style={{ color: '#f59e0b' }} />
-                <span>{editingReview ? 'Edit Customer Review' : 'Upload New Customer Review'}</span>
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="modal-close-btn"
-                aria-label="Close Modal"
-              >
-                <X size={20} />
+              <h3 className="modal-title">
+                {editingReview ? 'Edit Review & Page Mapping' : 'Add New Customer Review'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="btn-modal-close">
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveReview} className="admin-form-grid">
-              <div className="admin-form-group">
-                <label>Customer Name *</label>
+            <form onSubmit={handleSaveReview} className="admin-modal-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="form-group-compact">
+                  <label>Customer Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formUserName}
+                    onChange={(e) => setFormUserName(e.target.value)}
+                    placeholder="e.g. Karthik S."
+                  />
+                </div>
+                <div className="form-group-compact">
+                  <label>Rating (1 - 5 Stars)</label>
+                  <select
+                    value={formRating}
+                    onChange={(e) => setFormRating(Number(e.target.value))}
+                  >
+                    <option value={5}>⭐⭐⭐⭐⭐ (5 Stars)</option>
+                    <option value={4}>⭐⭐⭐⭐ (4 Stars)</option>
+                    <option value={3}>⭐⭐⭐ (3 Stars)</option>
+                    <option value={2}>⭐⭐ (2 Stars)</option>
+                    <option value={1}>⭐ (1 Star)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group-compact">
+                <label>Product / Subscription Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Ramesh Kumar"
-                  value={formUserName}
-                  onChange={(e) => setFormUserName(e.target.value)}
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label>Customer Email (Optional)</label>
-                <input
-                  type="email"
-                  placeholder="customer@example.com"
-                  value={formUserEmail}
-                  onChange={(e) => setFormUserEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label>Subscribed Product / Service *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Netflix Premium 4K / OTT Combo"
                   value={formProductName}
                   onChange={(e) => setFormProductName(e.target.value)}
+                  placeholder="e.g. Netflix Premium 4K (Private PIN)"
                 />
               </div>
 
-              <div className="admin-form-group">
-                <label>Rating (1 to 5 Stars)</label>
-                <select
-                  value={formRating}
-                  onChange={(e) => setFormRating(Number(e.target.value))}
-                  style={{ fontWeight: 700, color: '#f59e0b' }}
-                >
-                  <option value="5">⭐⭐⭐⭐⭐ 5 Stars (Excellent)</option>
-                  <option value="4">⭐⭐⭐⭐ 4 Stars (Very Good)</option>
-                  <option value="3">⭐⭐⭐ 3 Stars (Average)</option>
-                  <option value="2">⭐⭐ 2 Stars (Below Average)</option>
-                  <option value="1">⭐ 1 Star (Poor)</option>
-                </select>
+              {/* Show this review on: Page selector */}
+              <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '8px', padding: '10px' }}>
+                <div className="form-group-compact">
+                  <label style={{ color: '#38bdf8' }}>Show this review on: *</label>
+                  <select
+                    value={formPageType}
+                    onChange={(e) => setFormPageType(e.target.value as any)}
+                  >
+                    <option value="home">Home Page Testimonials</option>
+                    <option value="items">Items & Subscriptions Page</option>
+                    <option value="courses">Courses & Masterclasses</option>
+                    <option value="offers">Special Offers Page</option>
+                    <option value="all">All Applicable Pages</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="admin-form-group admin-form-full">
-                <label>Review Testimonial Text *</label>
+              <div className="form-group-compact">
+                <label>Review Comment *</label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   required
-                  placeholder="What did the customer say about service speed, pricing, and WhatsApp delivery?"
                   value={formComment}
                   onChange={(e) => setFormComment(e.target.value)}
+                  placeholder="e.g. Got my PIN within 60 seconds on WhatsApp! Streaming flawlessly."
                 />
               </div>
 
-              <div className="admin-form-group">
-                <label>Date Displayed</label>
-                <input
-                  type="text"
-                  placeholder="07 Oct 2026"
-                  value={formDate}
-                  onChange={(e) => setFormDate(e.target.value)}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="form-group-compact">
+                  <label>Status</label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as any)}
+                  >
+                    <option value="approved">Approved (Live)</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <div className="form-group-compact">
+                  <label>Display Order</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formDisplayOrder}
+                    onChange={(e) => setFormDisplayOrder(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="admin-form-group">
-                <label>Moderation Status</label>
-                <select
-                  value={formStatus}
-                  onChange={(e) => setFormStatus(e.target.value as any)}
-                >
-                  <option value="approved">Approved (Active on Live Store)</option>
-                  <option value="pending">Pending Review</option>
-                  <option value="rejected">Rejected (Hidden)</option>
-                </select>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="admin-modal-actions admin-form-full">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', padding: '10px 18px', borderRadius: '10px', fontSize: '0.86rem', fontWeight: 600, cursor: 'pointer' }}
-                >
+              <div className="admin-modal-footer">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-modal-cancel">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary-action"
-                  style={{ padding: '10px 22px' }}
-                >
-                  <Check size={16} />
-                  <span>Save Review to Supabase</span>
+                <button type="submit" className="btn-modal-save">
+                  Save Review
                 </button>
               </div>
             </form>

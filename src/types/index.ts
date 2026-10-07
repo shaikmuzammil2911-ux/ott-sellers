@@ -59,11 +59,15 @@ export interface Product {
 
 export type BannerImageMode = 'solid-color' | 'image-blur' | 'image-only';
 export type BannerTextPosition = 'left' | 'center' | 'right';
+export type BannerDisplayStyle = 'auto-slide' | 'fixed' | 'manual-slide' | 'single';
+export type BannerTargetPage = 'home' | 'courses' | 'items' | 'categories' | 'offers' | 'all';
 
 export interface HeroBanner {
   id: string;
+  name?: string;
   title: string;
   subtitle: string;
+  description?: string;
   ctaText: string;
   ctaLink: string;
   secondaryCtaText?: string;
@@ -74,6 +78,11 @@ export interface HeroBanner {
   solidColor?: string;
   textPosition: BannerTextPosition;
   displayOrder: number;
+  page: BannerTargetPage;
+  slot: string; // e.g. '01', '02', 'hero', 'top'
+  style: BannerDisplayStyle;
+  autoplay: boolean;
+  interval: number; // in seconds (e.g. 5)
   status: 'ON' | 'OFF';
   badgeText?: string;
   showText?: boolean;
@@ -88,12 +97,12 @@ export interface Category {
   slug: string;
   name: string;
   description?: string;
-  shortDescription: string;
+  shortDescription?: string;
   iconName?: string;
   badgeColor?: string;
   bgGradient?: string;
-  titlesCount: string;
-  image: string;
+  titlesCount?: string;
+  image?: string;
   status?: 'ON' | 'OFF';
   displayOrder?: number;
   updatedAt?: number;
@@ -134,6 +143,18 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface Coupon {
+  id: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscount?: number;
+  description?: string;
+  isActive: boolean;
+  expiresAt?: string;
+}
+
 export type OrderStatus = 'Pending' | 'Paid' | 'Processing' | 'Delivered' | 'Completed' | 'Cancelled';
 export type PaymentStatus = 'Pending' | 'Success' | 'Failed' | 'Paid';
 
@@ -160,6 +181,8 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   discount: number;
+  couponCode?: string;
+  couponDiscount?: number;
   total: number;
   paymentMethod: string;
   paymentStatus: PaymentStatus;
@@ -202,12 +225,15 @@ export interface Course {
 export interface HomepageSectionCMS {
   id: string;
   sectionKey: string;
+  name?: string;
   title?: string;
   subtitle?: string;
   description?: string;
   imageUrl?: string;
+  displayOrder?: number;
   settings?: Record<string, any>;
   isActive?: boolean;
+  updatedAt?: number;
 }
 
 export interface AdminSettings {
@@ -220,6 +246,7 @@ export interface AdminSettings {
   razorpayKeyId?: string;
   smtpHost?: string;
   smtpUser?: string;
+  randomNotificationsActive?: boolean;
   updatedAt?: number;
 }
 
@@ -241,6 +268,24 @@ export interface CustomerReview {
   rating: number;
   comment: string;
   status: 'approved' | 'pending' | 'rejected';
+  pageType?: 'home' | 'courses' | 'items' | 'categories' | 'offers' | 'all';
+  pageId?: string;
+  displayOrder?: number;
   date: string;
+  updatedAt?: number;
+}
+
+export interface SiteNotification {
+  id: string;
+  buyerName: string;
+  location: string;
+  productName: string;
+  slug: string;
+  plan: string;
+  timeText: string;
+  imageUrl: string;
+  message?: string;
+  isActive: boolean;
+  displayOrder?: number;
   updatedAt?: number;
 }

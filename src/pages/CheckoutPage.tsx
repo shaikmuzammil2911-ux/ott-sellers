@@ -11,7 +11,7 @@ import { Breadcrumb } from '../components/common/Breadcrumb';
 import './CheckoutPage.css';
 
 export const CheckoutPage: React.FC = () => {
-  const { items, totalPrice, discountTotal, subtotal, clearCart } = useCart();
+  const { items, totalPrice, discountTotal, subtotal, appliedCoupon, couponDiscount, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -55,8 +55,8 @@ export const CheckoutPage: React.FC = () => {
       let verifiedSubtotal = 0;
       const orderItems = items.map(i => {
         const dbProd = dbProducts.find(p => p.id === i.productId || p.slug === i.productSlug);
-        const plan = dbProd?.plans.find(p => p.duration === i.planDuration);
-        const authoritativePrice = plan ? plan.price : i.price;
+        const plan = dbProd?.plans?.find(p => p.duration === i.planDuration);
+        const authoritativePrice = plan ? (dbProd?.inOffers && dbProd.offerPrice ? dbProd.offerPrice : plan.price) : i.price;
         verifiedSubtotal += authoritativePrice * i.quantity;
 
         return {
@@ -71,7 +71,7 @@ export const CheckoutPage: React.FC = () => {
         };
       });
 
-      const finalTotal = Math.max(verifiedSubtotal - discountTotal, 0);
+      const finalTotal = totalPrice;
 
       // Open Razorpay Checkout
       await paymentService.openCheckout({
@@ -90,6 +90,8 @@ export const CheckoutPage: React.FC = () => {
             items: orderItems,
             subtotal: verifiedSubtotal,
             discount: discountTotal,
+            couponCode: appliedCoupon?.code,
+            couponDiscount: couponDiscount,
             total: finalTotal,
             paymentMethod: 'Razorpay Secure Gateway (UPI / Card / NetBanking)',
             paymentStatus: 'Success',

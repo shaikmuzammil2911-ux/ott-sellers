@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Save, Upload, Check, AlertCircle, RefreshCw, 
-  Eye, Layout, ExternalLink, ArrowRight, Palette
+  Eye, EyeOff, Layout, ExternalLink, ArrowRight, Palette, 
+  ToggleLeft, ToggleRight, Layers, MoveVertical, ShieldCheck, Zap, Image as ImageIcon
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
@@ -19,9 +20,10 @@ const COLOR_PRESETS = [
 export const AdminHeroCMSPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sections, setSections] = useState<HomepageSectionCMS[]>([]);
   const [heroCMS, setHeroCMS] = useState<HomepageSectionCMS | null>(null);
 
-  // Form Fields
+  // Form Fields for Hero
   const [badgeText, setBadgeText] = useState('Your Entertainment, Our Priority');
   const [badgeColor, setBadgeColor] = useState('#38bdf8');
   const [title, setTitle] = useState('All Your Favourite OTT Subscriptions in One Place');
@@ -45,22 +47,25 @@ export const AdminHeroCMSPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const cms = await ottApi.getHeroSectionCMS();
-      if (cms) {
-        setHeroCMS(cms);
-        setTitle(cms.title || 'All Your Favourite OTT Subscriptions in One Place');
-        setSubtitle(cms.subtitle || '');
-        setDescription(cms.description || '');
-        setBadgeText(cms.settings?.badgeText || 'Your Entertainment, Our Priority');
-        setBadgeColor(cms.settings?.badgeColor || '#38bdf8');
-        setTitleColor(cms.settings?.titleColor || '#ffffff');
-        setSubtitleColor(cms.settings?.subtitleColor || '#cbd5e1');
-        setCtaText(cms.settings?.ctaText || 'Shop Now');
-        setCtaLink(cms.settings?.ctaLink || '/items');
-        setSecondaryCtaText(cms.settings?.secondaryCtaText || 'Explore Categories');
-        setSecondaryCtaLink(cms.settings?.secondaryCtaLink || '#categories');
-        setDesktopImage(cms.imageUrl || '/hero-bg.png');
-        setMobileImage(cms.settings?.mobileImage || '/hero-mobile-1.png');
+      const allSections = await ottApi.getHomepageSections();
+      setSections(allSections.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
+
+      const hero = allSections.find(s => s.sectionKey === 'hero') || allSections[0];
+      if (hero) {
+        setHeroCMS(hero);
+        setTitle(hero.title || 'All Your Favourite OTT Subscriptions in One Place');
+        setSubtitle(hero.subtitle || '');
+        setDescription(hero.description || '');
+        setBadgeText(hero.settings?.badgeText || 'Your Entertainment, Our Priority');
+        setBadgeColor(hero.settings?.badgeColor || '#38bdf8');
+        setTitleColor(hero.settings?.titleColor || '#ffffff');
+        setSubtitleColor(hero.settings?.subtitleColor || '#cbd5e1');
+        setCtaText(hero.settings?.ctaText || 'Shop Now');
+        setCtaLink(hero.settings?.ctaLink || '/items');
+        setSecondaryCtaText(hero.settings?.secondaryCtaText || 'Explore Categories');
+        setSecondaryCtaLink(hero.settings?.secondaryCtaLink || '#categories');
+        setDesktopImage(hero.imageUrl || '/hero-bg.png');
+        setMobileImage(hero.settings?.mobileImage || '/hero-mobile-1.png');
       }
     } catch (e) {
       console.error(e);
@@ -72,6 +77,34 @@ export const AdminHeroCMSPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleToggleSection = async (secKey: string) => {
+    const updated = sections.map(s => {
+      if (s.sectionKey === secKey) {
+        return { ...s, isActive: !s.isActive, updatedAt: Date.now() };
+      }
+      return s;
+    });
+    setSections(updated);
+    await ottApi.saveHomepageSections(updated);
+    await ottApi.logAudit('TOGGLE_SECTION_VISIBILITY', 'homepage_sections', secKey);
+    setSaveSuccessMsg(`Section "${secKey}" visibility updated! Live website refreshed.`);
+    setTimeout(() => setSaveSuccessMsg(null), 3500);
+  };
+
+  const handleOrderChange = async (secKey: string, newOrder: number) => {
+    const updated = sections.map(s => {
+      if (s.sectionKey === secKey) {
+        return { ...s, displayOrder: newOrder, updatedAt: Date.now() };
+      }
+      return s;
+    }).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+    setSections(updated);
+    await ottApi.saveHomepageSections(updated);
+    setSaveSuccessMsg('Section display order updated.');
+    setTimeout(() => setSaveSuccessMsg(null), 3000);
+  };
 
   const handleUploadDesktop = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,7 +138,7 @@ export const AdminHeroCMSPage: React.FC = () => {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSaveHero = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setSaveSuccessMsg(null);
@@ -113,10 +146,12 @@ export const AdminHeroCMSPage: React.FC = () => {
     const updatedCMS: HomepageSectionCMS = {
       id: heroCMS?.id || 'sec-hero',
       sectionKey: 'hero',
+      name: 'Hero Promotional Banner',
       title: title.trim(),
       subtitle: subtitle.trim(),
       description: description.trim(),
       imageUrl: desktopImage,
+      displayOrder: 1,
       settings: {
         badgeText: badgeText.trim(),
         badgeColor,
@@ -128,13 +163,12 @@ export const AdminHeroCMSPage: React.FC = () => {
         secondaryCtaLink: secondaryCtaLink.trim(),
         mobileImage
       },
-      isActive: true
+      isActive: heroCMS?.isActive ?? true
     };
 
-    // Save CMS section
-    await ottApi.saveHeroSectionCMS(updatedCMS);
+    await ottApi.saveHomepageSection(updatedCMS);
 
-    // Also sync the primary banner so HeroSection immediately displays the updated text & colors
+    // Sync banner table for hero slider
     try {
       const banners = await ottApi.getAllBannersAdmin();
       if (banners.length > 0) {
@@ -152,14 +186,11 @@ export const AdminHeroCMSPage: React.FC = () => {
         banners[0] = first;
         await ottApi.saveBanners(banners);
       }
-    } catch (err) {
-      console.warn('Banner sync notice:', err);
-    }
+    } catch {}
 
     await ottApi.logAudit('UPDATE_HERO_CMS', 'homepage_sections', 'hero', { title: updatedCMS.title });
-
     setSaving(false);
-    setSaveSuccessMsg('Hero Section CMS & Text Colors saved successfully to Supabase! Live website updated.');
+    setSaveSuccessMsg('Hero banner content & styling saved to Supabase! Live storefront updated.');
     setTimeout(() => setSaveSuccessMsg(null), 5000);
   };
 
@@ -169,452 +200,280 @@ export const AdminHeroCMSPage: React.FC = () => {
       <div className="admin-header-row">
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
-            <Sparkles className="admin-heading-icon" />
-            <span>Hero Section CMS & Text Colors</span>
+            <Layout className="admin-heading-icon" style={{ color: '#0284c7' }} />
+            <span>Homepage Section Visibility & CMS</span>
           </h1>
           <p className="admin-sub-text">
-            Customize hero headlines, text colors, badge accents, call-to-action buttons, and graphics with live preview.
+            Activate or deactivate homepage sections, set display order, and edit promotional hero content in real-time.
           </p>
         </div>
 
         <div className="admin-header-actions">
-          <a
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-admin-secondary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '10px', fontSize: '0.84rem' }}
-          >
-            <ExternalLink size={14} />
-            <span>View Live Site</span>
-          </a>
           <button
             onClick={loadData}
             disabled={loading}
             className="btn-refresh-action"
             title="Reload from Supabase"
           >
-            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
+            <RefreshCw size={16} className={loading ? 'spin-anim' : ''} />
           </button>
         </div>
       </div>
 
       {saveSuccessMsg && (
         <div className="admin-alert-banner">
-          <Check size={18} />
+          <Check size={16} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
-      {/* Editor & Live Preview Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
-        {/* Left Form */}
-        <div
-          style={{
-            background: '#070d1e',
-            border: '1px solid #1e293b',
-            borderRadius: '20px',
-            padding: '24px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-          }}
-        >
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: 0, paddingBottom: '14px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layout size={18} style={{ color: '#0284c7' }} />
-            <span>Hero Content & Text Color Controls</span>
-          </h2>
+      {/* 1. Section Visibility & Order Management Table */}
+      <div style={{
+        background: '#070d1e',
+        border: '1px solid #1e293b',
+        borderRadius: '16px',
+        padding: '18px 20px',
+        marginBottom: '24px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <Layers size={18} style={{ color: '#38bdf8' }} />
+              <span>Homepage Section Controls (ON / OFF)</span>
+            </h2>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0' }}>
+              Disabled sections will NOT render on the live customer website.
+            </p>
+          </div>
+        </div>
 
-          <form onSubmit={handleSave} className="admin-form-grid" style={{ gap: '16px' }}>
-            {/* Pill Badge */}
-            <div className="admin-form-group">
-              <label>Pill Badge Text</label>
-              <input
-                type="text"
-                placeholder="e.g. Your Entertainment, Our Priority"
-                value={badgeText}
-                onChange={(e) => setBadgeText(e.target.value)}
-              />
-            </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
+          {sections.map((sec) => (
+            <div
+              key={sec.sectionKey}
+              style={{
+                background: sec.isActive ? '#0b132b' : 'rgba(15, 23, 42, 0.5)',
+                border: `1px solid ${sec.isActive ? '#1e293b' : '#334155'}`,
+                borderRadius: '12px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <span style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.06)',
+                  color: '#94a3b8',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  0{sec.displayOrder || 1}
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: sec.isActive ? '#ffffff' : '#94a3b8', margin: 0, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sec.name || sec.sectionKey.replace(/_/g, ' ')}
+                  </h4>
+                  <span style={{ fontSize: '0.72rem', color: sec.isActive ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                    {sec.isActive ? '● Live on Store' : '○ Hidden'}
+                  </span>
+                </div>
+              </div>
 
-            {/* Badge Text Color */}
-            <div className="admin-form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Palette size={14} style={{ color: '#38bdf8' }} />
-                <span>Badge Color</span>
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="color"
-                  value={badgeColor}
-                  onChange={(e) => setBadgeColor(e.target.value)}
-                  style={{ width: '40px', height: '40px', padding: 0, borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer', background: 'transparent' }}
-                />
-                <input
-                  type="text"
-                  value={badgeColor}
-                  onChange={(e) => setBadgeColor(e.target.value)}
-                  style={{ flex: 1, fontFamily: 'monospace' }}
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <select
+                  value={sec.displayOrder || 1}
+                  onChange={(e) => handleOrderChange(sec.sectionKey, parseInt(e.target.value))}
+                  style={{
+                    background: '#070d1e',
+                    border: '1px solid #1e293b',
+                    borderRadius: '6px',
+                    color: '#cbd5e1',
+                    fontSize: '0.74rem',
+                    padding: '3px 6px'
+                  }}
+                  title="Display Order"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map(n => (
+                    <option key={n} value={n}>Slot {n}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection(sec.sectionKey)}
+                  style={{
+                    background: sec.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    border: `1px solid ${sec.isActive ? '#22c55e' : '#ef4444'}`,
+                    color: sec.isActive ? '#22c55e' : '#ef4444',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {sec.isActive ? 'Turn OFF' : 'Turn ON'}
+                </button>
               </div>
             </div>
+          ))}
+        </div>
+      </div>
 
-            {/* Main Heading H1 */}
-            <div className="admin-form-group admin-form-full">
-              <label>Main Headline (H1) *</label>
+      {/* 2. Hero Content & Appearance Editor */}
+      <form onSubmit={handleSaveHero} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{
+          background: '#070d1e',
+          border: '1px solid #1e293b',
+          borderRadius: '16px',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, paddingBottom: '12px', borderBottom: '1px solid #1e293b' }}>
+            <Sparkles size={18} style={{ color: '#fbbf24' }} />
+            <span>Primary Hero Banner Content & Styling</span>
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Hero Main Headline *</label>
               <input
                 type="text"
                 required
-                placeholder="All Your Favourite OTT Subscriptions in One Place"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                style={{ fontSize: '1rem', fontWeight: 700 }}
+                style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: titleColor, fontSize: '0.88rem', fontWeight: 700, outline: 'none' }}
               />
             </div>
 
-            {/* Title Color */}
-            <div className="admin-form-group admin-form-full">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Palette size={14} style={{ color: '#38bdf8' }} />
-                <span>Heading Text Color</span>
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
-                  <input
-                    type="color"
-                    value={titleColor}
-                    onChange={(e) => setTitleColor(e.target.value)}
-                    style={{ width: '40px', height: '40px', padding: 0, borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer', background: 'transparent' }}
-                  />
-                  <input
-                    type="text"
-                    value={titleColor}
-                    onChange={(e) => setTitleColor(e.target.value)}
-                    style={{ flex: 1, fontFamily: 'monospace' }}
-                  />
-                </div>
-                {/* Color quick presets */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {COLOR_PRESETS.map((p) => (
-                    <button
-                      key={p.hex}
-                      type="button"
-                      onClick={() => setTitleColor(p.hex)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: '#1e293b',
-                        border: titleColor === p.hex ? '2px solid #38bdf8' : '1px solid #334155',
-                        color: p.hex,
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Subtitle */}
-            <div className="admin-form-group admin-form-full">
-              <label>Subtitle / Feature Summary</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Badge Pill Text</label>
               <input
                 type="text"
-                placeholder="Stream 4K Ultra HD on Netflix, Prime Video..."
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
+                value={badgeText}
+                onChange={(e) => setBadgeText(e.target.value)}
+                style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: badgeColor, fontSize: '0.88rem', fontWeight: 700, outline: 'none' }}
               />
             </div>
+          </div>
 
-            {/* Subtitle Color */}
-            <div className="admin-form-group admin-form-full">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Palette size={14} style={{ color: '#38bdf8' }} />
-                <span>Subtitle Text Color</span>
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
-                  <input
-                    type="color"
-                    value={subtitleColor}
-                    onChange={(e) => setSubtitleColor(e.target.value)}
-                    style={{ width: '40px', height: '40px', padding: 0, borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer', background: 'transparent' }}
-                  />
-                  <input
-                    type="text"
-                    value={subtitleColor}
-                    onChange={(e) => setSubtitleColor(e.target.value)}
-                    style={{ flex: 1, fontFamily: 'monospace' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {COLOR_PRESETS.map((p) => (
-                    <button
-                      key={p.hex}
-                      type="button"
-                      onClick={() => setSubtitleColor(p.hex)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: '#1e293b',
-                        border: subtitleColor === p.hex ? '2px solid #38bdf8' : '1px solid #334155',
-                        color: p.hex,
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Hero Subtitle</label>
+            <textarea
+              rows={2}
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: subtitleColor, fontSize: '0.84rem', outline: 'none', resize: 'vertical' }}
+            />
+          </div>
 
-            {/* CTA Buttons */}
-            <div className="admin-form-group">
-              <label>Primary Button Text</label>
+          {/* Buttons Configuration */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Primary Button Text</label>
               <input
                 type="text"
                 value={ctaText}
                 onChange={(e) => setCtaText(e.target.value)}
+                style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: '#ffffff', fontSize: '0.84rem', outline: 'none' }}
               />
             </div>
-
-            <div className="admin-form-group">
-              <label>Primary Button Link</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Primary Button Link</label>
               <input
                 type="text"
                 value={ctaLink}
                 onChange={(e) => setCtaLink(e.target.value)}
+                style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: '#38bdf8', fontSize: '0.84rem', outline: 'none' }}
               />
             </div>
-
-            <div className="admin-form-group">
-              <label>Secondary Button Text</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Secondary Button Text</label>
               <input
                 type="text"
                 value={secondaryCtaText}
                 onChange={(e) => setSecondaryCtaText(e.target.value)}
+                style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: '#ffffff', fontSize: '0.84rem', outline: 'none' }}
               />
             </div>
-
-            <div className="admin-form-group">
-              <label>Secondary Button Link</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Secondary Button Link</label>
               <input
                 type="text"
                 value={secondaryCtaLink}
                 onChange={(e) => setSecondaryCtaLink(e.target.value)}
+                style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 14px', color: '#cbd5e1', fontSize: '0.84rem', outline: 'none' }}
               />
             </div>
-
-            {/* Desktop Hero Image */}
-            <div className="admin-form-group admin-form-full">
-              <label>Desktop Hero Image Banner</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
-                  type="text"
-                  value={desktopImage}
-                  onChange={(e) => setDesktopImage(e.target.value)}
-                  style={{ flex: 1, minWidth: '220px' }}
-                />
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '10px 14px', borderRadius: '10px', fontSize: '0.78rem', color: '#cbd5e1', cursor: 'pointer' }}>
-                  <Upload size={14} />
-                  <span>{isUploadingDesktop ? 'Uploading...' : 'Upload Image'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleUploadDesktop}
-                    disabled={isUploadingDesktop}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Mobile Hero Image */}
-            <div className="admin-form-group admin-form-full">
-              <label>Mobile Hero Image (Optimized for Small Screens)</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
-                  type="text"
-                  value={mobileImage}
-                  onChange={(e) => setMobileImage(e.target.value)}
-                  style={{ flex: 1, minWidth: '220px' }}
-                />
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '10px 14px', borderRadius: '10px', fontSize: '0.78rem', color: '#cbd5e1', cursor: 'pointer' }}>
-                  <Upload size={14} />
-                  <span>{isUploadingMobile ? 'Uploading...' : 'Upload Image'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleUploadMobile}
-                    disabled={isUploadingMobile}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {uploadError && (
-              <div className="admin-form-full" style={{ color: '#f87171', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertCircle size={15} /> {uploadError}
-              </div>
-            )}
-
-            <div className="admin-modal-actions admin-form-full" style={{ paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
-              <button
-                type="submit"
-                disabled={saving || isUploadingDesktop || isUploadingMobile}
-                className="btn-primary-action"
-                style={{ padding: '12px 28px', fontSize: '0.92rem' }}
-              >
-                <Save size={16} />
-                <span>{saving ? 'Publishing to Supabase...' : 'Save & Publish Live'}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Right: Live Preview Box */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#e2e8f0', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Eye size={16} style={{ color: '#10b981' }} />
-              <span>Real-time Hero Preview</span>
-            </h3>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>Live Colors & Layout</span>
           </div>
 
-          <div
-            style={{
-              position: 'relative',
-              borderRadius: '20px',
-              overflow: 'hidden',
-              border: '1px solid #1e293b',
-              background: '#020617',
-              padding: '28px',
-              minHeight: '380px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.4)'
-            }}
-          >
-            {/* Background Image / Overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: `url(${getCleanImageUrl(desktopImage)})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                opacity: 0.35
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(to top, #020617 15%, rgba(2,6,23,0.7) 60%, transparent 100%)'
-              }}
-            />
-
-            {/* Content Preview */}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {badgeText && (
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '4px 12px',
-                    borderRadius: '999px',
-                    background: 'rgba(56,189,248,0.12)',
-                    border: `1px solid ${badgeColor}`,
-                    color: badgeColor,
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    width: 'fit-content'
-                  }}
-                >
-                  <Sparkles size={13} />
-                  <span>{badgeText}</span>
-                </div>
+          {/* Image Uploads */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '6px' }}>
+            <div style={{ background: '#0b132b', padding: '14px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>
+                Desktop Banner Image (16:5 ratio recommended)
+              </span>
+              {desktopImage && (
+                <img src={desktopImage} alt="Desktop Preview" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} />
               )}
-
-              <h2
-                style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 900,
-                  color: titleColor,
-                  lineHeight: 1.25,
-                  margin: 0
-                }}
-              >
-                {title || 'Headline will appear here'}
-              </h2>
-
-              {subtitle && (
-                <p
-                  style={{
-                    fontSize: '0.85rem',
-                    color: subtitleColor,
-                    margin: 0,
-                    lineHeight: 1.5
-                  }}
-                >
-                  {subtitle}
-                </p>
-              )}
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', cursor: 'pointer' }}>
+                <Upload size={14} />
+                <span>{isUploadingDesktop ? 'Uploading...' : 'Upload Desktop Artwork'}</span>
+                <input type="file" accept="image/*" onChange={handleUploadDesktop} style={{ display: 'none' }} />
+              </label>
             </div>
 
-            {/* Buttons Preview */}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '16px' }}>
-              <div
-                style={{
-                  padding: '9px 18px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #0284c7, #2563eb)',
-                  color: '#ffffff',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <span>{ctaText || 'Shop Now'}</span>
-                <ArrowRight size={14} />
-              </div>
-
-              {secondaryCtaText && (
-                <div
-                  style={{
-                    padding: '9px 16px',
-                    borderRadius: '10px',
-                    background: 'rgba(30,41,59,0.8)',
-                    border: '1px solid #334155',
-                    color: '#cbd5e1',
-                    fontSize: '0.8rem',
-                    fontWeight: 600
-                  }}
-                >
-                  {secondaryCtaText}
-                </div>
+            <div style={{ background: '#0b132b', padding: '14px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>
+                Mobile Banner Image (Touch portrait ratio)
+              </span>
+              {mobileImage && (
+                <img src={mobileImage} alt="Mobile Preview" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} />
               )}
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', cursor: 'pointer' }}>
+                <Upload size={14} />
+                <span>{isUploadingMobile ? 'Uploading...' : 'Upload Mobile Artwork'}</span>
+                <input type="file" accept="image/*" onChange={handleUploadMobile} style={{ display: 'none' }} />
+              </label>
             </div>
           </div>
 
-          <div style={{ padding: '16px', background: '#070d1e', border: '1px solid #1e293b', borderRadius: '14px', fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.5 }}>
-            <strong style={{ color: '#f8fafc' }}>⚡ Instant Live Sync:</strong> When saved, changes are stored in Supabase table <code style={{ color: '#38bdf8' }}>homepage_sections</code> & <code style={{ color: '#38bdf8' }}>banners</code> and instantly broadcasted to active visitors on the live storefront.
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '10px 24px',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+              }}
+            >
+              <Save size={16} />
+              <span>{saving ? 'Saving to Database...' : 'Save All Changes'}</span>
+            </button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

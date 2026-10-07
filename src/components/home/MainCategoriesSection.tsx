@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Compass } from 'lucide-react';
+import { 
+  ArrowRight, Compass, Film, Tv, Trophy, Smile, Crown, Layers 
+} from 'lucide-react';
 import { Category } from '../../types';
 import { ottApi } from '../../services/api';
-import { CategoryCard } from '../common/CategoryCard';
 import './MainCategoriesSection.css';
 
 export const MainCategoriesSection: React.FC = () => {
@@ -43,37 +44,51 @@ export const MainCategoriesSection: React.FC = () => {
     };
   }, [loadCategories]);
 
+  const getCategoryIcon = (iconName?: string) => {
+    switch (iconName) {
+      case 'Film': return <Film size={15} />;
+      case 'Tv': return <Tv size={15} />;
+      case 'Trophy': return <Trophy size={15} />;
+      case 'Smile': return <Smile size={15} />;
+      case 'Crown': return <Crown size={15} />;
+      default: return <Film size={15} />;
+    }
+  };
+
   return (
-    <section className="section main-categories-section" id="categories">
+    <section className="section home-categories-strip-section" id="categories">
       <div className="container">
-        <div className="section-header">
-          <h2 className="section-title">
-            <Compass size={22} className="section-title-icon" color="#e50914" />
-            <span>Explore Categories</span>
-          </h2>
-          <Link to="/catalogs" className="view-all-link">
+        <div className="home-categories-header">
+          <div className="home-categories-title-wrap">
+            <span className="home-categories-dot"></span>
+            <h2 className="home-categories-heading">Popular OTT Categories</h2>
+          </div>
+          <Link to="/items" className="home-categories-view-all">
             <span>View All</span>
-            <ArrowRight size={16} />
+            <ArrowRight size={14} />
           </Link>
         </div>
 
-        {isLoading ? (
-          <div className="main-categories-grid">
-            {[1, 2, 3, 4, 5].map((idx) => (
-              <div key={idx} className="category-skeleton-card"></div>
-            ))}
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="categories-empty-state">
-            <p>No categories available at the moment.</p>
-          </div>
-        ) : (
-          <div className="main-categories-grid">
-            {categories.map((cat) => (
-              <CategoryCard key={cat.id} category={cat} />
-            ))}
-          </div>
-        )}
+        {/* Compact Horizontal Category Chips Container */}
+        <div className="home-categories-chips-scroll">
+          <Link to="/items" className="home-category-chip all-chip">
+            <Layers size={14} />
+            <span>All Subscriptions</span>
+          </Link>
+
+          {categories.map((cat) => (
+            <Link 
+              key={cat.id || cat.slug}
+              to={`/items?category=${cat.slug}`}
+              className="home-category-chip"
+            >
+              <span className="chip-icon-wrap" style={{ color: cat.badgeColor || '#0284c7' }}>
+                {getCategoryIcon(cat.iconName)}
+              </span>
+              <span className="chip-name">{cat.name}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );
