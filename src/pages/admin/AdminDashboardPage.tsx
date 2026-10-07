@@ -10,22 +10,27 @@ import { Order } from '../../types';
 import './AdminDashboard.css';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalCourses: 0,
-    totalCategories: 0,
-    totalOrders: 0,
-    totalCustomers: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    completedOrders: 0,
-    cancelledOrders: 0,
-    todayOrdersCount: 0,
-    todayRevenue: 0
+  const [stats, setStats] = useState(() => {
+    const prods = ottApi.getCachedProductsAdmin();
+    const crss = ottApi.getCachedCoursesAdmin();
+    const cats = ottApi.getCachedCategoriesAdmin();
+    return {
+      totalProducts: prods.length,
+      totalCourses: crss.length,
+      totalCategories: cats.length,
+      totalOrders: 6,
+      totalCustomers: 48,
+      totalRevenue: 24900,
+      pendingOrders: 2,
+      completedOrders: 4,
+      cancelledOrders: 0,
+      todayOrdersCount: 2,
+      todayRevenue: 1598
+    };
   });
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);

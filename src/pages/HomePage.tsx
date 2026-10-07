@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { HeroSection } from '../components/home/HeroSection';
 import { MainCategoriesSection } from '../components/home/MainCategoriesSection';
 import { FeaturedSection } from '../components/home/FeaturedSection';
+import { CoursesSection } from '../components/home/CoursesSection';
+import { CustomerReviewsSection } from '../components/home/CustomerReviewsSection';
 import { WhyChooseUsSection } from '../components/home/WhyChooseUsSection';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
@@ -28,7 +30,17 @@ export const HomePage: React.FC = () => {
         <FeaturedSection />
       </div>
 
-      {/* 4. SHOPPING TRUST & ADVANTAGE */}
+      {/* 4. COURSES & MASTERCLASSES (DIRECTLY SYNCED WITH ADMIN & SUPABASE) */}
+      <div className="reveal-on-scroll">
+        <CoursesSection />
+      </div>
+
+      {/* 5. VERIFIED CUSTOMER REVIEWS & RATINGS (DIRECTLY SYNCED WITH ADMIN) */}
+      <div className="reveal-on-scroll">
+        <CustomerReviewsSection />
+      </div>
+
+      {/* 6. SHOPPING TRUST & ADVANTAGE */}
       <div className="reveal-on-scroll">
         <WhyChooseUsSection />
       </div>
@@ -37,4 +49,3 @@ export const HomePage: React.FC = () => {
 };
 
 export default HomePage;
-

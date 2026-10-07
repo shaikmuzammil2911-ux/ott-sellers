@@ -183,19 +183,28 @@ export const HeroSection: React.FC = () => {
             {currentBanner.showText !== false && (
               <div className="hero-content-box">
                 {currentBanner.badgeText && (
-                  <div className="hero-pill-badge animated-badge">
+                  <div 
+                    className="hero-pill-badge animated-badge"
+                    style={currentBanner.badgeColor ? { color: currentBanner.badgeColor, borderColor: currentBanner.badgeColor } : undefined}
+                  >
                     <Sparkles size={14} className="hero-sparkle-icon" />
                     <span>{currentBanner.badgeText}</span>
-                    <span className="live-pulse-dot"></span>
+                    <span className="live-pulse-dot" style={currentBanner.badgeColor ? { backgroundColor: currentBanner.badgeColor } : undefined}></span>
                   </div>
                 )}
 
-                <h1 className="hero-title">
+                <h1 
+                  className="hero-title"
+                  style={currentBanner.titleColor ? { color: currentBanner.titleColor } : undefined}
+                >
                   {currentBanner.title}
                 </h1>
 
                 {currentBanner.subtitle && (
-                  <p className="hero-subtitle">
+                  <p 
+                    className="hero-subtitle"
+                    style={currentBanner.subtitleColor ? { color: currentBanner.subtitleColor } : undefined}
+                  >
                     {currentBanner.subtitle}
                   </p>
                 )}

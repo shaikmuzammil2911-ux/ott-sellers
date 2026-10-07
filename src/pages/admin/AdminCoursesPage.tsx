@@ -8,10 +8,10 @@ import { uploadService } from '../../services/uploadService';
 import { Course, Category } from '../../types';
 
 export const AdminCoursesPage: React.FC = () => {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [courses, setCourses] = useState<Course[]>(() => ottApi.getCachedCoursesAdmin());
+  const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -176,7 +176,7 @@ export const AdminCoursesPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page-container">
       {/* Page Header */}
       <div className="admin-header-row">
         <div className="admin-title-group">
@@ -346,198 +346,186 @@ export const AdminCoursesPage: React.FC = () => {
 
       {/* Add / Edit Course Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary-500" />
-                {editingCourse ? 'Edit Course' : 'Add New Course'}
+        <div className="admin-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '680px' }}>
+            <div className="admin-modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BookOpen size={20} style={{ color: '#0284c7' }} />
+                <span>{editingCourse ? 'Edit Course Details' : 'Add New Masterclass / Course'}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="modal-close-btn"
+                aria-label="Close Modal"
               >
-                <X className="w-5 h-5" />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCourse} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Course Title *</label>
+            <form onSubmit={handleSaveCourse} className="admin-form-grid">
+              <div className="admin-form-group admin-form-full">
+                <label>Course Title *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Complete OTT Reselling Masterclass 2026"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">URL Slug</label>
-                  <input
-                    type="text"
-                    placeholder="auto-generated-if-empty"
-                    value={formSlug}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Duration</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 4 Weeks / 12 Hours"
-                    value={formDuration}
-                    onChange={(e) => setFormDuration(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
-                  />
-                </div>
+              <div className="admin-form-group">
+                <label>URL Slug (auto-generated if empty)</label>
+                <input
+                  type="text"
+                  placeholder="auto-generated-if-empty"
+                  value={formSlug}
+                  onChange={(e) => setFormSlug(e.target.value)}
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Authoritative Price (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500 font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Original / Compare Price (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formComparePrice}
-                    onChange={(e) => setFormComparePrice(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500"
-                  />
-                </div>
+              <div className="admin-form-group">
+                <label>Course Duration</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 4 Weeks / 12 Hours"
+                  value={formDuration}
+                  onChange={(e) => setFormDuration(e.target.value)}
+                />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Short Description / Subtitle</label>
+              <div className="admin-form-group">
+                <label>Authoritative Price (₹) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={formPrice}
+                  onChange={(e) => setFormPrice(e.target.value)}
+                  style={{ fontWeight: 700, color: '#10b981' }}
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label>Original / Compare Price (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formComparePrice}
+                  onChange={(e) => setFormComparePrice(e.target.value)}
+                />
+              </div>
+
+              <div className="admin-form-group admin-form-full">
+                <label>Short Description / Subtitle</label>
                 <input
                   type="text"
                   placeholder="Comprehensive training to build, market, and manage digital OTT subscription sales."
                   value={formShortDesc}
                   onChange={(e) => setFormShortDesc(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Overview</label>
+              <div className="admin-form-group admin-form-full">
+                <label>Full Overview & Curriculum Details</label>
                 <textarea
                   rows={3}
                   placeholder="Detailed course description, takeaways, and curriculum overview..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Course Features (One per line)</label>
+              <div className="admin-form-group admin-form-full">
+                <label>Course Features (One bullet per line)</label>
                 <textarea
                   rows={3}
+                  placeholder="Lifetime Access & Updates&#10;WhatsApp Dedicated Mentor Support&#10;Full HD Video Modules"
                   value={formFeatures}
                   onChange={(e) => setFormFeatures(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500 font-sans"
                 />
               </div>
 
               {/* Course Thumbnail Image */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Course Banner / Thumbnail Image</label>
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="admin-form-group admin-form-full">
+                <label>Course Banner / Thumbnail Image *</label>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {formImageUrl && (
                     <img
                       src={formImageUrl}
                       alt="Preview"
-                      className="w-24 h-16 object-cover rounded-xl border border-slate-700 bg-slate-800 flex-shrink-0"
+                      style={{ width: '80px', height: '54px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #1e293b' }}
                     />
                   )}
-                  <div className="flex-1 w-full space-y-2">
+                  <div style={{ flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <input
                       type="text"
-                      placeholder="Paste image URL or upload to Cloudinary/Supabase..."
+                      placeholder="Paste image URL or upload image file..."
                       value={formImageUrl}
                       onChange={(e) => setFormImageUrl(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-xs focus:outline-none focus:border-primary-500"
                     />
-                    <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-xs font-medium cursor-pointer transition-colors">
-                      <Upload className="w-3.5 h-3.5" />
-                      {isUploading ? 'Uploading to Cloudinary...' : 'Upload Image File'}
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', color: '#cbd5e1', cursor: 'pointer', width: 'fit-content' }}>
+                      <Upload size={14} />
+                      <span>{isUploading ? 'Uploading...' : 'Upload Image File'}</span>
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
                         disabled={isUploading}
-                        className="hidden"
+                        style={{ display: 'none' }}
                       />
                     </label>
                   </div>
                 </div>
                 {uploadError && (
-                  <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> {uploadError}
-                  </p>
+                  <span style={{ fontSize: '0.78rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                    <AlertCircle size={14} /> {uploadError}
+                  </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Publish Status</label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as any)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="published">Published (Active)</option>
-                    <option value="draft">Draft (Hidden)</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                </div>
+              <div className="admin-form-group">
+                <label>Publish Status</label>
+                <select
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value as any)}
+                >
+                  <option value="published">Published (Active on Live Store)</option>
+                  <option value="draft">Draft (Hidden)</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
 
-                <div className="flex items-center gap-3 pt-6">
+              <div className="admin-form-group" style={{ justifyContent: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', paddingTop: '18px' }}>
                   <input
                     type="checkbox"
-                    id="featCheck"
                     checked={formIsFeatured}
                     onChange={(e) => setFormIsFeatured(e.target.checked)}
-                    className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 bg-slate-800 border-slate-700"
+                    style={{ width: '18px', height: '18px', accentColor: '#0284c7' }}
                   />
-                  <label htmlFor="featCheck" className="text-sm font-semibold text-slate-200 cursor-pointer">
-                    Display as Featured Course
-                  </label>
-                </div>
+                  <span style={{ fontSize: '0.86rem', color: '#ffffff', fontWeight: 600 }}>Display as Featured Course</span>
+                </label>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-800">
+              <div className="admin-modal-actions admin-form-full">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition-colors"
+                  style={{ background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', padding: '10px 18px', borderRadius: '10px', fontSize: '0.86rem', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-primary-600/30 transition-all flex items-center gap-2"
+                  className="btn-primary-action"
+                  style={{ padding: '10px 22px' }}
                 >
-                  <Check className="w-4 h-4" />
-                  Save Course to Supabase
+                  <Check size={16} />
+                  <span>Save Course to Supabase</span>
                 </button>
               </div>
             </form>

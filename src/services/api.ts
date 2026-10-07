@@ -7,7 +7,8 @@ import { INITIAL_COURSES } from '../data/coursesData';
 import { INITIAL_ORDERS, INITIAL_USER } from '../data/mockOrders';
 import { 
   Product, Category, SubCategory, Catalog, Order, User, 
-  HeroBanner, Course, HomepageSectionCMS, AdminSettings, AuditLog 
+  HeroBanner, Course, HomepageSectionCMS, AdminSettings, AuditLog,
+  CustomerReview 
 } from '../types';
 
 export const STORAGE_KEYS = {
@@ -21,7 +22,8 @@ export const STORAGE_KEYS = {
   SUBCATEGORIES: 'ott_sellers_subcategories',
   HERO: 'ott_sellers_hero_cms',
   SETTINGS: 'ott_sellers_settings',
-  AUDIT: 'ott_sellers_audit_logs'
+  AUDIT: 'ott_sellers_audit_logs',
+  REVIEWS: 'ott_sellers_reviews'
 };
 
 // Cache-busting helper
@@ -69,6 +71,9 @@ export const ottApi = {
           displayOrder: b.sort_order || 0,
           status: b.status || (b.is_active ? 'ON' : 'OFF'),
           badgeText: b.badge_text,
+          titleColor: b.title_color,
+          subtitleColor: b.subtitle_color,
+          badgeColor: b.badge_color,
           showText: b.show_text ?? true,
           updatedAt: new Date(b.updated_at || Date.now()).getTime()
         }));
@@ -116,6 +121,9 @@ export const ottApi = {
           displayOrder: b.sort_order || 0,
           status: b.status || (b.is_active ? 'ON' : 'OFF'),
           badgeText: b.badge_text,
+          titleColor: b.title_color,
+          subtitleColor: b.subtitle_color,
+          badgeColor: b.badge_color,
           showText: b.show_text ?? true,
           updatedAt: new Date(b.updated_at || Date.now()).getTime()
         }));
@@ -154,6 +162,9 @@ export const ottApi = {
           status: b.status,
           is_active: b.status !== 'OFF',
           badge_text: b.badgeText,
+          title_color: b.titleColor,
+          subtitle_color: b.subtitleColor,
+          badge_color: b.badgeColor,
           show_text: b.showText,
           updated_at: new Date().toISOString()
         });
@@ -1058,5 +1069,174 @@ export const ottApi = {
   async updateUser(user: User): Promise<User> {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     return user;
+  },
+
+  // ====================================================================
+  // FAST SYNCHRONOUS HYDRATION CACHE GETTERS (Zero-latency instant rendering in Admin)
+  // ====================================================================
+  getCachedProductsAdmin(): Product[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...PRODUCTS_DATA];
+  },
+
+  getCachedCategoriesAdmin(): Category[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...CATEGORIES_DATA];
+  },
+
+  getCachedCoursesAdmin(): Course[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...INITIAL_COURSES];
+  },
+
+  getCachedBannersAdmin(): HeroBanner[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.BANNERS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...INITIAL_BANNERS];
+  },
+
+  getCachedReviewsAdmin(): CustomerReview[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...DEFAULT_REVIEWS];
+  },
+
+  // ====================================================================
+  // CUSTOMER REVIEWS (Live Storefront Testimonials & Admin Moderation)
+  // ====================================================================
+  async getApprovedReviews(): Promise<CustomerReview[]> {
+    const all = await this.getAllReviewsAdmin();
+    return all.filter(r => r.status === 'approved');
+  },
+
+  async getAllReviewsAdmin(): Promise<CustomerReview[]> {
+    try {
+      const { data, error } = await supabase
+        .from('customer_reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const reviews: CustomerReview[] = data.map(r => ({
+          id: r.id,
+          userName: r.user_name,
+          userEmail: r.user_email || '',
+          productName: r.product_name,
+          rating: Number(r.rating) || 5,
+          comment: r.comment,
+          status: r.status || 'approved',
+          date: r.date_str || new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          updatedAt: new Date(r.updated_at || r.created_at || Date.now()).getTime()
+        }));
+
+        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+        return reviews;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return [...DEFAULT_REVIEWS];
+  },
+
+  async saveReview(review: CustomerReview): Promise<void> {
+    const all = await this.getAllReviewsAdmin();
+    const idx = all.findIndex(r => r.id === review.id);
+    let updated: CustomerReview[];
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = { ...review, updatedAt: Date.now() };
+    } else {
+      updated = [review, ...all];
+    }
+
+    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updated));
+    broadcastDataUpdate('reviews');
+
+    try {
+      await supabase.from('customer_reviews').upsert({
+        id: review.id,
+        user_name: review.userName,
+        user_email: review.userEmail,
+        product_name: review.productName,
+        rating: review.rating,
+        comment: review.comment,
+        status: review.status,
+        date_str: review.date,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase customer_reviews sync notice:', e);
+    }
+  },
+
+  async deleteReview(id: string): Promise<void> {
+    const all = await this.getAllReviewsAdmin();
+    const updated = all.filter(r => r.id !== id);
+    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updated));
+    broadcastDataUpdate('reviews');
+
+    try {
+      await supabase.from('customer_reviews').delete().eq('id', id);
+    } catch {}
   }
 };
+
+export const DEFAULT_REVIEWS: CustomerReview[] = [
+  {
+    id: 'rev-1',
+    userName: 'Karthik S.',
+    userEmail: 'karthik@example.com',
+    productName: 'Netflix Premium 4K (Private PIN)',
+    rating: 5,
+    comment: 'Got my 4-digit PIN within 60 seconds on WhatsApp! Streaming UHD HDR flawlessly on my LG OLED.',
+    status: 'approved',
+    date: '06 Oct 2026'
+  },
+  {
+    id: 'rev-2',
+    userName: 'Ananya Sharma',
+    userEmail: 'ananya@example.com',
+    productName: 'Prime Video 4K UHD',
+    rating: 5,
+    comment: 'Super fast delivery and prompt customer support on WhatsApp number 9441323332. Highly recommended!',
+    status: 'approved',
+    date: '05 Oct 2026'
+  },
+  {
+    id: 'rev-3',
+    userName: 'Vikram Joshi',
+    userEmail: 'vikram@example.com',
+    productName: 'Disney+ Hotstar Super Plan',
+    rating: 4,
+    comment: 'Working fine for cricket matches, high quality stream without buffering.',
+    status: 'approved',
+    date: '04 Oct 2026'
+  },
+  {
+    id: 'rev-4',
+    userName: 'Deepak V.',
+    userEmail: 'deepak@example.com',
+    productName: 'OTT Reseller Combo Pack',
+    rating: 5,
+    comment: 'Best rates in the market with full duration warranty. Worth every rupee.',
+    status: 'approved',
+    date: '07 Oct 2026'
+  }
+];

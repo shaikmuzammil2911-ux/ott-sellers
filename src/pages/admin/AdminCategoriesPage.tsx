@@ -8,9 +8,9 @@ import { uploadService } from '../../services/uploadService';
 import { Category } from '../../types';
 
 export const AdminCategoriesPage: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,7 +86,7 @@ export const AdminCategoriesPage: React.FC = () => {
     if (res.success && res.url) {
       setFormImageUrl(res.url);
     } else {
-      setUploadError(res.error || 'Failed to upload image. Please try again.');
+      setUploadError(res.error || 'Failed to upload image. Please try again or paste image URL.');
     }
   };
 
@@ -115,10 +115,21 @@ export const AdminCategoriesPage: React.FC = () => {
       updatedAt: Date.now()
     };
 
+    // Optimistically update local view immediately
+    setCategories(prev => {
+      const idx = prev.findIndex(item => item.id === categoryData.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = categoryData;
+        return copy;
+      }
+      return [...prev, categoryData];
+    });
+
     await ottApi.saveCategory(categoryData);
     await ottApi.logAudit(editingCategory ? 'UPDATE_CATEGORY' : 'CREATE_CATEGORY', 'categories', categoryData.id, { name: categoryData.name, slug: categoryData.slug });
 
-    setSaveSuccessMsg(`Category "${categoryData.name}" saved successfully!`);
+    setSaveSuccessMsg(`Category "${categoryData.name}" saved successfully to Supabase! Live storefront updated.`);
     setTimeout(() => setSaveSuccessMsg(null), 4000);
     setIsModalOpen(false);
     await loadData();
@@ -126,6 +137,7 @@ export const AdminCategoriesPage: React.FC = () => {
 
   const handleDeleteCategory = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to permanently delete category "${name}"?`)) {
+      setCategories(prev => prev.filter(c => c.id !== id));
       await ottApi.deleteCategory(id);
       await ottApi.logAudit('DELETE_CATEGORY', 'categories', id, { name });
       await loadData();
@@ -135,6 +147,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const handleToggleStatus = async (c: Category) => {
     const newStatus = c.status === 'ON' ? 'OFF' : 'ON';
     const updated: Category = { ...c, status: newStatus };
+    setCategories(prev => prev.map(item => item.id === c.id ? updated : item));
     await ottApi.saveCategory(updated);
     await ottApi.logAudit('TOGGLE_CATEGORY_STATUS', 'categories', c.id, { status: newStatus });
     await loadData();
@@ -146,7 +159,7 @@ export const AdminCategoriesPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page-container">
       {/* Header */}
       <div className="admin-header-row">
         <div className="admin-title-group">
@@ -155,7 +168,7 @@ export const AdminCategoriesPage: React.FC = () => {
             <span>Categories Management</span>
           </h1>
           <p className="admin-sub-text">
-            Organize subscription collections, movies, sports, music, and combo categories.
+            Organize subscription collections, movies, sports, music, and combo categories linked to Supabase.
           </p>
         </div>
 
@@ -191,7 +204,7 @@ export const AdminCategoriesPage: React.FC = () => {
           <Search className="admin-search-icon" />
           <input
             type="text"
-            placeholder="Search categories..."
+            placeholder="Search categories by name or slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="admin-search-input"
@@ -218,7 +231,7 @@ export const AdminCategoriesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {loading ? (
+              {loading && categories.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-500" />
@@ -302,167 +315,159 @@ export const AdminCategoriesPage: React.FC = () => {
 
       {/* Add / Edit Category Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <FolderTree className="w-5 h-5 text-primary-500" />
-                {editingCategory ? 'Edit Category' : 'Add New Category'}
+        <div className="admin-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+            <div className="admin-modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FolderTree size={20} style={{ color: '#0284c7' }} />
+                <span>{editingCategory ? 'Edit Category' : 'Add New Category'}</span>
               </h2>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="modal-close-btn"
+                aria-label="Close Modal"
               >
-                <X className="w-5 h-5" />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCategory} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Category Name *</label>
+            <form onSubmit={handleSaveCategory} className="admin-form-grid">
+              <div className="admin-form-group admin-form-full">
+                <label>Category Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Movies & TV Shows"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">URL Slug</label>
-                  <input
-                    type="text"
-                    placeholder="movies-series"
-                    value={formSlug}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Display / Sort Order</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formDisplayOrder}
-                    onChange={(e) => setFormDisplayOrder(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500"
-                  />
-                </div>
+              <div className="admin-form-group">
+                <label>URL Slug (auto-generated if empty)</label>
+                <input
+                  type="text"
+                  placeholder="movies-tv-shows"
+                  value={formSlug}
+                  onChange={(e) => setFormSlug(e.target.value)}
+                />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Badge / Plans Subtitle</label>
+              <div className="admin-form-group">
+                <label>Display / Sort Order</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formDisplayOrder}
+                  onChange={(e) => setFormDisplayOrder(e.target.value)}
+                />
+              </div>
+
+              <div className="admin-form-group admin-form-full">
+                <label>Badge / Plans Subtitle</label>
                 <input
                   type="text"
                   placeholder="e.g. 10+ Streaming Plans"
                   value={formTitlesCount}
                   onChange={(e) => setFormTitlesCount(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+              <div className="admin-form-group admin-form-full">
+                <label>Category Description</label>
                 <textarea
                   rows={3}
-                  placeholder="Short description shown on category cards..."
+                  placeholder="Short description displayed on category cards..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              {/* Category Image */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Category Image / Banner</label>
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              {/* Category Image Upload & URL */}
+              <div className="admin-form-group admin-form-full">
+                <label>Category Image / Banner *</label>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {formImageUrl && (
                     <img
                       src={formImageUrl}
                       alt="Preview"
-                      className="w-16 h-16 object-cover rounded-xl border border-slate-700 bg-slate-800 flex-shrink-0"
+                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #334155', background: '#0f172a' }}
                     />
                   )}
-                  <div className="flex-1 w-full space-y-2">
+                  <div style={{ flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <input
                       type="text"
-                      placeholder="Paste image URL or upload file..."
+                      placeholder="Paste image URL or upload image file..."
                       value={formImageUrl}
                       onChange={(e) => setFormImageUrl(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-xs focus:outline-none focus:border-primary-500"
                     />
-                    <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-xs font-medium cursor-pointer transition-colors">
-                      <Upload className="w-3.5 h-3.5" />
-                      {isUploading ? 'Uploading to Cloudinary...' : 'Upload Image File'}
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', color: '#cbd5e1', cursor: 'pointer', width: 'fit-content' }}>
+                      <Upload size={14} />
+                      <span>{isUploading ? 'Uploading to Cloudinary...' : 'Upload Image File'}</span>
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
                         disabled={isUploading}
-                        className="hidden"
+                        style={{ display: 'none' }}
                       />
                     </label>
                   </div>
                 </div>
                 {uploadError && (
-                  <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> {uploadError}
-                  </p>
+                  <span style={{ fontSize: '0.78rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                    <AlertCircle size={14} /> {uploadError}
+                  </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Accent / Badge Color</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={formBadgeColor}
-                      onChange={(e) => setFormBadgeColor(e.target.value)}
-                      className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={formBadgeColor}
-                      onChange={(e) => setFormBadgeColor(e.target.value)}
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Display Status</label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as 'ON' | 'OFF')}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="ON">Active (Visible)</option>
-                    <option value="OFF">Hidden</option>
-                  </select>
+              <div className="admin-form-group">
+                <label>Accent / Badge Color</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="color"
+                    value={formBadgeColor}
+                    onChange={(e) => setFormBadgeColor(e.target.value)}
+                    style={{ width: '40px', height: '40px', padding: 0, borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer', background: 'transparent' }}
+                  />
+                  <input
+                    type="text"
+                    value={formBadgeColor}
+                    onChange={(e) => setFormBadgeColor(e.target.value)}
+                    style={{ flex: 1, fontFamily: 'monospace' }}
+                  />
                 </div>
               </div>
 
+              <div className="admin-form-group">
+                <label>Display Status</label>
+                <select
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value as 'ON' | 'OFF')}
+                >
+                  <option value="ON">Active (Visible)</option>
+                  <option value="OFF">Disabled (Hidden)</option>
+                </select>
+              </div>
+
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-800">
+              <div className="admin-modal-actions admin-form-full">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition-colors"
+                  style={{ background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', padding: '10px 18px', borderRadius: '10px', fontSize: '0.86rem', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-primary-600/30 transition-all flex items-center gap-2"
+                  className="btn-primary-action"
+                  style={{ padding: '10px 22px' }}
                 >
-                  <Check className="w-4 h-4" />
-                  Save Category to Supabase
+                  <Check size={16} />
+                  <span>Save Category to Supabase</span>
                 </button>
               </div>
             </form>

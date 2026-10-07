@@ -8,11 +8,11 @@ import { uploadService } from '../../services/uploadService';
 import { Product, Category } from '../../types';
 
 export const AdminProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => ottApi.getCachedProductsAdmin());
+  const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -77,6 +77,9 @@ export interface HeroBanner {
   status: 'ON' | 'OFF';
   badgeText?: string;
   showText?: boolean;
+  titleColor?: string;
+  subtitleColor?: string;
+  badgeColor?: string;
   updatedAt?: number;
 }
 
@@ -228,4 +231,16 @@ export interface AuditLog {
   entityId?: string;
   details?: any;
   timestamp: string;
+}
+
+export interface CustomerReview {
+  id: string;
+  userName: string;
+  userEmail: string;
+  productName: string;
+  rating: number;
+  comment: string;
+  status: 'approved' | 'pending' | 'rejected';
+  date: string;
+  updatedAt?: number;
 }
