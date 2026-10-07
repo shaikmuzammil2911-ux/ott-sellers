@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Grid, Flame, ShoppingBag, User } from 'lucide-react';
+import { Home, Grid, Flame, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import './MobileBottomNav.css';
 
@@ -46,14 +46,7 @@ export const MobileBottomNav: React.FC = () => {
         </div>
         <span className="bottom-nav-label">Cart</span>
       </NavLink>
-
-      <NavLink 
-        to="/account" 
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-      >
-        <User size={20} className="bottom-nav-icon" />
-        <span className="bottom-nav-label">Account</span>
-      </NavLink>
     </nav>
   );
 };
+

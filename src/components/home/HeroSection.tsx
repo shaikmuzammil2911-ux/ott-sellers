@@ -221,7 +221,7 @@ export const HeroSection: React.FC = () => {
                       className="btn-hero-primary animated-cta"
                     >
                       <span>{currentBanner.ctaText}</span>
-                      <ArrowRight size={18} className="cta-arrow" />
+                      <ArrowRight size={15} className="cta-arrow" />
                     </Link>
                   )}
 
@@ -230,21 +230,21 @@ export const HeroSection: React.FC = () => {
                       href={currentBanner.secondaryCtaLink || '#categories'} 
                       className="btn-hero-secondary"
                     >
-                      <Play size={15} className="play-icon" />
+                      <Play size={13} className="play-icon" />
                       <span>{currentBanner.secondaryCtaText}</span>
                     </a>
                   )}
-                </div>
 
-                {/* Instant Trust Micro-points */}
-                <div className="hero-trust-bullets">
-                  <div className="trust-bullet-item">
-                    <Zap size={15} className="trust-bullet-icon zap" />
-                    <span>Instant WhatsApp Delivery</span>
-                  </div>
-                  <div className="trust-bullet-item">
-                    <ShieldCheck size={15} className="trust-bullet-icon shield" />
-                    <span>Full Duration Warranty</span>
+                  {/* Instant Trust Micro-points */}
+                  <div className="hero-trust-bullets">
+                    <div className="trust-bullet-item">
+                      <Zap size={13} className="trust-bullet-icon zap" />
+                      <span>Instant WhatsApp Delivery</span>
+                    </div>
+                    <div className="trust-bullet-item">
+                      <ShieldCheck size={13} className="trust-bullet-icon shield" />
+                      <span>Full Duration Warranty</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -260,7 +260,7 @@ export const HeroSection: React.FC = () => {
                 onClick={handlePrev}
                 aria-label="Previous Slide"
               >
-                <ChevronLeft size={22} />
+                <ChevronLeft size={18} />
               </button>
               <button 
                 type="button" 
@@ -268,7 +268,7 @@ export const HeroSection: React.FC = () => {
                 onClick={handleNext}
                 aria-label="Next Slide"
               >
-                <ChevronRight size={22} />
+                <ChevronRight size={18} />
               </button>
             </div>
           )}

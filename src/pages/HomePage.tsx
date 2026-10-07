@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { HeroSection } from '../components/home/HeroSection';
 import { MainCategoriesSection } from '../components/home/MainCategoriesSection';
 import { FeaturedSection } from '../components/home/FeaturedSection';
-import { HomeCatalogPreview } from '../components/home/HomeCatalogPreview';
-import { SpecialOffersSection } from '../components/home/SpecialOffersSection';
+import { WhyChooseUsSection } from '../components/home/WhyChooseUsSection';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export const HomePage: React.FC = () => {
@@ -16,30 +15,26 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="home-page-wrapper">
-      {/* 1. HERO / BANNERS (Cinematic Auto-Sliding Banners with Mobile & Desktop Grand Views) */}
+      {/* 1. COMPACT PROMOTIONAL HERO BANNER */}
       <HeroSection />
 
-      {/* 2. CATEGORIES (Explore Categories - Simple, Clean, Dynamic Admin Controlled) */}
+      {/* 2. CATEGORIES / PRODUCT DISCOVERY */}
       <div className="reveal-on-scroll">
         <MainCategoriesSection />
       </div>
 
-      {/* 3. FEATURED / POPULAR (Admin Selected Items Only) */}
+      {/* 3. FEATURED PRODUCTS LISTING */}
       <div className="reveal-on-scroll reveal-delay-1">
         <FeaturedSection />
       </div>
 
-      {/* 4. ITEMS / CATALOG (Clean Preview with Filters + View Full Catalog CTA) */}
+      {/* 4. SHOPPING TRUST & ADVANTAGE */}
       <div className="reveal-on-scroll">
-        <HomeCatalogPreview />
-      </div>
-
-      {/* 5. 🔥 SPECIAL OFFERS (Admin Selected Offers Only) */}
-      <div className="reveal-on-scroll reveal-delay-1">
-        <SpecialOffersSection />
+        <WhyChooseUsSection />
       </div>
     </div>
   );
 };
 
 export default HomePage;
+

@@ -1,7 +1,17 @@
+.why-choose-section {
+  padding: 24px 0 36px;
+}
+
+@media (max-width: 768px) {
+  .why-choose-section {
+    padding: 18px 0 28px;
+  }
+}
+
 .center-aligned {
   justify-content: center;
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .center-header-content {
