@@ -148,73 +148,73 @@ export const AdminCategoriesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <FolderTree className="w-7 h-7 text-primary-500" />
-            Categories Management
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <FolderTree className="admin-heading-icon" />
+            <span>Categories Management</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="admin-sub-text">
             Organize subscription collections, movies, sports, music, and combo categories.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="admin-header-actions">
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors"
+            className="btn-refresh-action"
             title="Refresh database"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
           </button>
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/30 transition-all text-sm"
+            className="btn-primary-action"
           >
-            <Plus className="w-4 h-4" />
-            Add Category
+            <Plus size={16} />
+            <span>Add Category</span>
           </button>
         </div>
       </div>
 
       {saveSuccessMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 flex items-center gap-3 text-sm">
-          <Check className="w-5 h-5 flex-shrink-0" />
+        <div className="admin-alert-banner">
+          <Check size={18} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
       {/* Filter Bar */}
-      <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <div className="admin-toolbar-card">
+        <div className="admin-search-wrapper">
+          <Search className="admin-search-icon" />
           <input
             type="text"
             placeholder="Search categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-primary-500"
+            className="admin-search-input"
           />
         </div>
 
-        <div className="text-xs text-slate-400 font-medium">
-          Total Categories: <span className="text-white font-bold">{filteredCategories.length}</span>
+        <div className="admin-count-badge">
+          Total Categories: <strong>{filteredCategories.length}</strong>
         </div>
       </div>
 
       {/* Categories Grid / Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950/60 border-b border-slate-800 text-xs uppercase font-semibold text-slate-400 tracking-wider">
+      <div className="admin-table-container">
+        <div className="admin-table-scroll">
+          <table className="admin-data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Slug</th>
-                <th className="px-6 py-4">Plans / Subtitle</th>
-                <th className="px-6 py-4">Sort Order</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th>Category</th>
+                <th>Slug</th>
+                <th>Plans / Subtitle</th>
+                <th>Sort Order</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">

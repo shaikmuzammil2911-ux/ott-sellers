@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, Upload, 
-  Image as ImageIcon, RefreshCw, AlertCircle, Eye, EyeOff 
+  Image as ImageIcon, RefreshCw, AlertCircle, Eye, EyeOff, Package 
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
@@ -196,26 +196,31 @@ export const AdminProductsPage: React.FC = () => {
   });
 
   return (
-    <div className="admin-products-page">
-      <div className="admin-page-header">
-        <div className="admin-page-title-block">
-          <h1>Product Management</h1>
-          <p>Authoritative catalog products, 4K subscriptions, pricing plans & stock.</p>
+    <div className="admin-page-container">
+      {/* Responsive Header */}
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <Package className="admin-heading-icon" />
+            <span>Product Catalog</span>
+          </h1>
+          <p className="admin-sub-text">
+            Authoritative catalog products, 4K subscriptions, pricing plans & stock.
+          </p>
         </div>
-        <div className="header-actions">
+        <div className="admin-header-actions">
           <button 
             type="button" 
             onClick={loadData} 
-            className="btn-admin-secondary"
+            className="btn-refresh-action"
             title="Refresh database"
           >
             <RefreshCw size={16} className={loading ? 'spin-anim' : ''} />
-            <span>Refresh</span>
           </button>
           <button 
             type="button" 
             onClick={handleOpenAddModal} 
-            className="btn-admin-primary"
+            className="btn-primary-action"
           >
             <Plus size={16} />
             <span>Add New Product</span>
@@ -224,46 +229,54 @@ export const AdminProductsPage: React.FC = () => {
       </div>
 
       {saveSuccessMsg && (
-        <div className="admin-auth-alert" style={{ background: 'rgba(16, 185, 129, 0.15)', borderColor: '#10b981', color: '#34d399' }}>
+        <div className="admin-alert-banner">
           <Check size={18} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <div className="admin-filter-bar" style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <div className="admin-input-wrap" style={{ flex: '1', minWidth: '240px' }}>
-          <Search size={18} className="field-icon" />
+      <div className="admin-toolbar-card">
+        <div className="admin-search-wrapper">
+          <Search className="admin-search-icon" />
           <input
             type="text"
+            className="admin-search-input"
             placeholder="Search products by title or keywords..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          style={{
-            background: '#070d1e',
-            color: '#ffffff',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 'var(--radius-md)',
-            padding: '10px 16px',
-            fontSize: '0.88rem'
-          }}
-        >
-          <option value="all">All Categories ({categories.length})</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.slug}>{c.name}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{
+              background: '#070d1e',
+              color: '#ffffff',
+              border: '1px solid #1e293b',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              fontSize: '0.88rem'
+            }}
+          >
+            <option value="all">All Categories ({categories.length})</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.slug}>{c.name}</option>
+            ))}
+          </select>
+
+          <span className="admin-count-badge">
+            Showing <strong>{filteredProducts.length}</strong> products
+          </span>
+        </div>
       </div>
 
-      {/* Products Table */}
+      {/* Products Table with Responsive Horizontal Scroll */}
       <div className="admin-table-container">
-        <table className="admin-table">
+        <div className="admin-table-scroll">
+          <table className="admin-table" style={{ minWidth: '780px' }}>
           <thead>
             <tr>
               <th>Image</th>
@@ -365,6 +378,7 @@ export const AdminProductsPage: React.FC = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Add / Edit Product Modal */}

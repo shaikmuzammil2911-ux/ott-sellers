@@ -111,51 +111,49 @@ export const AdminReviewsPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Star className="w-7 h-7 text-amber-400" />
-            Customer Reviews & Ratings
+    <div className="admin-page-container">
+      {/* Responsive Header */}
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <Star className="admin-heading-icon" style={{ color: '#f59e0b' }} />
+            <span>Customer Reviews & Ratings</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="admin-sub-text">
             Moderate testimonials, approve authentic ratings, and maintain live trust badges.
           </p>
         </div>
 
-        <button
-          onClick={() => saveReviews(INITIAL_REVIEWS)}
-          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors self-start sm:self-auto"
-          title="Reset reviews to defaults"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
+        <div className="admin-header-actions">
+          <button
+            onClick={() => saveReviews(INITIAL_REVIEWS)}
+            className="btn-refresh-action"
+            title="Reset reviews to defaults"
+          >
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Responsive Filter & Search Toolbar */}
+      <div className="admin-toolbar-card">
+        <div className="admin-search-wrapper">
+          <Search className="admin-search-icon" />
           <input
             type="text"
-            placeholder="Search reviews..."
+            className="admin-search-input"
+            placeholder="Search reviews by customer name, product or comment..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-primary-500"
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+        <div className="admin-tabs-row">
           {(['all', 'approved', 'pending', 'rejected'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase transition-colors ${
-                statusFilter === tab 
-                  ? 'bg-primary-600 text-white shadow' 
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`admin-tab-btn ${statusFilter === tab ? 'active' : ''}`}
             >
               {tab}
             </button>
@@ -163,72 +161,107 @@ export const AdminReviewsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Reviews Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Reviews Grid Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
         {filteredReviews.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-slate-400">
-            No reviews match the selected filter.
+          <div style={{ gridColumn: '1 / -1', padding: '48px 20px', textAlign: 'center', color: '#94a3b8', background: '#070d1e', borderRadius: '16px', border: '1px solid #1e293b' }}>
+            No reviews match the selected filter criteria.
           </div>
         ) : (
           filteredReviews.map((r) => (
             <div
               key={r.id}
-              className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all"
+              style={{
+                background: '#070d1e',
+                border: '1px solid #1e293b',
+                borderRadius: '16px',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '14px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+              }}
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
                   <div>
-                    <h3 className="font-bold text-white text-base">{r.userName}</h3>
-                    <div className="text-xs text-primary-400 font-medium">{r.productName}</div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0 0 2px 0' }}>{r.userName}</h3>
+                    <div style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 600 }}>{r.productName}</div>
                   </div>
-                  <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg text-amber-400 text-xs font-bold">
-                    <Star className="w-3.5 h-3.5 fill-amber-400" />
-                    {r.rating}.0
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '4px 8px', borderRadius: '8px', color: '#f59e0b', fontSize: '0.78rem', fontWeight: 800 }}>
+                    <Star size={13} fill="#f59e0b" />
+                    <span>{r.rating}.0</span>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-300 italic leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
+                <p style={{ fontSize: '0.82rem', color: '#cbd5e1', fontStyle: 'italic', lineHeight: 1.5, background: 'rgba(0,0,0,0.3)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', margin: 0 }}>
                   &ldquo;{r.comment}&rdquo;
                 </p>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: '#64748b' }}>
                   <span>{r.date}</span>
-                  <span className={`px-2 py-0.5 rounded font-semibold uppercase ${
-                    r.status === 'approved' 
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' 
-                      : r.status === 'pending'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                  }`}>
+                  <span className={`status-badge ${r.status === 'approved' ? 'active' : r.status === 'pending' ? 'pending' : 'inactive'}`}>
                     {r.status}
                   </span>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800/80">
+              {/* Action Buttons with Generous Touch Size */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', paddingTop: '10px', borderTop: '1px solid #1e293b' }}>
                 {r.status !== 'approved' && (
                   <button
                     onClick={() => handleUpdateStatus(r.id, 'approved')}
-                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    style={{
+                      padding: '8px 12px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#34d399',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <Check className="w-3.5 h-3.5" /> Approve
+                    <Check size={14} /> Approve
                   </button>
                 )}
                 {r.status !== 'rejected' && (
                   <button
                     onClick={() => handleUpdateStatus(r.id, 'rejected')}
-                    className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    style={{
+                      padding: '8px 12px',
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      color: '#f59e0b',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <X className="w-3.5 h-3.5" /> Reject
+                    <X size={14} /> Reject
                   </button>
                 )}
                 <button
                   onClick={() => handleDeleteReview(r.id)}
-                  className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/30 transition-colors"
+                  style={{
+                    padding: '8px 10px',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    cursor: 'pointer'
+                  }}
                   title="Delete Review"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

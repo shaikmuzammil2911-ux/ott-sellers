@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Search, Mail, Phone, ShoppingBag, Eye, 
-  RefreshCw, MessageSquare, ShieldCheck, X 
+  Users, Search, Eye, RefreshCw, MessageSquare, X, ShoppingBag, Phone, Mail 
 } from 'lucide-react';
 import { ottApi } from '../../services/api';
 import { Order } from '../../types';
@@ -27,7 +26,6 @@ export const AdminCustomersPage: React.FC = () => {
     try {
       const orders = await ottApi.getOrders();
       
-      // Group orders by email
       const customerMap = new Map<string, CustomerSummary>();
 
       orders.forEach(o => {
@@ -41,7 +39,7 @@ export const AdminCustomersPage: React.FC = () => {
           customerMap.set(email, {
             name: o.customerName || 'Customer',
             email,
-            phone: o.customerMobile || o.customerWhatsApp,
+            phone: o.customerMobile || o.customerWhatsApp || '+91 9441323332',
             totalOrders: 1,
             totalSpent: (o.paymentStatus === 'Paid' || o.paymentStatus === 'Success') ? o.total : 0,
             lastOrderDate: o.date,
@@ -50,14 +48,13 @@ export const AdminCustomersPage: React.FC = () => {
         }
       });
 
-      // Also ensure default users or registered accounts
       if (customerMap.size === 0) {
         customerMap.set('customer@gmail.com', {
-          name: 'Rajesh Kumar',
-          email: 'customer@gmail.com',
+          name: 'Shaik Muzammil',
+          email: 'Fixyourmobiles7@gmail.com',
           phone: '+91 9441323332',
-          totalOrders: 2,
-          totalSpent: 498,
+          totalOrders: 1,
+          totalSpent: 499,
           lastOrderDate: '07 Oct 2026',
           orders: []
         });
@@ -82,121 +79,159 @@ export const AdminCustomersPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Users className="w-7 h-7 text-primary-500" />
-            Customers Management
+    <div className="admin-page-container">
+      {/* Header Row */}
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <Users className="admin-heading-icon" />
+            <span>Customers Management</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="admin-sub-text">
             Registered buyers, purchase histories, and contact information linked with Supabase.
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors self-start sm:self-auto"
-          title="Refresh database"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="admin-header-actions">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="btn-refresh-action"
+            title="Refresh database"
+          >
+            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
+          </button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Toolbar / Search Box */}
+      <div className="admin-toolbar-card">
+        <div className="admin-search-wrapper">
+          <Search className="admin-search-icon" />
           <input
             type="text"
             placeholder="Search customers by name, email, phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-primary-500"
+            className="admin-search-input"
           />
         </div>
 
-        <div className="text-xs text-slate-400 font-medium">
-          Total Customers: <span className="text-white font-bold">{filteredCustomers.length}</span>
+        <div className="admin-count-badge">
+          Total Customers: <strong>{filteredCustomers.length}</strong>
         </div>
       </div>
 
-      {/* Customers Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950/60 border-b border-slate-800 text-xs uppercase font-semibold text-slate-400 tracking-wider">
+      {/* Scrollable Responsive Table */}
+      <div className="admin-table-container">
+        <div className="admin-table-scroll">
+          <table className="admin-data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Phone / WhatsApp</th>
-                <th className="px-6 py-4">Total Orders</th>
-                <th className="px-6 py-4">Total Spending</th>
-                <th className="px-6 py-4">Latest Order</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th>Customer</th>
+                <th>Phone / WhatsApp</th>
+                <th>Total Orders</th>
+                <th>Total Spending</th>
+                <th>Latest Order</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-500" />
-                    Loading customers...
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+                    <RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto 10px', color: '#0284c7' }} />
+                    Loading customers from Supabase...
                   </td>
                 </tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    No customers found.
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+                    No customers found matching your search.
                   </td>
                 </tr>
               ) : (
                 filteredCustomers.map((c, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary-600 to-accent-600 flex items-center justify-center font-bold text-white text-xs">
+                  <tr key={idx}>
+                    <td>
+                      <div className="admin-item-cell">
+                        <div className="admin-avatar-initial">
                           {c.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-white">{c.name}</div>
-                          <div className="text-xs text-slate-400 font-mono">{c.email}</div>
+                          <div className="admin-item-name">{c.name}</div>
+                          <div className="admin-item-sub">{c.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-300">
-                      {c.phone || <span className="text-slate-500 italic">Not available</span>}
+                    <td>
+                      <span style={{ fontSize: '0.86rem', color: '#cbd5e1', fontWeight: 600 }}>
+                        {c.phone || '+91 9441323332'}
+                      </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700">
+                    <td>
+                      <span style={{ 
+                        display: 'inline-block',
+                        padding: '4px 10px', 
+                        background: '#070d1e', 
+                        color: '#38bdf8', 
+                        borderRadius: '8px', 
+                        fontSize: '0.78rem', 
+                        fontWeight: 700,
+                        border: '1px solid #1e293b'
+                      }}>
                         {c.totalOrders} order(s)
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-bold text-emerald-400">
-                      ₹{c.totalSpent}
+                    <td>
+                      <strong style={{ color: '#34d399', fontSize: '0.96rem' }}>
+                        ₹{c.totalSpent}
+                      </strong>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-400">
+                    <td style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
                       {c.lastOrderDate}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                         {c.phone && (
                           <a
                             href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${c.name}, greetings from OTT SELLERS!`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 transition-colors"
-                            title="WhatsApp Customer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '34px',
+                              height: '34px',
+                              borderRadius: '8px',
+                              background: 'rgba(37, 211, 102, 0.12)',
+                              border: '1px solid rgba(37, 211, 102, 0.3)',
+                              color: '#25d366'
+                            }}
+                            title="Chat on WhatsApp"
                           >
-                            <MessageSquare className="w-4 h-4" />
+                            <MessageSquare size={16} />
                           </a>
                         )}
                         <button
                           onClick={() => setSelectedCustomer(c)}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            background: '#0f172a',
+                            border: '1px solid #1e293b',
+                            borderRadius: '8px',
+                            color: '#cbd5e1',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
                         >
-                          <Eye className="w-3.5 h-3.5" /> View
+                          <Eye size={14} />
+                          <span>View</span>
                         </button>
                       </div>
                     </td>
@@ -210,56 +245,69 @@ export const AdminCustomersPage: React.FC = () => {
 
       {/* Customer Orders History Modal */}
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 my-8 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-accent-600 flex items-center justify-center font-bold text-white">
+        <div className="admin-modal-backdrop" onClick={() => setSelectedCustomer(null)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div className="admin-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="admin-avatar-initial">
                   {selectedCustomer.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">{selectedCustomer.name}</h2>
-                  <span className="text-xs text-slate-400 font-mono">{selectedCustomer.email}</span>
+                  <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{selectedCustomer.name}</h2>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                    {selectedCustomer.email}
+                  </span>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedCustomer(null)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="modal-close-btn"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X size={20} />
               </button>
             </div>
 
             {/* Quick Summary Cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
-                <span className="text-xs text-slate-400 block">Total Orders</span>
-                <span className="text-xl font-bold text-white">{selectedCustomer.totalOrders}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: '#070d1e', padding: '14px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>Total Orders</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff' }}>{selectedCustomer.totalOrders}</span>
               </div>
-              <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
-                <span className="text-xs text-slate-400 block">Total Spend</span>
-                <span className="text-xl font-bold text-emerald-400">₹{selectedCustomer.totalSpent}</span>
+              <div style={{ background: '#070d1e', padding: '14px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>Total Spend</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399' }}>₹{selectedCustomer.totalSpent}</span>
               </div>
             </div>
 
             {/* Orders list */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Past Orders</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                Past Purchases
+              </h3>
               {selectedCustomer.orders.length === 0 ? (
-                <div className="p-4 bg-slate-950/40 rounded-xl text-center text-xs text-slate-500">
-                  No previous orders on record.
+                <div style={{ padding: '20px', background: '#070d1e', borderRadius: '12px', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
+                  No prior orders recorded.
                 </div>
               ) : (
-                <div className="divide-y divide-slate-800/80 bg-slate-950/40 rounded-2xl border border-slate-800/80 overflow-hidden">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
                   {selectedCustomer.orders.map((o) => (
-                    <div key={o.id} className="p-3.5 flex items-center justify-between text-xs">
+                    <div key={o.id} style={{ 
+                      padding: '12px 14px', 
+                      background: '#070d1e', 
+                      border: '1px solid #1e293b', 
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
                       <div>
-                        <div className="font-mono font-bold text-white">{o.id}</div>
-                        <div className="text-slate-400 text-[11px]">{o.date} • {o.items.length} item(s)</div>
+                        <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#ffffff', fontFamily: 'monospace' }}>{o.id}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{o.date} • {o.items.length} item(s)</div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-emerald-400 text-sm">₹{o.total}</div>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 900, color: '#34d399', fontSize: '0.92rem' }}>₹{o.total}</div>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: '#0f172a', color: '#94a3b8' }}>
                           {o.orderStatus}
                         </span>
                       </div>
@@ -269,10 +317,19 @@ export const AdminCustomersPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
               <button
                 onClick={() => setSelectedCustomer(null)}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition-colors"
+                style={{
+                  padding: '10px 18px',
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
               >
                 Close
               </button>

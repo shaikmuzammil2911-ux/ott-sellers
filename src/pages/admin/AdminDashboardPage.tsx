@@ -51,24 +51,28 @@ export const AdminDashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="admin-dashboard-page">
-      {/* Top Banner / Welcome Row */}
-      <div className="admin-page-header">
-        <div className="admin-page-title-block">
-          <h1>E-Commerce Control Center</h1>
-          <p>Real-time telemetry, authoritative Supabase records & storefront activity.</p>
+    <div className="admin-page-container">
+      {/* Responsive Header Row */}
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <Sparkles className="admin-heading-icon" style={{ color: '#0284c7' }} />
+            <span>E-Commerce Control Center</span>
+          </h1>
+          <p className="admin-sub-text">
+            Real-time telemetry, authoritative Supabase records & storefront activity.
+          </p>
         </div>
-        <div className="header-actions">
+        <div className="admin-header-actions">
           <button 
             type="button" 
             onClick={loadData} 
-            className="btn-admin-secondary"
+            className="btn-refresh-action"
             title="Refresh database records"
           >
             <RefreshCw size={16} className={loading ? 'spin-anim' : ''} />
-            <span>Refresh Data</span>
           </button>
-          <Link to="/admin/products" className="btn-admin-primary">
+          <Link to="/admin/products" className="btn-primary-action">
             <PlusCircle size={16} />
             <span>Add New Product</span>
           </Link>
@@ -187,67 +191,69 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         <div className="admin-table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Items Ordered</th>
-                <th>Amount</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.length === 0 ? (
+          <div className="admin-table-scroll">
+            <table className="admin-table" style={{ minWidth: '760px' }}>
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px' }}>
-                    No orders recorded in database yet.
-                  </td>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Items Ordered</th>
+                  <th>Amount</th>
+                  <th>Payment</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                recentOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td>
-                      <strong style={{ color: '#ffffff' }}>{order.id}</strong>
-                    </td>
-                    <td>{order.date}</td>
-                    <td>
-                      <div className="order-customer-cell">
-                        <strong>{order.customerName}</strong>
-                        <span>{order.customerEmail}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="items-summary-tag">
-                        {order.items.length} item{order.items.length > 1 ? 's' : ''} ({order.items[0]?.name})
-                      </span>
-                    </td>
-                    <td>
-                      <strong style={{ color: '#10b981' }}>₹ {order.total}</strong>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${order.paymentStatus.toLowerCase()}`}>
-                        {order.paymentStatus}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${order.orderStatus.toLowerCase()}`}>
-                        {order.orderStatus}
-                      </span>
-                    </td>
-                    <td>
-                      <Link to="/admin/orders" className="table-inline-action-btn">
-                        Details
-                      </Link>
+              </thead>
+              <tbody>
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '32px' }}>
+                      No orders recorded in database yet.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentOrders.map((order) => (
+                    <tr key={order.id}>
+                      <td>
+                        <strong style={{ color: '#ffffff' }}>{order.id}</strong>
+                      </td>
+                      <td>{order.date}</td>
+                      <td>
+                        <div className="order-customer-cell">
+                          <strong>{order.customerName}</strong>
+                          <span>{order.customerEmail}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="items-summary-tag">
+                          {order.items.length} item{order.items.length > 1 ? 's' : ''} ({order.items[0]?.name})
+                        </span>
+                      </td>
+                      <td>
+                        <strong style={{ color: '#10b981' }}>₹ {order.total}</strong>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${order.paymentStatus.toLowerCase()}`}>
+                          {order.paymentStatus}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${order.orderStatus.toLowerCase()}`}>
+                          {order.orderStatus}
+                        </span>
+                      </td>
+                      <td>
+                        <Link to="/admin/orders" className="table-inline-action-btn">
+                          Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

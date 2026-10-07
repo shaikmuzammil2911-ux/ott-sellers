@@ -120,43 +120,44 @@ export const AdminHeroCMSPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page-container">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-primary-500" />
-            Hero Section CMS Editor
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <Sparkles className="admin-heading-icon" />
+            <span>Hero Section CMS Editor</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="admin-sub-text">
             Edit live hero banner headlines, badges, call-to-action buttons, and desktop/mobile graphics.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="admin-header-actions">
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition-colors"
+            className="btn-admin-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 14px', borderRadius: '12px', fontSize: '0.84rem' }}
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            View Live Site
+            <ExternalLink size={14} />
+            <span>View Live Site</span>
           </a>
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors"
+            className="btn-refresh-action"
             title="Reload from Supabase"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
           </button>
         </div>
       </div>
 
       {saveSuccessMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 flex items-center gap-3 text-sm">
-          <Check className="w-5 h-5 flex-shrink-0" />
+        <div className="admin-alert-banner">
+          <Check size={18} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}

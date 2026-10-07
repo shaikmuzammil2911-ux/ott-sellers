@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import './AdminLayout.css';
+import './AdminMobile.css';
 
 export const AdminLayout: React.FC = () => {
   const { adminUser, logout } = useAdminAuth();

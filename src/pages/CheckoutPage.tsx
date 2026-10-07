@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  ShieldCheck, QrCode, CreditCard, Landmark, Upload, 
-  Check, AlertCircle, ArrowLeft, ArrowRight, MessageCircle, X 
+  ShieldCheck, AlertCircle, ArrowRight, MessageCircle 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,8 +22,6 @@ export const CheckoutPage: React.FC = () => {
   const [whatsappNumber, setWhatsappNumber] = useState(user?.whatsapp || user?.mobile || '');
 
   // Payment states
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -41,22 +38,6 @@ export const CheckoutPage: React.FC = () => {
       </div>
     );
   }
-
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-        setErrorMsg('Please upload a valid image file (PNG, JPG, or JPEG).');
-        return;
-      }
-      setErrorMsg(null);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshotPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +73,7 @@ export const CheckoutPage: React.FC = () => {
 
       const finalTotal = Math.max(verifiedSubtotal - discountTotal, 0);
 
-      // Open Razorpay Checkout or Direct Verification
+      // Open Razorpay Checkout
       await paymentService.openCheckout({
         orderId: `OTS_${Date.now()}`,
         amount: finalTotal,
@@ -110,11 +91,10 @@ export const CheckoutPage: React.FC = () => {
             subtotal: verifiedSubtotal,
             discount: discountTotal,
             total: finalTotal,
-            paymentMethod: paymentMethod === 'upi' ? 'UPI (QR / Google Pay / PhonePe)' : paymentMethod === 'card' ? 'Credit / Debit Card' : 'Net Banking',
+            paymentMethod: 'Razorpay Secure Gateway (UPI / Card / NetBanking)',
             paymentStatus: 'Success',
             orderStatus: 'Paid',
-            screenshotUrl: screenshotPreview || undefined,
-            notes: `Payment Ref: ${paymentId}`
+            notes: `Razorpay Payment ID: ${paymentId}`
           });
 
           clearCart();
@@ -216,139 +196,65 @@ export const CheckoutPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 2: Payment Method UI */}
-            <div className="checkout-card">
+            {/* Step 2: Payment Method UI — Official Razorpay Gateway Only */}
+            <div className="checkout-card razorpay-gateway-card">
               <div className="checkout-card-header">
                 <span className="step-badge">Step 2</span>
-                <h2 className="checkout-card-heading">Select Payment Method</h2>
+                <h2 className="checkout-card-heading">Payment Method</h2>
               </div>
+              <p className="card-subtext">
+                Secure 256-bit encrypted checkout powered exclusively by <strong>Razorpay</strong>.
+              </p>
 
-              {/* Payment Tabs */}
-              <div className="payment-tabs-grid">
-                <button
-                  type="button"
-                  className={`payment-tab-btn ${paymentMethod === 'upi' ? 'active' : ''}`}
-                  onClick={() => setPaymentMethod('upi')}
-                >
-                  <QrCode size={20} />
-                  <span>UPI / QR Code</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`payment-tab-btn ${paymentMethod === 'card' ? 'active' : ''}`}
-                  onClick={() => setPaymentMethod('card')}
-                >
-                  <CreditCard size={20} />
-                  <span>Card (Debit/Credit)</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`payment-tab-btn ${paymentMethod === 'netbanking' ? 'active' : ''}`}
-                  onClick={() => setPaymentMethod('netbanking')}
-                >
-                  <Landmark size={20} />
-                  <span>Net Banking</span>
-                </button>
-              </div>
-
-              {/* Payment Tab Details */}
-              <div className="payment-tab-body">
-                {paymentMethod === 'upi' && (
-                  <div className="upi-payment-view">
-                    <div className="upi-qr-card">
-                      <div className="qr-box-mock">
-                        <QrCode size={110} color="#0b132b" />
-                        <span className="qr-scan-note">Scan with any UPI App</span>
-                      </div>
-
-                      <div className="upi-details-col">
-                        <div className="upi-id-pill">
-                          <span className="label">UPI ID:</span>
-                          <strong>ottsellers@upi</strong>
-                        </div>
-                        <div className="supported-apps-row">
-                          <span className="app-tag">Google Pay</span>
-                          <span className="app-tag">PhonePe</span>
-                          <span className="app-tag">Paytm</span>
-                          <span className="app-tag">BHIM</span>
-                        </div>
-                        <p className="upi-instruction">
-                          Pay exact amount <strong>₹{totalPrice}</strong> via any UPI application and upload screenshot below for instant verification.
-                        </p>
-                      </div>
+              <div className="razorpay-showcase-box">
+                <div className="razorpay-brand-header">
+                  <div className="razorpay-logo-badge">
+                    <span className="rzp-shield-icon">🛡️</span>
+                    <div>
+                      <strong className="rzp-title">Razorpay Secure Checkout</strong>
+                      <span className="rzp-sub">Official Trusted Indian Payment Gateway</span>
                     </div>
                   </div>
-                )}
+                  <span className="rzp-live-pill">● 100% Secure & Verified</span>
+                </div>
 
-                {paymentMethod === 'card' && (
-                  <div className="card-payment-view">
-                    <div className="card-fields-grid">
-                      <div className="form-group full-width">
-                        <label className="form-label">Card Number</label>
-                        <input type="text" className="form-input" placeholder="4242 •••• •••• 4242" defaultValue="4242 8192 3847 9120" />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Expiry Date</label>
-                        <input type="text" className="form-input" placeholder="MM/YY" defaultValue="12/28" />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">CVV</label>
-                        <input type="password" maxLength={4} className="form-input" placeholder="•••" defaultValue="821" />
-                      </div>
+                <div className="razorpay-methods-grid">
+                  <div className="rzp-method-item">
+                    <span className="rzp-method-icon">⚡</span>
+                    <div>
+                      <strong>Instant UPI</strong>
+                      <span>Google Pay, PhonePe, Paytm, BHIM & Any UPI ID</span>
                     </div>
                   </div>
-                )}
+                  <div className="rzp-method-item">
+                    <span className="rzp-method-icon">💳</span>
+                    <div>
+                      <strong>Debit & Credit Cards</strong>
+                      <span>Visa, Mastercard, RuPay, Maestro & Amex</span>
+                    </div>
+                  </div>
+                  <div className="rzp-method-item">
+                    <span className="rzp-method-icon">🏦</span>
+                    <div>
+                      <strong>Net Banking</strong>
+                      <span>SBI, HDFC, ICICI, Axis, Kotak & 50+ Banks</span>
+                    </div>
+                  </div>
+                  <div className="rzp-method-item">
+                    <span className="rzp-method-icon">👛</span>
+                    <div>
+                      <strong>Wallets & Pay Later</strong>
+                      <span>Mobikwik, Freecharge, Airtel Money, etc.</span>
+                    </div>
+                  </div>
+                </div>
 
-                {paymentMethod === 'netbanking' && (
-                  <div className="netbanking-view">
-                    <label className="form-label">Select Your Bank</label>
-                    <select className="form-input" defaultValue="hdfc">
-                      <option value="hdfc">HDFC Bank</option>
-                      <option value="sbi">State Bank of India</option>
-                      <option value="icici">ICICI Bank</option>
-                      <option value="axis">Axis Bank</option>
-                      <option value="kotak">Kotak Mahindra Bank</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Requirement 24: Payment Screenshot UI */}
-              <div className="screenshot-upload-section">
-                <label className="form-label upload-label">
-                  <Upload size={16} />
-                  <span>Upload Payment Screenshot (Optional for Faster Verification)</span>
-                </label>
-                
-                {screenshotPreview ? (
-                  <div className="screenshot-preview-box">
-                    <img src={screenshotPreview} alt="Screenshot preview" className="screenshot-img" />
-                    <button
-                      type="button"
-                      className="btn-remove-screenshot"
-                      onClick={() => setScreenshotPreview(null)}
-                    >
-                      <X size={16} /> Remove
-                    </button>
-                  </div>
-                ) : (
-                  <div className="upload-dropzone">
-                    <input
-                      type="file"
-                      id="screenshotInput"
-                      accept="image/png, image/jpeg, image/jpg"
-                      onChange={handleScreenshotChange}
-                      className="file-hidden-input"
-                    />
-                    <label htmlFor="screenshotInput" className="dropzone-label">
-                      <Upload size={28} className="dropzone-icon" />
-                      <strong>Click to upload payment screenshot</strong>
-                      <span>Supports PNG, JPG, JPEG</span>
-                    </label>
-                  </div>
-                )}
+                <div className="razorpay-instructions-banner">
+                  <div className="instruction-check-bullet">✓</div>
+                  <p>
+                    When you click <strong>"Pay via Razorpay"</strong> below, the official Razorpay checkout window will open. Your subscription credentials and WhatsApp activation will be issued instantly once paid.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -396,7 +302,7 @@ export const CheckoutPage: React.FC = () => {
                   <span>Securing Order...</span>
                 ) : (
                   <>
-                    <span>Place Order & Pay ₹{totalPrice}</span>
+                    <span>Pay ₹{totalPrice} via Razorpay</span>
                     <ArrowRight size={18} />
                   </>
                 )}

@@ -151,41 +151,41 @@ export const AdminBannersPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-page-container">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <ImageIcon className="w-7 h-7 text-primary-500" />
-            Promotional Banners
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <ImageIcon className="admin-heading-icon" />
+            <span>Promotional Banners</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="admin-sub-text">
             Manage top carousel banners, promo advertisements, and sale announcements.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="admin-header-actions">
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors"
+            className="btn-refresh-action"
             title="Refresh database"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
           </button>
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl shadow-lg shadow-primary-600/30 transition-all text-sm"
+            className="btn-primary-action"
           >
-            <Plus className="w-4 h-4" />
-            Add Banner
+            <Plus size={16} />
+            <span>Add Banner</span>
           </button>
         </div>
       </div>
 
       {saveSuccessMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 flex items-center gap-3 text-sm">
-          <Check className="w-5 h-5 flex-shrink-0" />
+        <div className="admin-alert-banner">
+          <Check size={18} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}

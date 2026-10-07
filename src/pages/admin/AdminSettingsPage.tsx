@@ -71,150 +71,153 @@ export const AdminSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Settings className="w-7 h-7 text-primary-500" />
-            Store & System Settings
+    <div className="admin-page-container">
+      {/* Responsive Header */}
+      <div className="admin-header-row">
+        <div className="admin-title-group">
+          <h1 className="admin-main-heading">
+            <Settings className="admin-heading-icon" style={{ color: '#0284c7' }} />
+            <span>Store & System Settings</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Global store configuration, WhatsApp sales numbers, SMTP credentials, and announcement alerts.
+          <p className="admin-sub-text">
+            Global store configuration, WhatsApp sales numbers, Razorpay keys, and announcement alerts.
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors self-start sm:self-auto"
-          title="Reload from Supabase"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="admin-header-actions">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="btn-refresh-action"
+            title="Reload from Supabase"
+          >
+            <RefreshCw size={16} className={loading ? 'spin-anim' : ''} />
+          </button>
+        </div>
       </div>
 
       {saveSuccessMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 flex items-center gap-3 text-sm">
-          <Check className="w-5 h-5 flex-shrink-0" />
+        <div className="admin-alert-banner">
+          <Check size={18} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
       {/* Settings Form */}
-      <form onSubmit={handleSave} className="space-y-6 max-w-4xl">
+      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '860px' }}>
         {/* Contact & WhatsApp */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <h2 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-slate-800">
-            <MessageSquare className="w-5 h-5 text-emerald-400" />
-            Customer Sales & WhatsApp Dispatch
+        <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '20px', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #1e293b', margin: 0 }}>
+            <MessageSquare size={18} style={{ color: '#34d399' }} />
+            <span>Customer Sales & WhatsApp Dispatch</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Store / Brand Name</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Store / Brand Name</label>
               <input
                 type="text"
                 value={siteName}
                 onChange={(e) => setSiteName(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500 font-semibold"
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#ffffff', fontSize: '0.88rem', fontWeight: 600, outline: 'none' }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Dedicated Sales WhatsApp Number *</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Dedicated Sales WhatsApp Number *</label>
               <input
                 type="text"
                 required
                 value={supportWhatsApp}
                 onChange={(e) => setSupportWhatsApp(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500 font-mono font-bold text-emerald-400"
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#34d399', fontSize: '0.88rem', fontWeight: 700, fontFamily: 'monospace', outline: 'none' }}
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">Used for post-payment customer redirect & float button</span>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>Used for post-payment customer redirect & float button</span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Official Support Email</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Official Support Email</label>
               <input
                 type="email"
                 value={supportEmail}
                 onChange={(e) => setSupportEmail(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500 font-mono"
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#ffffff', fontSize: '0.88rem', outline: 'none' }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Support Calling Line</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Support Calling Line</label>
               <input
                 type="text"
                 value={supportPhone}
                 onChange={(e) => setSupportPhone(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary-500"
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#ffffff', fontSize: '0.88rem', outline: 'none' }}
               />
             </div>
           </div>
         </div>
 
         {/* Announcement Bar */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <h2 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-slate-800">
-            <Bell className="w-5 h-5 text-amber-400" />
-            Top Announcement Bar
+        <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '20px', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #1e293b', margin: 0 }}>
+            <Bell size={18} style={{ color: '#f59e0b' }} />
+            <span>Top Announcement Bar</span>
           </h2>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Ticker / Flash Banner Message</label>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Ticker / Flash Banner Message</label>
             <textarea
               rows={2}
               value={announcementText}
               onChange={(e) => setAnnouncementText(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-primary-500"
+              style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#ffffff', fontSize: '0.88rem', outline: 'none', resize: 'vertical' }}
             />
-            <span className="text-[11px] text-slate-400 mt-1 block">Displays across the top of all customer pages.</span>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>Displays across the top of all customer pages.</span>
           </div>
         </div>
 
-        {/* Integration Credentials (Read-only / Safe display) */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <h2 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-slate-800">
-            <ShieldCheck className="w-5 h-5 text-primary-500" />
-            Gateway & Backend Configuration
+        {/* Integration Credentials */}
+        <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '20px', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #1e293b', margin: 0 }}>
+            <ShieldCheck size={18} style={{ color: '#0284c7' }} />
+            <span>Razorpay & Backend Credentials</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Razorpay Merchant Key ID</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Razorpay Merchant Key ID</label>
               <input
                 type="text"
                 value={razorpayKeyId}
                 onChange={(e) => setRazorpayKeyId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-xs font-mono focus:outline-none focus:border-primary-500"
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#ffffff', fontSize: '0.82rem', fontFamily: 'monospace', outline: 'none' }}
               />
-              <span className="text-[11px] text-slate-500 mt-1 block">Live client-safe Key ID</span>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>Live client-safe Razorpay Key ID</span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Gmail SMTP Relay Server</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>Gmail SMTP Relay Server</label>
               <input
                 type="text"
                 readOnly
                 value={`${smtpHost}:465 (Fixyourmobiles7@gmail.com)`}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-400 text-xs font-mono cursor-not-allowed"
+                style={{ width: '100%', background: '#030712', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px 16px', color: '#94a3b8', fontSize: '0.82rem', fontFamily: 'monospace', cursor: 'not-allowed' }}
               />
-              <span className="text-[11px] text-emerald-400/80 mt-1 block">✓ SMTP Connected and Verified via Nodemailer</span>
+              <span style={{ fontSize: '0.74rem', color: '#34d399', marginTop: '4px', display: 'block' }}>✓ SMTP Connected and Verified via Nodemailer</span>
             </div>
           </div>
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-2">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' }}>
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl text-sm shadow-xl shadow-primary-600/30 transition-all flex items-center gap-2"
+            className="btn-primary-action"
+            style={{ padding: '12px 24px', fontSize: '0.92rem' }}
           >
-            <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save All Settings to Supabase'}
+            <Save size={16} />
+            <span>{saving ? 'Saving...' : 'Save All Settings to Supabase'}</span>
           </button>
         </div>
       </form>
