@@ -468,7 +468,10 @@ CREATE POLICY "Full access profiles" ON public.profiles FOR ALL USING (true) WIT
 -- 1. Admin Profile
 INSERT INTO public.profiles (id, name, email, phone, role)
 VALUES ('admin-1', 'OTT Sellers Admin', 'OttSellers1@gmail.com', '+91 9441323332', 'admin')
-ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
+ON CONFLICT (id) DO UPDATE SET 
+  name = EXCLUDED.name,
+  email = EXCLUDED.email, 
+  role = EXCLUDED.role;
 
 -- 2. Admin Settings Global Row
 INSERT INTO public.admin_settings (
@@ -482,7 +485,11 @@ VALUES (
   '9441323332', 
   '🔥 Flash Sale: Flat 70% Off on All Annual OTT Subscriptions! Instant WhatsApp Credentials Delivery.'
 )
-ON CONFLICT (id) DO UPDATE SET support_email = EXCLUDED.support_email;
+ON CONFLICT (id) DO UPDATE SET 
+  site_name = EXCLUDED.site_name,
+  support_email = EXCLUDED.support_email,
+  support_phone = EXCLUDED.support_phone,
+  support_whatsapp = EXCLUDED.support_whatsapp;
 
 -- 3. Categories
 INSERT INTO public.categories (id, name, slug, description, short_description, icon_name, badge_color, bg_gradient, titles_count, is_active, status, sort_order)
@@ -492,9 +499,15 @@ VALUES
   ('cat-3', 'Music & Audio', 'music-audio', 'High Fidelity Lossless music streaming without annoying advertisements.', 'Ad-Free High Fidelity Music', 'Smile', '#1db954', 'linear-gradient(135deg, #03200e 0%, #0b132b 100%)', '6+ Platforms', true, 'ON', 3),
   ('cat-4', 'Anime & Cartoons', 'anime', 'Simulcast direct from Japan with English subtitles and dubbing.', 'Simulcast Anime & Animation', 'Crown', '#f59e0b', 'linear-gradient(135deg, #241401 0%, #0b132b 100%)', '5+ Platforms', true, 'ON', 4),
   ('cat-5', 'Productivity & AI', 'productivity-tools', 'Premium AI tools, cloud storage, Canva Pro and creative software licenses.', 'AI & Design Tools', 'Compass', '#6366f1', 'linear-gradient(135deg, #100f2e 0%, #0b132b 100%)', '12+ Tools', true, 'ON', 5)
-ON CONFLICT (slug) DO UPDATE SET 
+ON CONFLICT (id) DO UPDATE SET 
   name = EXCLUDED.name,
+  slug = EXCLUDED.slug,
   description = EXCLUDED.description,
+  short_description = EXCLUDED.short_description,
+  icon_name = EXCLUDED.icon_name,
+  badge_color = EXCLUDED.badge_color,
+  bg_gradient = EXCLUDED.bg_gradient,
+  titles_count = EXCLUDED.titles_count,
   status = EXCLUDED.status;
 
 -- 4. Hero Banners
@@ -681,11 +694,14 @@ VALUES
     ]'::jsonb,
     4
   )
-ON CONFLICT (slug) DO UPDATE SET 
+ON CONFLICT (id) DO UPDATE SET 
   name = EXCLUDED.name,
+  slug = EXCLUDED.slug,
+  tagline = EXCLUDED.tagline,
   price = EXCLUDED.price,
   compare_price = EXCLUDED.compare_price,
   plans = EXCLUDED.plans,
+  features = EXCLUDED.features,
   status = EXCLUDED.status;
 
 -- 6. Coupons
@@ -694,7 +710,14 @@ VALUES
   ('coup-1', 'OTT10', 'percentage', 10, 199, 100, 'Flat 10% discount on all subscriptions', true),
   ('coup-2', 'SAVE50', 'fixed', 50, 299, 50, 'Flat ₹50 instant deduction on orders above ₹299', true),
   ('coup-3', 'FESTIVE20', 'percentage', 20, 499, 200, 'Festive promotional 20% discount', true)
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  code = EXCLUDED.code,
+  discount_type = EXCLUDED.discount_type,
+  discount_value = EXCLUDED.discount_value,
+  min_order_amount = EXCLUDED.min_order_amount,
+  max_discount = EXCLUDED.max_discount,
+  description = EXCLUDED.description,
+  is_active = EXCLUDED.is_active;
 
 -- 7. Customer Testimonials
 INSERT INTO public.customer_reviews (id, user_name, user_email, product_name, rating, comment, status, page_type, display_order, date_str)
@@ -712,3 +735,4 @@ VALUES
   ('notif-2', 'Pooja M.', 'Bengaluru', 'Prime Video 4K', 'amazon-prime-video-4k', '3 Months', '5 mins ago', 'https://images.unsplash.com/photo-1524712245354-2c4e5e7121c0?w=100&auto=format&fit=crop&q=80', 'purchased Amazon Prime Video', true, 2),
   ('notif-3', 'Amit S.', 'Delhi NCR', 'Disney+ Hotstar Super', 'disney-hotstar-super', '12 Months', '8 mins ago', 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=100&auto=format&fit=crop&q=80', 'activated Disney+ Hotstar Annual Plan', true, 3)
 ON CONFLICT (id) DO NOTHING;
+
