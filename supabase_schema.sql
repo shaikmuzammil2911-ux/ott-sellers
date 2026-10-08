@@ -196,16 +196,35 @@ CREATE TABLE IF NOT EXISTS public.banners (
 );
 
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS subtitle TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS desktop_image_url TEXT;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS mobile_image_url TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS button_text TEXT DEFAULT 'Shop Now';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS button_url TEXT DEFAULT '/items';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS secondary_button_text TEXT DEFAULT 'Explore Categories';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS secondary_button_url TEXT DEFAULT '#categories';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS badge_text TEXT DEFAULT 'SPECIAL OFFER';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS badge_color TEXT DEFAULT '#38bdf8';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS title_color TEXT DEFAULT '#ffffff';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS subtitle_color TEXT DEFAULT '#cbd5e1';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS page TEXT DEFAULT 'home';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS slot TEXT DEFAULT '01';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS style TEXT DEFAULT 'auto-slide';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS autoplay BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS interval INT DEFAULT 5;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'image-only';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS text_position TEXT DEFAULT 'left';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS solid_color TEXT DEFAULT '#070d1e';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_text BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ====================================================================
 -- 6. HOMEPAGE SECTIONS CMS TABLE
@@ -267,6 +286,19 @@ CREATE TABLE IF NOT EXISTS public.customer_reviews (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS user_name TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS user_email TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS product_name TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS rating INT DEFAULT 5;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved';
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS page_type TEXT DEFAULT 'home';
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS page_id TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 1;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS date_str TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
 CREATE TABLE IF NOT EXISTS public.reviews (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT,
@@ -299,6 +331,19 @@ CREATE TABLE IF NOT EXISTS public.site_notifications (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS buyer_name TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS product_name TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT '1 Month';
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS time_text TEXT DEFAULT '2 mins ago';
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS message TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 1;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ====================================================================
 -- 10. ORDERS & ORDER ITEMS TABLE
