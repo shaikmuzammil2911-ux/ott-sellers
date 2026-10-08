@@ -236,8 +236,9 @@ export const AdminBannersPage: React.FC = () => {
     await loadData();
   };
 
-  const filteredBanners = banners.filter(b => {
-    const q = searchQuery.toLowerCase();
+  const filteredBanners = (banners || []).filter(b => {
+    if (!b) return false;
+    const q = (searchQuery || '').toLowerCase();
     const matchesSearch = 
       (b.name || '').toLowerCase().includes(q) ||
       (b.title || '').toLowerCase().includes(q) ||
@@ -245,8 +246,8 @@ export const AdminBannersPage: React.FC = () => {
       (b.slot || '').toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
-    if (pageFilter !== 'all' && b.page !== pageFilter) return false;
-    if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+    if (pageFilter !== 'all' && (b.page || 'home') !== pageFilter) return false;
+    if (statusFilter !== 'all' && (b.status || 'ON') !== statusFilter) return false;
     return true;
   });
 
@@ -374,7 +375,7 @@ export const AdminBannersPage: React.FC = () => {
                   background: 'rgba(2, 132, 199, 0.85)',
                   color: '#ffffff'
                 }}>
-                  Page: {b.page.toUpperCase()} • Slot {b.slot}
+                  Page: {(b.page || 'home').toUpperCase()} • Slot {b.slot || '01'}
                 </span>
               </div>
 

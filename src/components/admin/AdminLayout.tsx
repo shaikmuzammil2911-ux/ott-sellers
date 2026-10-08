@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, Package, FolderTree, Image, 
+  LayoutDashboard, Package, FolderTree, Image as ImageIcon, 
   Sparkles, ShoppingCart, Users, Star, Settings, LogOut, 
   ExternalLink, Menu, X, ShieldCheck, Database, Bell, CreditCard, Mail 
 } from 'lucide-react';
@@ -43,8 +43,8 @@ export const AdminLayout: React.FC = () => {
     {
       group: 'CONTENT',
       items: [
-        { label: 'Homepage', to: '/admin/hero', icon: Sparkles },
-        { label: 'Banners', to: '/admin/banners', icon: Image },
+        { label: 'Homepage & Hero', to: '/admin/hero', icon: Sparkles },
+        { label: 'Banners & Slots', to: '/admin/banners', icon: ImageIcon },
         { label: 'Categories', to: '/admin/categories', icon: FolderTree },
         { label: 'Reviews', to: '/admin/reviews', icon: Star },
         { label: 'Notifications', to: '/admin/notifications', icon: Bell }

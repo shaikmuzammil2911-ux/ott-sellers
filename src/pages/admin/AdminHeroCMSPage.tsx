@@ -10,6 +10,8 @@ import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
 import { HomepageSectionCMS } from '../../types';
 
+import { AdminBannersPage } from './AdminBannersPage';
+
 const COLOR_PRESETS = [
   { name: 'Pure White', hex: '#ffffff' },
   { name: 'Sky Cyan', hex: '#38bdf8' },
@@ -20,6 +22,7 @@ const COLOR_PRESETS = [
 ];
 
 export const AdminHeroCMSPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'sections' | 'hero_form' | 'banners_manager'>('sections');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sections, setSections] = useState<HomepageSectionCMS[]>([]);
@@ -203,22 +206,23 @@ export const AdminHeroCMSPage: React.FC = () => {
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
             <Layout className="admin-heading-icon" style={{ color: '#0284c7' }} />
-            <span>Homepage Section Visibility & CMS</span>
+            <span>Homepage CMS & Banner Manager</span>
           </h1>
           <p className="admin-sub-text">
-            Activate or deactivate homepage sections, set display order, and edit promotional hero content in real-time.
+            Activate or deactivate sections, edit primary hero banner artwork, and manage promotional rotating banners.
           </p>
         </div>
 
         <div className="admin-header-actions">
-          <Link
-            to="/admin/banners"
+          <button
+            type="button"
+            onClick={() => setActiveTab(activeTab === 'banners_manager' ? 'sections' : 'banners_manager')}
             className="btn-primary-action"
             style={{ textDecoration: 'none' }}
           >
             <ImageIcon size={16} />
-            <span>Promotional Banners Manager</span>
-          </Link>
+            <span>{activeTab === 'banners_manager' ? 'Back to Sections' : 'Promotional Banners Manager'}</span>
+          </button>
           <button
             onClick={loadData}
             disabled={loading}
@@ -230,6 +234,34 @@ export const AdminHeroCMSPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Tabs Header */}
+      <div className="admin-tabs-row" style={{ marginBottom: '4px' }}>
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === 'sections' ? 'active' : ''}`}
+          onClick={() => setActiveTab('sections')}
+        >
+          <Layers size={14} style={{ marginRight: '6px', verticalAlign: '-2px' }} />
+          <span>Homepage Sections ON/OFF</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === 'hero_form' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hero_form')}
+        >
+          <Sparkles size={14} style={{ marginRight: '6px', verticalAlign: '-2px' }} />
+          <span>Hero Primary Banner</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === 'banners_manager' ? 'active' : ''}`}
+          onClick={() => setActiveTab('banners_manager')}
+        >
+          <ImageIcon size={14} style={{ marginRight: '6px', verticalAlign: '-2px' }} />
+          <span>Promotional Banners & Slot Manager</span>
+        </button>
+      </div>
+
       {saveSuccessMsg && (
         <div className="admin-alert-banner">
           <Check size={16} />
@@ -237,158 +269,169 @@ export const AdminHeroCMSPage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. Section Visibility & Order Management Table */}
-      <div style={{
-        background: '#070d1e',
-        border: '1px solid #1e293b',
-        borderRadius: '16px',
-        padding: '18px 20px',
-        marginBottom: '24px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-          <div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <Layers size={18} style={{ color: '#38bdf8' }} />
-              <span>Homepage Section Controls (ON / OFF)</span>
-            </h2>
-            <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0' }}>
-              Disabled sections will NOT render on the live customer website.
-            </p>
-          </div>
-
-          <Link
-            to="/admin/banners"
-            style={{
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              color: '#38bdf8',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              textDecoration: 'none',
-              background: 'rgba(56, 189, 248, 0.1)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              padding: '6px 12px',
-              borderRadius: '8px'
-            }}
-          >
-            <ImageIcon size={14} />
-            <span>Open All Banners</span>
-            <ArrowRight size={14} />
-          </Link>
+      {/* View 1: Embedded Promotional Banners Page */}
+      {activeTab === 'banners_manager' && (
+        <div style={{ marginTop: '4px' }}>
+          <AdminBannersPage />
         </div>
+      )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
-          {sections.map((sec) => (
-            <div
-              key={sec.sectionKey}
-              style={{
-                background: sec.isActive ? '#0b132b' : 'rgba(15, 23, 42, 0.5)',
-                border: `1px solid ${sec.isActive ? '#1e293b' : '#334155'}`,
-                borderRadius: '12px',
-                padding: '12px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                flexWrap: 'wrap'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                <span style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  color: '#94a3b8',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  0{sec.displayOrder || 1}
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: sec.isActive ? '#ffffff' : '#94a3b8', margin: 0, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {sec.name || sec.sectionKey.replace(/_/g, ' ')}
-                  </h4>
-                  <span style={{ fontSize: '0.72rem', color: sec.isActive ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                    {sec.isActive ? '● Live on Store' : '○ Hidden'}
-                  </span>
+      {/* View 2: Sections & Hero Form */}
+      {activeTab !== 'banners_manager' && (
+        <>
+          {activeTab === 'sections' && (
+            /* 1. Section Visibility & Order Management Table */
+            <div style={{
+              background: '#070d1e',
+              border: '1px solid #1e293b',
+              borderRadius: '16px',
+              padding: '18px 20px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <Layers size={18} style={{ color: '#38bdf8' }} />
+                    <span>Homepage Section Controls (ON / OFF)</span>
+                  </h2>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0' }}>
+                    Disabled sections will NOT render on the live customer website.
+                  </p>
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                {sec.sectionKey === 'hero' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const el = document.getElementById('hero-banner-editor');
-                      el?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.35)',
-                      color: '#38bdf8',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    title="Edit Hero Promotional Banner"
-                  >
-                    <Edit3 size={12} />
-                    <span>Edit</span>
-                  </button>
-                )}
-
-                <select
-                  value={sec.displayOrder || 1}
-                  onChange={(e) => handleOrderChange(sec.sectionKey, parseInt(e.target.value))}
-                  style={{
-                    background: '#070d1e',
-                    border: '1px solid #1e293b',
-                    borderRadius: '6px',
-                    color: '#cbd5e1',
-                    fontSize: '0.74rem',
-                    padding: '3px 6px'
-                  }}
-                  title="Display Order"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7].map(n => (
-                    <option key={n} value={n}>Slot {n}</option>
-                  ))}
-                </select>
 
                 <button
                   type="button"
-                  onClick={() => handleToggleSection(sec.sectionKey)}
+                  onClick={() => setActiveTab('banners_manager')}
                   style={{
-                    background: sec.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    border: `1px solid ${sec.isActive ? '#22c55e' : '#ef4444'}`,
-                    color: sec.isActive ? '#22c55e' : '#ef4444',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '0.74rem',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
+                    color: '#38bdf8',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
                     cursor: 'pointer'
                   }}
                 >
-                  {sec.isActive ? 'Turn OFF' : 'Turn ON'}
+                  <ImageIcon size={14} />
+                  <span>Open All Banners</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* 2. Hero Content & Appearance Editor */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
+                {sections.map((sec) => (
+                  <div
+                    key={sec.sectionKey}
+                    style={{
+                      background: sec.isActive ? '#0b132b' : 'rgba(15, 23, 42, 0.5)',
+                      border: `1px solid ${sec.isActive ? '#1e293b' : '#334155'}`,
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                      <span style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '6px',
+                        background: 'rgba(255,255,255,0.06)',
+                        color: '#94a3b8',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        0{sec.displayOrder || 1}
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: sec.isActive ? '#ffffff' : '#94a3b8', margin: 0, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sec.name || sec.sectionKey.replace(/_/g, ' ')}
+                        </h4>
+                        <span style={{ fontSize: '0.72rem', color: sec.isActive ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                          {sec.isActive ? '● Live on Store' : '○ Hidden'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      {sec.sectionKey === 'hero' && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('hero_form')}
+                          style={{
+                            background: 'rgba(56, 189, 248, 0.15)',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            color: '#38bdf8',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="Edit Hero Promotional Banner"
+                        >
+                          <Edit3 size={12} />
+                          <span>Edit</span>
+                        </button>
+                      )}
+
+                      <select
+                        value={sec.displayOrder || 1}
+                        onChange={(e) => handleOrderChange(sec.sectionKey, parseInt(e.target.value))}
+                        style={{
+                          background: '#070d1e',
+                          border: '1px solid #1e293b',
+                          borderRadius: '6px',
+                          color: '#cbd5e1',
+                          fontSize: '0.74rem',
+                          padding: '3px 6px'
+                        }}
+                        title="Display Order"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7].map(n => (
+                          <option key={n} value={n}>Slot {n}</option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSection(sec.sectionKey)}
+                        style={{
+                          background: sec.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          border: `1px solid ${sec.isActive ? '#22c55e' : '#ef4444'}`,
+                          color: sec.isActive ? '#22c55e' : '#ef4444',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {sec.isActive ? 'Turn OFF' : 'Turn ON'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Hero Content & Appearance Editor */}
       <form id="hero-banner-editor" onSubmit={handleSaveHero} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{
           background: '#070d1e',
@@ -521,10 +564,7 @@ export const AdminHeroCMSPage: React.FC = () => {
                 fontWeight: 700,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                gap: '8px'
               }}
             >
               <Save size={16} />
@@ -533,6 +573,8 @@ export const AdminHeroCMSPage: React.FC = () => {
           </div>
         </div>
       </form>
-    </div>
-  );
+    </>
+  )}
+</div>
+);
 };
