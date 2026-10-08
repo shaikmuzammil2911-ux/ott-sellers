@@ -70,17 +70,21 @@ export const ProductDetailPage: React.FC = () => {
   const originalPrice = product.inOffers && product.offerOriginalPrice ? product.offerOriginalPrice : selectedPlan.originalPrice;
   const discountPct = originalPrice > effectivePrice ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) : selectedPlan.discountPercentage;
 
+  const [quantity, setQuantity] = useState(1);
+
   const isInCart = items.some(
     i => i.productId === product.id && i.planDuration === selectedDuration
   );
 
   const handleAddToCart = () => {
-    addToCart(product, selectedDuration, 1);
+    if (!product.inStock) return;
+    addToCart(product, selectedDuration, quantity);
   };
 
   const handleBuyNow = () => {
-    addToCart(product, selectedDuration, 1);
-    navigate('/checkout');
+    if (!product.inStock) return;
+    addToCart(product, selectedDuration, quantity);
+    navigate('/cart');
   };
 
   const whatsappMessage = `Hi OTT Sellers, I am interested in ${product.name} - ${selectedDuration} (₹${effectivePrice}). Can you assist with activation?`;
@@ -210,17 +214,51 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             )}
 
+            {/* Quantity Selector & Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--admin-text-main)' }}>Quantity:</span>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    style={{ padding: '6px 12px', background: '#f8fafc', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.9rem' }}
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <span style={{ padding: '6px 14px', fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(quantity + 1)}
+                    style={{ padding: '6px 12px', background: '#f8fafc', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.9rem' }}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {!product.inStock && (
+                <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.82rem', background: '#fee2e2', padding: '4px 10px', borderRadius: '6px' }}>
+                  Currently Out of Stock
+                </span>
+              )}
+            </div>
+
             {/* Action Buttons */}
             <div className="product-actions-group">
               <button 
                 type="button" 
                 className={`btn-detail-add-cart ${isInCart ? 'added-state' : ''}`}
                 onClick={handleAddToCart}
+                disabled={!product.inStock}
+                style={{ opacity: product.inStock ? 1 : 0.6, cursor: product.inStock ? 'pointer' : 'not-allowed' }}
               >
                 {isInCart ? (
                   <>
                     <Check size={16} />
-                    <span>Added To Cart ({selectedDuration})</span>
+                    <span>In Cart ({selectedDuration})</span>
                   </>
                 ) : (
                   <>
@@ -234,6 +272,8 @@ export const ProductDetailPage: React.FC = () => {
                 type="button" 
                 className="btn-detail-buy-now"
                 onClick={handleBuyNow}
+                disabled={!product.inStock}
+                style={{ opacity: product.inStock ? 1 : 0.6, cursor: product.inStock ? 'pointer' : 'not-allowed' }}
               >
                 <Zap size={16} />
                 <span>Buy Now</span>

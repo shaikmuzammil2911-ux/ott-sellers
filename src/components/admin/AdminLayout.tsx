@@ -3,7 +3,7 @@ import { NavLink, Outlet, Link, useNavigate, useLocation } from 'react-router-do
 import { 
   LayoutDashboard, Package, FolderTree, Image as ImageIcon, 
   Sparkles, ShoppingCart, Users, Star, Settings, LogOut, 
-  ExternalLink, Menu, X, ShieldCheck, Database, Bell, CreditCard, Mail 
+  ExternalLink, Menu, X, ShieldCheck, Database, Bell, CreditCard, Mail, Tag, Gift 
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { ADMIN_CONFIG } from '../../services/api';
@@ -32,7 +32,7 @@ export const AdminLayout: React.FC = () => {
     navigate('/admin/login');
   };
 
-  // Sidebar navigation structure matching Requirement 4
+  // Sidebar navigation structure matching requirements
   const navLinks = [
     {
       group: 'MAIN',
@@ -41,7 +41,7 @@ export const AdminLayout: React.FC = () => {
       ]
     },
     {
-      group: 'CONTENT',
+      group: 'STOREFRONT CMS',
       items: [
         { label: 'Homepage & Hero', to: '/admin/hero', icon: Sparkles },
         { label: 'Banners & Slots', to: '/admin/banners', icon: ImageIcon },
@@ -51,31 +51,24 @@ export const AdminLayout: React.FC = () => {
       ]
     },
     {
-      group: 'PRODUCTS',
+      group: 'PRODUCTS & OFFERS',
       items: [
-        { label: 'Items / Products', to: '/admin/products', icon: Package },
-        { label: 'Categories', to: '/admin/categories', icon: FolderTree }
+        { label: 'Items & Plans', to: '/admin/products', icon: Package },
+        { label: 'Coupons & Promos', to: '/admin/coupons', icon: Tag }
       ]
     },
     {
-      group: 'ORDERS',
+      group: 'SALES & CUSTOMERS',
       items: [
-        { label: 'Orders', to: '/admin/orders', icon: ShoppingCart },
-        { label: 'Payments', to: '/admin/orders', icon: CreditCard }
+        { label: 'Orders & Payments', to: '/admin/orders', icon: ShoppingCart },
+        { label: 'Customer Base', to: '/admin/customers', icon: Users }
       ]
     },
     {
-      group: 'CUSTOMERS',
+      group: 'SYSTEM & SETTINGS',
       items: [
-        { label: 'Customers', to: '/admin/customers', icon: Users }
-      ]
-    },
-    {
-      group: 'SETTINGS',
-      items: [
-        { label: 'Admin Profile', to: '/admin/settings', icon: ShieldCheck },
-        { label: 'Email Settings', to: '/admin/settings', icon: Mail },
-        { label: 'Website Settings', to: '/admin/settings', icon: Settings }
+        { label: 'Website & WhatsApp CMS', to: '/admin/settings', icon: Settings },
+        { label: 'Admin Security (OTP)', to: '/admin/settings', icon: ShieldCheck }
       ]
     }
   ];

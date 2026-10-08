@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, 
-  FolderTree, RefreshCw, AlertCircle, Eye, EyeOff, Layers, Hash 
+  FolderTree, RefreshCw, AlertCircle, Eye, EyeOff, Layers, Hash, Copy 
 } from 'lucide-react';
 import { ottApi } from '../../services/api';
 import { Category } from '../../types';
@@ -37,11 +37,7 @@ export const AdminCategoriesPage: React.FC = () => {
   useEffect(() => {
     loadData();
 
-    const handleUpdate = (e: any) => {
-      if (!e?.detail || e.detail.entityType === 'categories') {
-        setCategories(ottApi.getCachedCategoriesAdmin());
-      }
-    };
+    const handleUpdate = () => loadData();
     window.addEventListener('ott_data_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -83,6 +79,16 @@ export const AdminCategoriesPage: React.FC = () => {
     }
   };
 
+  const handleDuplicate = async (c: Category) => {
+    try {
+      const copy = await ottApi.duplicateCategory(c.id);
+      showToast(`Category "${c.name}" duplicated as "${copy.name}"!`);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to duplicate category');
+    }
+  };
+
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
@@ -111,14 +117,13 @@ export const AdminCategoriesPage: React.FC = () => {
       slug: categoryData.slug 
     });
 
-    setCategories(ottApi.getCachedCategoriesAdmin());
-    showToast(`Category "${categoryData.name}" saved! Live website updated.`);
+    showToast(`Category "${categoryData.name}" saved to database and live on website!`);
     setIsModalOpen(false);
     await loadData();
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete category "${name}"?`)) {
+    if (confirm(`Are you sure you want to permanently delete category "${name}"? This action cannot be undone.`)) {
       await ottApi.deleteCategory(id);
       await ottApi.logAudit('DELETE_CATEGORY', 'categories', id, { name });
       showToast(`Category "${name}" deleted.`);
@@ -127,10 +132,10 @@ export const AdminCategoriesPage: React.FC = () => {
   };
 
   const handleToggleStatus = async (c: Category) => {
-    const newStatus = c.status === 'ON' ? 'OFF' : 'ON';
-    const updated: Category = { ...c, status: newStatus, updatedAt: Date.now() };
+    const newStatus: 'ON' | 'OFF' = c.status === 'ON' ? 'OFF' : 'ON';
+    const updated = { ...c, status: newStatus, updatedAt: Date.now() };
     await ottApi.saveCategory(updated);
-    showToast(`Category is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
+    showToast(`Category is now ${newStatus === 'ON' ? 'ACTIVE' : 'INACTIVE'}.`);
     await loadData();
   };
 
@@ -138,7 +143,8 @@ export const AdminCategoriesPage: React.FC = () => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q);
     if (!matchesSearch) return false;
-    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+    if (statusFilter === 'ON' && c.status !== 'ON') return false;
+    if (statusFilter === 'OFF' && c.status !== 'OFF') return false;
     return true;
   });
 
@@ -152,7 +158,7 @@ export const AdminCategoriesPage: React.FC = () => {
             <span>Category Management</span>
           </h1>
           <p className="admin-sub-text">
-            Add, edit, reorder, and moderate OTT categories. No image required. Automatically mapped to customer storefront.
+            Organize OTT subscriptions and services into curated streaming categories.
           </p>
         </div>
 
@@ -161,7 +167,7 @@ export const AdminCategoriesPage: React.FC = () => {
             onClick={loadData}
             disabled={loading}
             className="btn-refresh-action"
-            title="Refresh database"
+            title="Refresh categories"
           >
             <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
           </button>
@@ -170,7 +176,7 @@ export const AdminCategoriesPage: React.FC = () => {
             className="btn-primary-action"
           >
             <Plus size={16} />
-            <span>Add Category</span>
+            <span>Create New Category</span>
           </button>
         </div>
       </div>
@@ -200,198 +206,195 @@ export const AdminCategoriesPage: React.FC = () => {
           className="admin-select-filter"
         >
           <option value="all">All Statuses</option>
-          <option value="ON">Active</option>
-          <option value="OFF">Inactive</option>
+          <option value="ON">Active Only</option>
+          <option value="OFF">Inactive Only</option>
         </select>
       </div>
 
-      {/* Categories Compact Cards Table */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
-        {filteredCategories.map((c) => (
-          <div
-            key={c.id || c.slug}
-            style={{
-              background: '#070d1e',
-              border: `1px solid ${c.status === 'ON' ? '#1e293b' : '#334155'}`,
-              borderRadius: '12px',
-              padding: '14px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              gap: '10px',
-              opacity: c.status === 'ON' ? 1 : 0.6
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  background: c.status === 'ON' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.2)',
-                  color: c.status === 'ON' ? '#22c55e' : '#94a3b8'
-                }}>
-                  {c.status === 'ON' ? 'Active' : 'Inactive'}
-                </span>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                  Order #{c.displayOrder || 1}
-                </span>
-              </div>
-
-              <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                {c.name}
-              </h3>
-              <p style={{ fontSize: '0.76rem', color: '#38bdf8', margin: '3px 0 0', fontFamily: 'monospace' }}>
-                /{c.slug}
-              </p>
-
-              {c.description && (
-                <p style={{ fontSize: '0.76rem', color: '#94a3b8', margin: '6px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {c.description}
-                </p>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
-              <button
-                type="button"
-                onClick={() => handleToggleStatus(c)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #1e293b',
-                  color: c.status === 'ON' ? '#e2e8f0' : '#94a3b8',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  cursor: 'pointer'
-                }}
-              >
-                {c.status === 'ON' ? 'Deactivate' : 'Activate'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenEditModal(c)}
-                style={{
-                  background: 'rgba(2, 132, 199, 0.15)',
-                  border: '1px solid rgba(2, 132, 199, 0.3)',
-                  color: '#38bdf8',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                <Edit2 size={12} />
-                <span>Edit</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDeleteCategory(c.id, c.name)}
-                style={{
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#f87171',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-                title="Delete"
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          </div>
-        ))}
+      {/* Categories Table */}
+      <div className="admin-table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Category Name</th>
+              <th>URL Slug</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredCategories.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
+                  No categories found. Click <strong>+ Create New Category</strong> to add one.
+                </td>
+              </tr>
+            ) : (
+              filteredCategories.map((cat) => (
+                <tr key={cat.id || cat.slug}>
+                  <td>
+                    <span style={{ fontWeight: 700, color: 'var(--admin-text-muted)' }}>
+                      #{cat.displayOrder || 1}
+                    </span>
+                  </td>
+                  <td>
+                    <strong style={{ color: 'var(--admin-text-main)', fontSize: '0.9rem' }}>
+                      {cat.name}
+                    </strong>
+                  </td>
+                  <td>
+                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.76rem', color: 'var(--admin-primary)' }}>
+                      {cat.slug}
+                    </code>
+                  </td>
+                  <td style={{ maxWidth: '280px', color: 'var(--admin-text-muted)', fontSize: '0.78rem' }}>
+                    {cat.description || 'No description provided'}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(cat)}
+                      className={`admin-badge ${cat.status === 'ON' ? 'active' : 'inactive'}`}
+                      style={{ cursor: 'pointer', border: 'none' }}
+                      title="Click to toggle status"
+                    >
+                      {cat.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
+                      <span>{cat.status === 'ON' ? 'ACTIVE' : 'INACTIVE'}</span>
+                    </button>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicate(cat)}
+                        className="btn-refresh-action"
+                        title="Duplicate category"
+                      >
+                        <Copy size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(cat)}
+                        className="btn-primary-action"
+                        style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                        title="Edit category"
+                      >
+                        <Edit2 size={12} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                        className="btn-refresh-action"
+                        style={{ color: 'var(--admin-danger)' }}
+                        title="Delete category"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {filteredCategories.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '36px 20px', color: '#94a3b8', background: '#070d1e', borderRadius: '12px', border: '1px dashed #1e293b' }}>
-          <FolderTree size={32} style={{ opacity: 0.5, marginBottom: '6px' }} />
-          <p>No categories found matching filters.</p>
-        </div>
-      )}
-
-      {/* Compact Add/Edit Modal */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box compact" style={{ maxWidth: '440px' }}>
+          <div className="admin-modal-box">
             <div className="admin-modal-header">
-              <h3 className="modal-title">
-                {editingCategory ? 'Edit Category' : 'Create New Category'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="btn-modal-close">
+              <h2 className="admin-modal-title">
+                {editingCategory ? `Edit Category (${editingCategory.name})` : 'Create New Category'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="admin-modal-close-btn"
+              >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCategory} className="admin-modal-body">
-              <div className="form-group-compact">
-                <label>Category Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g. Premium OTT Plans"
-                />
-              </div>
-
-              <div className="form-group-compact">
-                <label>URL Slug *</label>
-                <input
-                  type="text"
-                  required
-                  value={formSlug}
-                  onChange={(e) => setFormSlug(e.target.value)}
-                  placeholder="e.g. premium-ott-plans"
-                />
-              </div>
-
-              <div className="form-group-compact">
-                <label>Short Description (Optional)</label>
-                <textarea
-                  rows={2}
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="e.g. Streaming subscriptions with 4K UHD and instant PIN delivery"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Display Order</label>
+            <form onSubmit={handleSaveCategory}>
+              <div className="admin-modal-body">
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Category Name *</label>
                   <input
-                    type="number"
-                    min="1"
-                    value={formDisplayOrder}
-                    onChange={(e) => setFormDisplayOrder(e.target.value)}
+                    type="text"
+                    className="admin-form-input"
+                    placeholder="e.g. Movies & TV Shows"
+                    value={formName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    required
                   />
                 </div>
 
-                <div className="form-group-compact">
-                  <label>Status</label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as 'ON' | 'OFF')}
-                  >
-                    <option value="ON">Active (Visible)</option>
-                    <option value="OFF">Inactive (Hidden)</option>
-                  </select>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">URL Slug (e.g. movies-tv-shows)</label>
+                  <input
+                    type="text"
+                    className="admin-form-input"
+                    placeholder="movies-tv-shows"
+                    value={formSlug}
+                    onChange={(e) => setFormSlug(e.target.value)}
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Description (Optional)</label>
+                  <textarea
+                    className="admin-form-textarea"
+                    rows={3}
+                    placeholder="Short description for SEO and category preview"
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                  />
+                </div>
+
+                <div className="admin-form-row-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Display Order</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="admin-form-input"
+                      value={formDisplayOrder}
+                      onChange={(e) => setFormDisplayOrder(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Status</label>
+                    <select
+                      className="admin-form-select"
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value as any)}
+                    >
+                      <option value="ON">Active (ON - Displayed on Storefront)</option>
+                      <option value="OFF">Inactive (OFF - Hidden)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div className="admin-modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-modal-cancel">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="btn-refresh-action"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-modal-save">
-                  Save Category
+                <button
+                  type="submit"
+                  className="btn-primary-action"
+                >
+                  <Check size={16} />
+                  <span>{editingCategory ? 'Update Category' : 'Save Category'}</span>
                 </button>
               </div>
             </form>
@@ -401,3 +404,5 @@ export const AdminCategoriesPage: React.FC = () => {
     </div>
   );
 };
+
+export default AdminCategoriesPage;

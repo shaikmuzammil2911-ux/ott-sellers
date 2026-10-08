@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, ShoppingCart, Check, Zap } from 'lucide-react';
+import { ShoppingCart, Check, Star } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { getCleanImageUrl } from '../../services/api';
@@ -32,13 +32,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     addToCart(product, defaultPlan.duration, 1);
   };
 
-  const imgUrl = getCleanImageUrl(product.image, product.updatedAt);
+  const imgUrl = getCleanImageUrl(product.image, product.updatedAt) || '/placeholder-ott.png';
   const effectivePrice = product.inOffers && product.offerPrice ? product.offerPrice : defaultPlan.price;
   const originalPrice = product.inOffers && product.offerOriginalPrice ? product.offerOriginalPrice : defaultPlan.originalPrice;
+  const savings = originalPrice > effectivePrice ? originalPrice - effectivePrice : 0;
 
   return (
     <div className="product-card" onClick={handleCardClick} role="button" tabIndex={0}>
-      {/* 1. Large 1:1 Square Product Image (Main Visual Focus) */}
+      {/* 1. Large 1:1 Square Product Image */}
       <div className="product-card-media" style={{ backgroundColor: product.brandColor || '#0b132b' }}>
         <img 
           src={imgUrl} 
@@ -46,23 +47,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           loading="lazy"
         />
         
-        {/* Subtle Brand Watermark */}
-        <div className="product-card-media-overlay">
-          <span className="product-card-brand-logo">
-            {product.brandLogoText || product.name.split(' ')[0]}
-          </span>
-        </div>
-        
-        {/* Discount Badge */}
-        {(product.badge || (originalPrice > effectivePrice)) && (
+        {/* Discount / Savings Badge */}
+        {savings > 0 && (
           <span className="discount-badge">
-            {product.badge || `${Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)}% OFF`}
+            Save ₹{savings}
           </span>
         )}
       </div>
 
-      {/* 2. Card Body: Name -> Price -> Action */}
+      {/* 2. Compact Body: Name, Category, Pricing, Add to Cart */}
       <div className="product-card-body">
+        {/* Category Pill */}
+        <span className="product-card-category-tag">
+          {product.categoryName || 'OTT Subscription'}
+        </span>
+
+        {/* Item Name */}
         <Link 
           to={`/product/${product.slug}`} 
           className="product-card-name" 
@@ -71,20 +71,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         >
           {product.name}
         </Link>
-        <span className="product-card-duration">({defaultPlan.duration})</span>
 
-        {/* Rating Row */}
-        <div className="product-card-rating">
-          <Star size={13} className="star-filled" fill="#f59e0b" color="#f59e0b" />
-          <span>{product.rating ? product.rating.toFixed(1) : '4.9'}</span>
-          <span className="product-card-rating-count">({((product.reviewsCount || 120) / 100).toFixed(1)}k)</span>
-        </div>
-
-        {/* Price Row (Compact Amount) */}
-        <div className="product-card-pricing">
-          <span className="selling-price">₹ {effectivePrice}</span>
-          {originalPrice > effectivePrice && (
-            <span className="original-price">₹ {originalPrice}</span>
+        {/* Pricing Row: Our Price & Actual Strikethrough Price */}
+        <div className="product-card-pricing-block">
+          <div className="product-card-pricing">
+            <span className="selling-price">₹{effectivePrice}</span>
+            {originalPrice > effectivePrice && (
+              <span className="original-price">₹{originalPrice}</span>
+            )}
+          </div>
+          {savings > 0 && (
+            <span className="you-saved-text">You Save ₹{savings}</span>
           )}
         </div>
 
@@ -97,12 +94,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         >
           {isInCart ? (
             <>
-              <Check size={15} />
-              <span>Added In Cart</span>
+              <Check size={14} />
+              <span>In Cart</span>
             </>
           ) : (
             <>
-              <ShoppingCart size={15} />
+              <ShoppingCart size={14} />
               <span>Add to Cart</span>
             </>
           )}
@@ -111,3 +108,5 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     </div>
   );
 };
+
+export default ProductCard;

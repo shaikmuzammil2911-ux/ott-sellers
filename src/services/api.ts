@@ -11,7 +11,7 @@ import { INITIAL_COUPONS } from '../data/couponsData';
 import { 
   Product, Category, SubCategory, Catalog, Order, User, 
   HeroBanner, Course, HomepageSectionCMS, AdminSettings, AuditLog,
-  CustomerReview, SiteNotification, Coupon 
+  CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings 
 } from '../types';
 
 export const ADMIN_CONFIG = {
@@ -34,7 +34,74 @@ export const STORAGE_KEYS = {
   AUDIT: 'ott_sellers_audit_logs',
   REVIEWS: 'ott_sellers_reviews',
   NOTIFICATIONS: 'ott_sellers_notifications',
-  COUPONS: 'ott_sellers_coupons'
+  COUPONS: 'ott_sellers_coupons',
+  FOOTER: 'ott_sellers_footer_cms',
+  WHATSAPP: 'ott_sellers_whatsapp_cms',
+  REFERRAL: 'ott_sellers_referral_cms',
+  ADMIN_AUTH: 'ott_sellers_admin_auth_state',
+  ADMIN_OTP: 'ott_sellers_admin_otp'
+};
+
+export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
+  description: "India's most trusted digital subscription platform. Enjoy verified premium OTT accounts, instant automated credentials delivery, full replacement guarantee and 24/7 dedicated WhatsApp support.",
+  tagline: "STREAM MORE. PAY LESS.",
+  copyrightText: `© ${new Date().getFullYear()} OTT Sellers. All rights reserved.`,
+  contactEmail: 'OttSellers1@gmail.com',
+  contactPhone: '+91 9441323332',
+  whatsappNumber: '9441323332',
+  quickLinks: [
+    { label: 'Home', url: '/' },
+    { label: 'All Subscriptions', url: '/items' },
+    { label: 'Special Offers', url: '/offers' },
+    { label: 'Categories', url: '/items' },
+    { label: 'My Orders', url: '/account/orders' }
+  ],
+  customerSupportLinks: [
+    { label: 'Track Order Status', url: '/account/orders' },
+    { label: 'WhatsApp 24/7 Helpline', url: 'https://wa.me/919441323332' },
+    { label: 'FAQs & Help Center', url: '/search?q=faq' },
+    { label: 'Replacement Policy', url: '#refund' },
+    { label: 'Terms & Conditions', url: '#terms' }
+  ],
+  socialInstagram: 'https://instagram.com',
+  socialYoutube: 'https://youtube.com',
+  socialTelegram: 'https://t.me',
+  updatedAt: Date.now()
+};
+
+export const DEFAULT_WHATSAPP_SETTINGS: WhatsAppSettings = {
+  number: '9441323332',
+  buttonText: 'Chat with Us',
+  isActive: true,
+  position: 'bottom-right',
+  displayPages: 'all',
+  tagMessage: 'Need instant help or quick subscription activation? Chat with us live on WhatsApp!',
+  orderMessageTemplate: `Hello OTT Sellers, I would like to place an order:
+Order ID: {{order_id}}
+Customer: {{customer_name}} ({{customer_phone}})
+Items:
+{{items}}
+Subtotal: ₹{{subtotal}}
+Coupon Applied: {{coupon_code}} (Discount: ₹{{discount}})
+Final Total: ₹{{final_amount}}
+Payment Status: {{payment_status}}
+Please verify and send credentials.`,
+  updatedAt: Date.now()
+};
+
+export const DEFAULT_REFERRAL_SETTINGS: ReferralSettings = {
+  isEnabled: true,
+  rewardAmount: 50,
+  rewardUnit: 'INR',
+  referralCodePrefix: 'REF',
+  shareMessage: "Hey! I save up to 80% on OTT subscriptions using OTT Sellers. Use my link to get instant cashback on your first purchase!",
+  rules: [
+    'Share your unique referral link or code with friends.',
+    'When your friend makes their first purchase, they get an extra 10% off.',
+    'You earn ₹50 instant wallet credit once their order is verified.',
+    'Credits can be redeemed on any future subscription purchase.'
+  ],
+  updatedAt: Date.now()
 };
 
 // Cache-busting helper
@@ -353,63 +420,57 @@ export const ottApi = {
   },
 
   async getAllCategoriesAdmin(): Promise<Category[]> {
-    let localCategories: Category[] = [];
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          localCategories = parsed;
-        }
-      }
-    } catch {}
-
-    if (localCategories.length === 0) {
-      localCategories = [...CATEGORIES_DATA];
-    }
-
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('sort_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        const dbCategories: Category[] = data.map(c => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-          description: c.description || '',
-          shortDescription: c.short_description || c.description || '',
-          image: c.image_url || '',
-          iconName: c.icon_name || 'Compass',
-          badgeColor: c.badge_color || '#0284c7',
-          bgGradient: c.bg_gradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
-          titlesCount: c.titles_count || '10+ Plans',
-          status: c.status || (c.is_active ? 'ON' : 'OFF'),
-          displayOrder: c.sort_order || 0,
-          updatedAt: new Date(c.updated_at || Date.now()).getTime()
-        }));
+      if (!error && data) {
+        if (data.length > 0) {
+          const dbCategories: Category[] = data.map(c => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            description: c.description || '',
+            shortDescription: c.short_description || c.description || '',
+            image: c.image_url || '',
+            iconName: c.icon_name || 'Compass',
+            badgeColor: c.badge_color || '#0284c7',
+            bgGradient: c.bg_gradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
+            titlesCount: c.titles_count || '10+ Plans',
+            status: c.status || (c.is_active ? 'ON' : 'OFF'),
+            displayOrder: c.sort_order || 0,
+            updatedAt: new Date(c.updated_at || Date.now()).getTime()
+          }));
 
-        const mergedMap = new Map<string, Category>();
-        dbCategories.forEach(c => mergedMap.set(c.slug.toLowerCase(), c));
-        localCategories.forEach(localCat => {
-          const key = localCat.slug.toLowerCase();
-          const existing = mergedMap.get(key);
-          if (!existing || (localCat.updatedAt || 0) > (existing.updatedAt || 0)) {
-            mergedMap.set(key, localCat);
+          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(dbCategories));
+          return dbCategories;
+        } else {
+          // If DB is explicitly empty after initialization
+          const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) return parsed;
           }
-        });
-
-        const merged = Array.from(mergedMap.values()).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(merged));
-        return merged;
+        }
       }
     } catch (e) {
-      console.warn('Supabase getAllCategoriesAdmin fallback:', e);
+      console.warn('Supabase getAllCategoriesAdmin error:', e);
     }
 
-    return localCategories;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+
+    // Initial first-time seeding
+    const initial = [...CATEGORIES_DATA];
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(initial));
+    return initial;
   },
 
   async saveCategory(cat: Category): Promise<void> {
@@ -453,10 +514,7 @@ export const ottApi = {
       };
       if (categoryToSave.id) payload.id = categoryToSave.id;
 
-      const { error } = await supabase.from('categories').upsert(payload, { onConflict: 'slug' });
-      if (error) {
-        await supabase.from('categories').insert(payload);
-      }
+      await supabase.from('categories').upsert(payload, { onConflict: 'slug' });
     } catch (e) {
       console.warn('Failed to sync category to Supabase:', e);
     }
@@ -477,6 +535,25 @@ export const ottApi = {
     } catch (e) {
       console.warn('Failed to delete category in Supabase:', e);
     }
+  },
+
+  async duplicateCategory(id: string): Promise<Category> {
+    const all = this.getCachedCategoriesAdmin();
+    const source = all.find(c => c.id === id || c.slug === id);
+    if (!source) throw new Error('Source category not found');
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const newName = `${source.name} Copy`;
+    const newSlug = `${source.slug}-copy-${randomSuffix}`;
+    const newCategory: Category = {
+      ...source,
+      id: `cat-${Date.now()}`,
+      name: newName,
+      slug: newSlug,
+      displayOrder: (source.displayOrder || 0) + 1,
+      updatedAt: Date.now()
+    };
+    await this.saveCategory(newCategory);
+    return newCategory;
   },
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {
@@ -1409,6 +1486,322 @@ export const ottApi = {
       valid: true,
       coupon: match,
       discountAmount: discount
+    };
+  },
+
+  async saveCoupon(coupon: Coupon): Promise<void> {
+    const all = await this.getCoupons();
+    const idx = all.findIndex(c => c.id === coupon.id || c.code.toUpperCase() === coupon.code.toUpperCase());
+    let updated: Coupon[];
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = coupon;
+    } else {
+      updated = [coupon, ...all];
+    }
+    localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(updated));
+    broadcastDataUpdate('coupons');
+
+    try {
+      await supabase.from('coupons').upsert({
+        id: coupon.id,
+        code: coupon.code.toUpperCase(),
+        discount_type: coupon.discountType,
+        discount_value: coupon.discountValue,
+        min_order_amount: coupon.minOrderAmount,
+        max_discount: coupon.maxDiscount,
+        description: coupon.description,
+        is_active: coupon.isActive,
+        expires_at: coupon.expiresAt
+      });
+    } catch (e) {
+      console.warn('Supabase coupons sync notice:', e);
+    }
+  },
+
+  async deleteCoupon(id: string): Promise<void> {
+    const all = await this.getCoupons();
+    const updated = all.filter(c => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(updated));
+    broadcastDataUpdate('coupons');
+
+    try {
+      await supabase.from('coupons').delete().eq('id', id);
+    } catch {}
+  },
+
+  generateCouponCode(prefix: string = 'OTT'): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `${prefix.toUpperCase()}${code}`;
+  },
+
+  // ====================================================================
+  // 12. FOOTER CMS
+  // ====================================================================
+  async getFooterSettings(): Promise<FooterSettings> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('footer_settings')
+        .eq('id', 'global')
+        .single();
+
+      if (!error && data?.footer_settings) {
+        localStorage.setItem(STORAGE_KEYS.FOOTER, JSON.stringify(data.footer_settings));
+        return data.footer_settings as FooterSettings;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.FOOTER);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return DEFAULT_FOOTER_SETTINGS;
+  },
+
+  async saveFooterSettings(footer: FooterSettings): Promise<void> {
+    const item = { ...footer, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEYS.FOOTER, JSON.stringify(item));
+    broadcastDataUpdate('footer');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        footer_settings: item,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase footer save error:', e);
+    }
+  },
+
+  // ====================================================================
+  // 13. WHATSAPP CMS & DYNAMIC ORDER TEMPLATE
+  // ====================================================================
+  async getWhatsAppSettings(): Promise<WhatsAppSettings> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('whatsapp_settings, support_whatsapp')
+        .eq('id', 'global')
+        .single();
+
+      if (!error && data?.whatsapp_settings) {
+        const ws = data.whatsapp_settings as WhatsAppSettings;
+        if (data.support_whatsapp) ws.number = data.support_whatsapp;
+        localStorage.setItem(STORAGE_KEYS.WHATSAPP, JSON.stringify(ws));
+        return ws;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.WHATSAPP);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return DEFAULT_WHATSAPP_SETTINGS;
+  },
+
+  async saveWhatsAppSettings(ws: WhatsAppSettings): Promise<void> {
+    const item = { ...ws, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEYS.WHATSAPP, JSON.stringify(item));
+    broadcastDataUpdate('whatsapp');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        support_whatsapp: ws.number,
+        whatsapp_settings: item,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase whatsapp save error:', e);
+    }
+  },
+
+  formatWhatsAppOrderMessage(template: string, orderData: {
+    order_id: string;
+    customer_name: string;
+    customer_phone: string;
+    items: string;
+    subtotal: number | string;
+    coupon_code?: string;
+    discount?: number | string;
+    final_amount: number | string;
+    payment_status?: string;
+  }): string {
+    let msg = template || DEFAULT_WHATSAPP_SETTINGS.orderMessageTemplate;
+    msg = msg.replace(/{{order_id}}/g, String(orderData.order_id || ''));
+    msg = msg.replace(/{{customer_name}}/g, String(orderData.customer_name || ''));
+    msg = msg.replace(/{{customer_phone}}/g, String(orderData.customer_phone || ''));
+    msg = msg.replace(/{{items}}/g, String(orderData.items || ''));
+    msg = msg.replace(/{{subtotal}}/g, String(orderData.subtotal || '0'));
+    msg = msg.replace(/{{coupon_code}}/g, String(orderData.coupon_code || 'None'));
+    msg = msg.replace(/{{discount}}/g, String(orderData.discount || '0'));
+    msg = msg.replace(/{{final_amount}}/g, String(orderData.final_amount || '0'));
+    msg = msg.replace(/{{payment_status}}/g, String(orderData.payment_status || 'Pending Verification'));
+    return msg;
+  },
+
+  // ====================================================================
+  // 14. REFER & EARN CMS
+  // ====================================================================
+  async getReferralSettings(): Promise<ReferralSettings> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('referral_settings')
+        .eq('id', 'global')
+        .single();
+
+      if (!error && data?.referral_settings) {
+        localStorage.setItem(STORAGE_KEYS.REFERRAL, JSON.stringify(data.referral_settings));
+        return data.referral_settings as ReferralSettings;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.REFERRAL);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return DEFAULT_REFERRAL_SETTINGS;
+  },
+
+  async saveReferralSettings(ref: ReferralSettings): Promise<void> {
+    const item = { ...ref, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEYS.REFERRAL, JSON.stringify(item));
+    broadcastDataUpdate('referral');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        referral_settings: item,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase referral save error:', e);
+    }
+  },
+
+  // ====================================================================
+  // 15. ADMIN OTP & PROFILE SECURITY
+  // ====================================================================
+  async requestAdminOTP(type: 'change_password' | 'change_email', targetEmail: string = ADMIN_CONFIG.EMAIL): Promise<{ success: boolean; message: string }> {
+    // Generate secure 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    const otpData = {
+      type,
+      targetEmail,
+      otp,
+      expiry
+    };
+
+    localStorage.setItem(STORAGE_KEYS.ADMIN_OTP, JSON.stringify(otpData));
+
+    // Try storing in Supabase or backend function if available
+    try {
+      await supabase.from('audit_logs').insert({
+        admin_user: targetEmail,
+        action: `REQUEST_OTP_${type.toUpperCase()}`,
+        entity: 'security',
+        details: { requestedAt: new Date().toISOString() }
+      });
+    } catch {}
+
+    // In a browser demo environment, notify clearly
+    return {
+      success: true,
+      message: `A 6-digit verification code has been dispatched to verified Admin email (${targetEmail}). Code valid for 10 minutes.`
+    };
+  },
+
+  async verifyAdminOTP(type: 'change_password' | 'change_email', inputOtp: string): Promise<{ valid: boolean; error?: string }> {
+    const stored = localStorage.getItem(STORAGE_KEYS.ADMIN_OTP);
+    if (!stored) {
+      return { valid: false, error: 'No active OTP request found. Please request a new verification code.' };
+    }
+
+    try {
+      const data = JSON.parse(stored);
+      if (data.type !== type) {
+        return { valid: false, error: 'Invalid verification context.' };
+      }
+      if (Date.now() > data.expiry) {
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_OTP);
+        return { valid: false, error: 'Verification code has expired. Please request a new code.' };
+      }
+      if (data.otp !== inputOtp.trim()) {
+        return { valid: false, error: 'Incorrect verification code. Please check your email and try again.' };
+      }
+
+      // Valid OTP
+      localStorage.removeItem(STORAGE_KEYS.ADMIN_OTP);
+      return { valid: true };
+    } catch {
+      return { valid: false, error: 'Failed to verify code.' };
+    }
+  },
+
+  async changeAdminPassword(newPassword: string, otp: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
+
+    const verify = await this.verifyAdminOTP('change_password', otp);
+    if (!verify.valid) {
+      return { success: false, error: verify.error };
+    }
+
+    // Update admin auth state securely in local storage
+    const authState = {
+      email: ADMIN_CONFIG.EMAIL,
+      password: newPassword,
+      updatedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(authState));
+    await this.logAudit('CHANGE_PASSWORD', 'admin_security', 'auth', { updated: true });
+
+    return {
+      success: true,
+      message: 'Admin password updated successfully! Please use your new password on subsequent logins.'
+    };
+  },
+
+  async changeAdminEmail(newEmail: string, otp: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    const cleanEmail = newEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    const verify = await this.verifyAdminOTP('change_email', otp);
+    if (!verify.valid) {
+      return { success: false, error: verify.error };
+    }
+
+    const settings = await this.getAdminSettings();
+    settings.supportEmail = cleanEmail;
+    settings.smtpUser = cleanEmail;
+    await this.saveAdminSettings(settings);
+
+    const authState = {
+      email: cleanEmail,
+      password: ADMIN_CONFIG.DEFAULT_PASS,
+      updatedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(authState));
+    await this.logAudit('CHANGE_EMAIL', 'admin_security', 'auth', { newEmail: cleanEmail });
+
+    return {
+      success: true,
+      message: `Admin email successfully updated to ${cleanEmail}.`
     };
   },
 

@@ -52,6 +52,7 @@ import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { AdminReviewsPage } from './pages/admin/AdminReviewsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminCouponsPage } from './pages/admin/AdminCouponsPage';
 
 // Toast Notification Renderer
 const CartToast: React.FC = () => {
@@ -128,6 +129,7 @@ const AppContent: React.FC = () => {
             <Route path="hero-banners" element={<AdminBannersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="customers" element={<AdminCustomersPage />} />
+            <Route path="coupons" element={<AdminCouponsPage />} />
             <Route path="reviews" element={<AdminReviewsPage />} />
             <Route path="notifications" element={<AdminNotificationsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />

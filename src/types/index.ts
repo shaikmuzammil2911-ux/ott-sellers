@@ -236,6 +236,47 @@ export interface HomepageSectionCMS {
   updatedAt?: number;
 }
 
+export interface FooterQuickLink {
+  label: string;
+  url: string;
+}
+
+export interface FooterSettings {
+  description: string;
+  quickLinks: FooterQuickLink[];
+  customerSupportLinks: FooterQuickLink[];
+  contactEmail: string;
+  contactPhone: string;
+  whatsappNumber: string;
+  copyrightText: string;
+  tagline: string;
+  socialInstagram?: string;
+  socialYoutube?: string;
+  socialTelegram?: string;
+  updatedAt?: number;
+}
+
+export interface WhatsAppSettings {
+  number: string;
+  buttonText: string;
+  isActive: boolean;
+  position: 'bottom-right' | 'bottom-left';
+  displayPages: 'all' | 'home' | 'items' | 'cart';
+  tagMessage: string;
+  orderMessageTemplate: string;
+  updatedAt?: number;
+}
+
+export interface ReferralSettings {
+  isEnabled: boolean;
+  rewardAmount: number;
+  rewardUnit: 'INR' | 'percent';
+  rules: string[];
+  shareMessage: string;
+  referralCodePrefix: string;
+  updatedAt?: number;
+}
+
 export interface AdminSettings {
   id: string;
   siteName: string;
@@ -247,6 +288,9 @@ export interface AdminSettings {
   smtpHost?: string;
   smtpUser?: string;
   randomNotificationsActive?: boolean;
+  footer?: FooterSettings;
+  whatsapp?: WhatsAppSettings;
+  referral?: ReferralSettings;
   updatedAt?: number;
 }
 
@@ -289,3 +333,4 @@ export interface SiteNotification {
   displayOrder?: number;
   updatedAt?: number;
 }
+
