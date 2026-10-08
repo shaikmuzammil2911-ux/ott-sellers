@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Sparkles, Save, Upload, Check, AlertCircle, RefreshCw, 
   Eye, EyeOff, Layout, ExternalLink, ArrowRight, Palette, 
-  ToggleLeft, ToggleRight, Layers, MoveVertical, ShieldCheck, Zap, Image as ImageIcon
+  ToggleLeft, ToggleRight, Layers, MoveVertical, ShieldCheck, Zap, Image as ImageIcon,
+  Edit3
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
@@ -209,6 +211,14 @@ export const AdminHeroCMSPage: React.FC = () => {
         </div>
 
         <div className="admin-header-actions">
+          <Link
+            to="/admin/banners"
+            className="btn-primary-action"
+            style={{ textDecoration: 'none' }}
+          >
+            <ImageIcon size={16} />
+            <span>Promotional Banners Manager</span>
+          </Link>
           <button
             onClick={loadData}
             disabled={loading}
@@ -245,6 +255,27 @@ export const AdminHeroCMSPage: React.FC = () => {
               Disabled sections will NOT render on the live customer website.
             </p>
           </div>
+
+          <Link
+            to="/admin/banners"
+            style={{
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: '#38bdf8',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              textDecoration: 'none',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              padding: '6px 12px',
+              borderRadius: '8px'
+            }}
+          >
+            <ImageIcon size={14} />
+            <span>Open All Banners</span>
+            <ArrowRight size={14} />
+          </Link>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
@@ -259,10 +290,11 @@ export const AdminHeroCMSPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '12px'
+                gap: '12px',
+                flexWrap: 'wrap'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{
                   width: '26px',
                   height: '26px',
@@ -289,6 +321,33 @@ export const AdminHeroCMSPage: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {sec.sectionKey === 'hero' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById('hero-banner-editor');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      color: '#38bdf8',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Edit Hero Promotional Banner"
+                  >
+                    <Edit3 size={12} />
+                    <span>Edit</span>
+                  </button>
+                )}
+
                 <select
                   value={sec.displayOrder || 1}
                   onChange={(e) => handleOrderChange(sec.sectionKey, parseInt(e.target.value))}
@@ -330,7 +389,7 @@ export const AdminHeroCMSPage: React.FC = () => {
       </div>
 
       {/* 2. Hero Content & Appearance Editor */}
-      <form onSubmit={handleSaveHero} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <form id="hero-banner-editor" onSubmit={handleSaveHero} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{
           background: '#070d1e',
           border: '1px solid #1e293b',

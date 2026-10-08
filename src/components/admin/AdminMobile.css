@@ -451,4 +451,58 @@
   .admin-page-content-wrapper {
     padding: 16px 12px 40px !important;
   }
+
+  /* Mobile Modal Optimization */
+  .admin-modal-backdrop,
+  .admin-modal-overlay {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .admin-modal-card,
+  .admin-modal-box {
+    max-height: 92vh;
+    padding: 20px 16px;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+  }
+
+  .admin-modal-header h2,
+  .admin-modal-header .modal-title {
+    font-size: 1.05rem;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .admin-form-full {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-main-heading {
+    font-size: 1.2rem;
+  }
+
+  .admin-sub-text {
+    font-size: 0.8rem;
+  }
+
+  .admin-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .admin-search-wrap {
+    min-width: 100%;
+  }
+
+  .admin-select-filter {
+    width: 100%;
+  }
 }
