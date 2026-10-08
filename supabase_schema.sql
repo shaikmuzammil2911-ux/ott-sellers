@@ -13,15 +13,24 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS public.profiles (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  auth_user_id UUID UNIQUE,
-  name TEXT NOT NULL DEFAULT 'Customer',
-  email TEXT NOT NULL,
+  auth_user_id UUID,
+  name TEXT DEFAULT 'Customer',
+  email TEXT,
   phone TEXT,
-  role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
+  role TEXT DEFAULT 'customer',
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS name TEXT DEFAULT 'Customer';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'customer';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS auth_user_id UUID;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ====================================================================
 -- 2. CATEGORIES TABLE
@@ -38,18 +47,27 @@ CREATE TABLE IF NOT EXISTS public.categories (
   bg_gradient TEXT DEFAULT 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
   titles_count TEXT DEFAULT '10+ Plans',
   is_active BOOLEAN DEFAULT true,
-  status TEXT DEFAULT 'ON' CHECK (status IN ('ON', 'OFF')),
+  status TEXT DEFAULT 'ON',
   sort_order INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS short_description TEXT;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS icon_name TEXT DEFAULT 'Compass';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS badge_color TEXT DEFAULT '#0284c7';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS bg_gradient TEXT DEFAULT 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS titles_count TEXT DEFAULT '10+ Plans';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
 
 -- ====================================================================
 -- 3. SUB-CATEGORIES TABLE
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS public.sub_categories (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  category_id TEXT REFERENCES public.categories(id) ON DELETE CASCADE,
+  category_id TEXT,
   category_slug TEXT,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -64,15 +82,23 @@ CREATE TABLE IF NOT EXISTS public.sub_categories (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS category_id TEXT;
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS category_slug TEXT;
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS logo TEXT;
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS popular_product_slug TEXT;
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#0284c7';
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+
 -- ====================================================================
--- 4. PRODUCTS TABLE (1:1 Square Images, Dual Pricing & Plans)
+-- 4. PRODUCTS TABLE
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS public.products (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  category_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
+  category_id TEXT,
   category_slug TEXT NOT NULL,
   category_name TEXT NOT NULL,
-  subcategory_id TEXT REFERENCES public.sub_categories(id) ON DELETE SET NULL,
+  subcategory_id TEXT,
   subcategory_slug TEXT,
   subcategory_name TEXT,
   catalog_slugs JSONB DEFAULT '[]'::jsonb,
@@ -92,7 +118,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   compare_price NUMERIC(10,2) DEFAULT 0,
   stock INT DEFAULT 999,
   in_stock BOOLEAN DEFAULT true,
-  status TEXT DEFAULT 'ON' CHECK (status IN ('ON', 'OFF')),
+  status TEXT DEFAULT 'ON',
   is_featured BOOLEAN DEFAULT false,
   is_popular BOOLEAN DEFAULT false,
   is_trending BOOLEAN DEFAULT false,
@@ -110,6 +136,27 @@ CREATE TABLE IF NOT EXISTS public.products (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#0b132b';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS brand_logo_text TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS default_plan TEXT DEFAULT '1 Month';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS plans JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS compare_price NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_popular BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_trending BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS in_offers BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS offer_price NUMERIC(10,2);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS offer_original_price NUMERIC(10,2);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS offer_discount_percentage INT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS deliverables JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS rules JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS warranty_period TEXT DEFAULT 'Full Duration Replacement Warranty';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
 
 -- ====================================================================
 -- 5. BANNERS & SLOTS CMS TABLE
@@ -136,17 +183,29 @@ CREATE TABLE IF NOT EXISTS public.banners (
   style TEXT DEFAULT 'auto-slide',
   autoplay BOOLEAN DEFAULT true,
   interval INT DEFAULT 5,
-  mode TEXT DEFAULT 'image-only' CHECK (mode IN ('image-only', 'image-blur', 'solid-color')),
-  text_position TEXT DEFAULT 'left' CHECK (text_position IN ('left', 'center', 'right')),
+  mode TEXT DEFAULT 'image-only',
+  text_position TEXT DEFAULT 'left',
   solid_color TEXT DEFAULT '#070d1e',
   show_text BOOLEAN DEFAULT true,
   sort_order INT DEFAULT 0,
   display_order INT DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
-  status TEXT DEFAULT 'ON' CHECK (status IN ('ON', 'OFF')),
+  status TEXT DEFAULT 'ON',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS desktop_image_url TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS mobile_image_url TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS badge_color TEXT DEFAULT '#38bdf8';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS title_color TEXT DEFAULT '#ffffff';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS subtitle_color TEXT DEFAULT '#cbd5e1';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'image-only';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS text_position TEXT DEFAULT 'left';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS solid_color TEXT DEFAULT '#070d1e';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_text BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
 
 -- ====================================================================
 -- 6. HOMEPAGE SECTIONS CMS TABLE
@@ -172,7 +231,7 @@ CREATE TABLE IF NOT EXISTS public.homepage_sections (
 CREATE TABLE IF NOT EXISTS public.coupons (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   code TEXT UNIQUE NOT NULL,
-  discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_type TEXT NOT NULL,
   discount_value NUMERIC(10,2) NOT NULL,
   min_order_amount NUMERIC(10,2),
   max_discount NUMERIC(10,2),
@@ -183,6 +242,12 @@ CREATE TABLE IF NOT EXISTS public.coupons (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(10,2);
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS max_discount NUMERIC(10,2);
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+
 -- ====================================================================
 -- 8. CUSTOMER REVIEWS TABLE (Live CMS Moderation)
 -- ====================================================================
@@ -191,9 +256,9 @@ CREATE TABLE IF NOT EXISTS public.customer_reviews (
   user_name TEXT NOT NULL,
   user_email TEXT,
   product_name TEXT NOT NULL,
-  rating INT NOT NULL DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+  rating INT NOT NULL DEFAULT 5,
   comment TEXT NOT NULL,
-  status TEXT DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
+  status TEXT DEFAULT 'approved',
   page_type TEXT DEFAULT 'home',
   page_id TEXT,
   display_order INT DEFAULT 1,
@@ -202,11 +267,10 @@ CREATE TABLE IF NOT EXISTS public.customer_reviews (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Alias for legacy table
 CREATE TABLE IF NOT EXISTS public.reviews (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT,
-  product_id TEXT REFERENCES public.products(id) ON DELETE CASCADE,
+  product_id TEXT,
   author TEXT NOT NULL,
   rating INT NOT NULL DEFAULT 5,
   title TEXT,
@@ -254,8 +318,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   tax NUMERIC(10,2) DEFAULT 0,
   total NUMERIC(10,2) NOT NULL DEFAULT 0,
   currency TEXT DEFAULT 'INR',
-  payment_status TEXT DEFAULT 'Pending' CHECK (payment_status IN ('Pending', 'Success', 'Paid', 'Failed')),
-  order_status TEXT DEFAULT 'Processing' CHECK (order_status IN ('Pending', 'Processing', 'Paid', 'Delivered', 'Completed', 'Cancelled', 'Failed')),
+  payment_status TEXT DEFAULT 'Pending',
+  order_status TEXT DEFAULT 'Processing',
   payment_method TEXT DEFAULT 'UPI',
   razorpay_order_id TEXT,
   razorpay_payment_id TEXT,
@@ -265,9 +329,17 @@ CREATE TABLE IF NOT EXISTS public.orders (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_whatsapp TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS coupon_discount NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'UPI';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS screenshot_url TEXT;
+
 CREATE TABLE IF NOT EXISTS public.order_items (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+  order_id TEXT,
   product_id TEXT,
   course_id TEXT,
   name TEXT NOT NULL,
@@ -360,6 +432,13 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS footer_settings JSONB;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS whatsapp_settings JSONB;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS referral_settings JSONB;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS admin_password_hash TEXT;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS random_notifications_active BOOLEAN DEFAULT true;
+
 
 -- ====================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
@@ -466,12 +545,25 @@ CREATE POLICY "Full access profiles" ON public.profiles FOR ALL USING (true) WIT
 -- ====================================================================
 
 -- 1. Admin Profile
-INSERT INTO public.profiles (id, name, email, phone, role)
-VALUES ('admin-1', 'OTT Sellers Admin', 'OttSellers1@gmail.com', '+91 9441323332', 'admin')
-ON CONFLICT (id) DO UPDATE SET 
-  name = EXCLUDED.name,
-  email = EXCLUDED.email, 
-  role = EXCLUDED.role;
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'profiles' AND column_name = 'id' AND data_type = 'uuid'
+  ) THEN
+    INSERT INTO public.profiles (name, email, phone, role)
+    VALUES ('OTT Sellers Admin', 'OttSellers1@gmail.com', '+91 9441323332', 'admin');
+  ELSE
+    INSERT INTO public.profiles (id, name, email, phone, role)
+    VALUES ('admin-1', 'OTT Sellers Admin', 'OttSellers1@gmail.com', '+91 9441323332', 'admin')
+    ON CONFLICT (id) DO UPDATE SET 
+      name = EXCLUDED.name,
+      email = EXCLUDED.email, 
+      role = EXCLUDED.role;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 
 -- 2. Admin Settings Global Row
 INSERT INTO public.admin_settings (
