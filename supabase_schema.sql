@@ -61,6 +61,7 @@ ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS titles_count TEXT DEFAULT
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS placements TEXT[] DEFAULT ARRAY['home', 'items']::TEXT[];
 
 -- ====================================================================
 -- 3. SUB-CATEGORIES TABLE
@@ -185,6 +186,12 @@ CREATE TABLE IF NOT EXISTS public.banners (
   interval INT DEFAULT 5,
   mode TEXT DEFAULT 'image-only',
   text_position TEXT DEFAULT 'left',
+  content_placement TEXT DEFAULT 'center',
+  button_placement TEXT DEFAULT 'left',
+  btn_bg_color TEXT DEFAULT '#0284c7',
+  btn_text_color TEXT DEFAULT '#ffffff',
+  overlay_color TEXT DEFAULT '#000000',
+  overlay_opacity NUMERIC DEFAULT 0.4,
   solid_color TEXT DEFAULT '#070d1e',
   show_text BOOLEAN DEFAULT true,
   sort_order INT DEFAULT 0,
@@ -217,6 +224,12 @@ ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS autoplay BOOLEAN DEFAULT tru
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS interval INT DEFAULT 5;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'image-only';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS text_position TEXT DEFAULT 'left';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS content_placement TEXT DEFAULT 'center';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS button_placement TEXT DEFAULT 'left';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS btn_bg_color TEXT DEFAULT '#0284c7';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS btn_text_color TEXT DEFAULT '#ffffff';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS overlay_color TEXT DEFAULT '#000000';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS overlay_opacity NUMERIC DEFAULT 0.4;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS solid_color TEXT DEFAULT '#070d1e';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_text BOOLEAN DEFAULT true;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
@@ -240,9 +253,21 @@ CREATE TABLE IF NOT EXISTS public.homepage_sections (
   settings JSONB DEFAULT '{}'::jsonb,
   is_active BOOLEAN DEFAULT true,
   sort_order INT DEFAULT 0,
+  display_order INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS subtitle TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ====================================================================
 -- 7. COUPONS MANAGEMENT TABLE
@@ -255,8 +280,18 @@ CREATE TABLE IF NOT EXISTS public.coupons (
   min_order_amount NUMERIC(10,2),
   max_discount NUMERIC(10,2),
   description TEXT,
-  is_active BOOLEAN DEFAULT true,
+  start_date TEXT,
+  start_time TEXT,
   expires_at TIMESTAMPTZ,
+  expiry_time TEXT,
+  expired_message TEXT,
+  invalid_message TEXT,
+  not_started_message TEXT,
+  success_message TEXT,
+  applicability TEXT DEFAULT 'all',
+  applicable_category_slugs TEXT[],
+  applicable_product_ids TEXT[],
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -264,8 +299,18 @@ CREATE TABLE IF NOT EXISTS public.coupons (
 ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(10,2);
 ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS max_discount NUMERIC(10,2);
 ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS start_date TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS start_time TEXT;
 ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS expiry_time TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS expired_message TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS invalid_message TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS not_started_message TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS success_message TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS applicability TEXT DEFAULT 'all';
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS applicable_category_slugs TEXT[];
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS applicable_product_ids TEXT[];
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- ====================================================================
 -- 8. CUSTOMER REVIEWS TABLE (Live CMS Moderation)
@@ -478,6 +523,8 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS logo_url TEXT DEFAULT '/logo.png';
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS favicon_url TEXT;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS footer_settings JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS whatsapp_settings JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS referral_settings JSONB;
