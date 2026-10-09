@@ -4,6 +4,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User as UserIcon, Menu, X, ChevronDown, Flame, Film, Tv, Trophy, Smile, Crown, Layers, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { ottApi } from '../../services/api';
+import { Category } from '../../types';
 import './Header.css';
 
 export const Header: React.FC = () => {
@@ -63,13 +65,31 @@ export const Header: React.FC = () => {
     }
   };
 
-  const categoriesList = [
-    { name: 'Movies & Series', slug: 'movies-series', icon: Film, color: '#e50914' },
-    { name: 'Live TV', slug: 'live-tv', icon: Tv, color: '#10b981' },
-    { name: 'Sports', slug: 'sports', icon: Trophy, color: '#0284c7' },
-    { name: 'Kids', slug: 'kids', icon: Smile, color: '#f59e0b' },
-    { name: 'Premium Apps', slug: 'premium-apps', icon: Crown, color: '#8b5cf6' },
-  ];
+  const [categoriesList, setCategoriesList] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
+  const [supportPhone, setSupportPhone] = useState('9441323332');
+
+  const loadHeaderData = async () => {
+    try {
+      const [cats, settings] = await Promise.all([
+        ottApi.getCategories(),
+        ottApi.getAdminSettings()
+      ]);
+      if (cats && cats.length > 0) setCategoriesList(cats);
+      if (settings?.supportWhatsApp) setSupportPhone(settings.supportWhatsApp);
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadHeaderData();
+
+    const handleUpdate = () => loadHeaderData();
+    window.addEventListener('ott_data_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('ott_data_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
 
   return (
     <header className={`site-header ${isSticky ? 'is-sticky' : ''}`}>
@@ -105,22 +125,19 @@ export const Header: React.FC = () => {
             {isCategoryMenuOpen && (
               <div className="categories-dropdown-menu">
                 <div className="dropdown-header-note">Browse Categories</div>
-                {categoriesList.map(cat => {
-                  const Icon = cat.icon;
-                  return (
-                    <Link
-                      key={cat.slug}
-                      to={`/category/${cat.slug}`}
-                      className="dropdown-item"
-                      onClick={() => setIsCategoryMenuOpen(false)}
-                    >
-                      <span className="dropdown-item-icon" style={{ color: cat.color }}>
-                        <Icon size={17} />
-                      </span>
-                      <span className="dropdown-item-name">{cat.name}</span>
-                    </Link>
-                  );
-                })}
+                {categoriesList.map(cat => (
+                  <Link
+                    key={cat.slug}
+                    to={`/category/${cat.slug}`}
+                    className="dropdown-item"
+                    onClick={() => setIsCategoryMenuOpen(false)}
+                  >
+                    <span className="dropdown-item-icon" style={{ color: cat.badgeColor || '#0284c7' }}>
+                      <Layers size={17} />
+                    </span>
+                    <span className="dropdown-item-name">{cat.name}</span>
+                  </Link>
+                ))}
                 <div className="dropdown-divider"></div>
                 <Link to="/items" className="dropdown-footer-link" onClick={() => setIsCategoryMenuOpen(false)}>
                   View All Subscriptions Catalog →
@@ -211,7 +228,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Navigation rendered via Portal to escape sticky header stacking & backdrop-filter context */}
+      {/* Mobile Drawer Navigation rendered via Portal */}
       {isMobileDrawerOpen && createPortal(
         <div className="mobile-drawer-overlay" onClick={() => setIsMobileDrawerOpen(false)}>
           <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
@@ -238,9 +255,6 @@ export const Header: React.FC = () => {
                 <Flame size={18} color="#e50914" />
                 <span>Special Offers</span>
               </Link>
-              <Link to="/catalogs" className="drawer-link" onClick={() => setIsMobileDrawerOpen(false)}>
-                Catalogs & Bundles
-              </Link>
 
               <div className="drawer-section-title">Categories</div>
               {categoriesList.map(cat => (
@@ -250,7 +264,7 @@ export const Header: React.FC = () => {
                   className="drawer-link sub-link"
                   onClick={() => setIsMobileDrawerOpen(false)}
                 >
-                  <span style={{ color: cat.color }}>•</span>
+                  <span style={{ color: cat.badgeColor || '#0284c7' }}>•</span>
                   <span>{cat.name}</span>
                 </Link>
               ))}
@@ -282,12 +296,12 @@ export const Header: React.FC = () => {
 
             <div className="mobile-drawer-footer">
               <a 
-                href="https://wa.me/919441323332?text=Hi%20OTT%20Sellers%2C%20I%20have%20an%20enquiry%20regarding%20subscriptions."
+                href={`https://wa.me/${supportPhone.replace(/[^0-9]/g, '')}?text=Hi%20OTT%20Sellers%2C%20I%20have%20an%20enquiry%20regarding%20subscriptions.`}
                 target="_blank" 
                 rel="noreferrer"
                 className="drawer-whatsapp-btn"
               >
-                WhatsApp Support: +91 9441323332
+                WhatsApp Support: {supportPhone}
               </a>
             </div>
           </div>
