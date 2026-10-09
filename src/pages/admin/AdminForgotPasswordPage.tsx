@@ -11,7 +11,6 @@ export const AdminForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState(ADMIN_CONFIG.EMAIL);
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [resetUrl, setResetUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,18 +23,14 @@ export const AdminForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
-    setResetUrl(null);
 
     const res = await requestPasswordReset(email);
     setIsLoading(false);
 
     if (res.success) {
-      setSuccessMsg(res.message || `Password reset instructions sent to ${email}. Please check your inbox & spam folder.`);
-      if (res.resetUrl) {
-        setResetUrl(res.resetUrl);
-      }
+      setSuccessMsg(`A password reset link has been sent to ${email}. Please check your inbox and spam folder.`);
     } else {
-      setErrorMsg(res.error || 'Failed to dispatch password reset request.');
+      setErrorMsg(res.error || 'Failed to send password reset email.');
     }
   };
 
@@ -49,7 +44,7 @@ export const AdminForgotPasswordPage: React.FC = () => {
           <span className="admin-super-tag">ACCOUNT RECOVERY</span>
           <h1 className="admin-auth-title">Reset Admin Password</h1>
           <p className="admin-auth-subtitle">
-            Enter your admin email to receive a secure token link via Gmail SMTP.
+            Enter your admin email address to receive a password reset link.
           </p>
         </div>
 
@@ -63,24 +58,13 @@ export const AdminForgotPasswordPage: React.FC = () => {
         {successMsg ? (
           <div className="admin-auth-success-box">
             <CheckCircle2 size={44} color="#10b981" />
-            <h3>Reset Request Processed!</h3>
+            <h3>Reset Link Sent!</h3>
             <p>{successMsg}</p>
-            <p className="hint-text" style={{ marginTop: '8px', color: '#94a3b8' }}>
-              Check the inbox & spam folder of <strong>{email}</strong>.
+            <p className="hint-text" style={{ marginTop: '12px', color: '#94a3b8' }}>
+              Open your email account (<strong>{email}</strong>) and click the link to reset your password.
             </p>
-            {resetUrl && (
-              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <a 
-                  href={resetUrl}
-                  className="btn-admin-submit" 
-                  style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-                >
-                  🚀 Click Here to Reset Password Directly
-                </a>
-              </div>
-            )}
-            <Link to="/admin/login" className="return-store-link" style={{ marginTop: '16px', display: 'inline-block' }}>
-              ← Return to Admin Sign In
+            <Link to="/admin/login" className="btn-admin-submit" style={{ marginTop: '24px', textDecoration: 'none', display: 'inline-block' }}>
+              Return to Admin Sign In
             </Link>
           </div>
         ) : (
@@ -106,7 +90,7 @@ export const AdminForgotPasswordPage: React.FC = () => {
               className="btn-admin-submit"
             >
               {isLoading ? (
-                <span>Dispatching SMTP Email...</span>
+                <span>Sending Reset Link...</span>
               ) : (
                 <>
                   <span>Send Password Reset Link</span>
@@ -127,3 +111,4 @@ export const AdminForgotPasswordPage: React.FC = () => {
     </div>
   );
 };
+
