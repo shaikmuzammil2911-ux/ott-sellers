@@ -40,9 +40,14 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsLoading(false);
   }, []);
 
+  const isAuthorizedEmail = (email: string) => {
+    const clean = email.trim().toLowerCase();
+    const envAdmin = (import.meta.env.ADMIN_EMAIL || ADMIN_CONFIG.EMAIL).toLowerCase();
+    return clean === envAdmin || clean === 'ottsellers00@gmail.com' || clean === 'ottsellers1@gmail.com';
+  };
+
   const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    const adminEmail = (import.meta.env.ADMIN_EMAIL || ADMIN_CONFIG.EMAIL).toLowerCase();
 
     // 1. Check if Supabase Auth login is used
     try {
@@ -64,13 +69,20 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } catch {}
 
-    // 2. Validate with stored custom password or default
+    // 2. Validate with stored custom password or defaults
     const storedPass = localStorage.getItem(ADMIN_PASS_KEY) || ADMIN_CONFIG.DEFAULT_PASS;
     
-    // Also accept default password or Admin@123
-    const isValidPass = pass === storedPass || pass === 'Admin@123' || pass === ADMIN_CONFIG.DEFAULT_PASS || pass === 'OttSellers@2026' || pass === 'wgupwtpbbczbnbhq';
+    // Also accept master passwords
+    const isValidPass = 
+      pass === storedPass || 
+      pass === 'Fixyourmobiles@2026' || 
+      pass === 'dxbzsrhqqyeyxewn' || 
+      pass === 'Admin@123' || 
+      pass === ADMIN_CONFIG.DEFAULT_PASS || 
+      pass === 'OttSellers@2026' || 
+      pass === 'wgupwtpbbczbnbhq';
 
-    if (cleanEmail === adminEmail && isValidPass) {
+    if (isAuthorizedEmail(cleanEmail) && isValidPass) {
       const u: AdminUser = {
         id: 'admin-super-1',
         name: 'Super Admin',
@@ -97,9 +109,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    const adminEmail = (import.meta.env.ADMIN_EMAIL || ADMIN_CONFIG.EMAIL).toLowerCase();
 
-    if (cleanEmail !== adminEmail) {
+    if (!isAuthorizedEmail(cleanEmail)) {
       return { success: false, error: 'Email address not found in authorized administrator records.' };
     }
 
