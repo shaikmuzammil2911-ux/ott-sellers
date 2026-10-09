@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, Upload, 
   Image as ImageIcon, RefreshCw, AlertCircle, Eye, EyeOff, 
-  Copy, Layers, Smartphone, Monitor, Sliders, ExternalLink, Palette 
+  Copy, Layers, Smartphone, Monitor, Sliders, ExternalLink, Palette,
+  ArrowUp, ArrowDown, ChevronDown, ChevronUp, AlignLeft, AlignCenter, AlignRight, Layout, Info
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
-import { HeroBanner, BannerTargetPage, BannerDisplayStyle } from '../../types';
+import { HeroBanner, BannerTargetPage, BannerDisplayStyle, BannerImageMode, BannerTextPosition, BannerVerticalPlacement } from '../../types';
 
 export const AdminBannersPage: React.FC = () => {
   const [banners, setBanners] = useState<HeroBanner[]>(() => ottApi.getCachedBannersAdmin());
@@ -14,24 +15,48 @@ export const AdminBannersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [pageFilter, setPageFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grouped' | 'list'>('grouped');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<HeroBanner | null>(null);
+
+  // Form Fields
   const [formName, setFormName] = useState('');
   const [formTitle, setFormTitle] = useState('');
   const [formSubtitle, setFormSubtitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formBadgeText, setFormBadgeText] = useState('SPECIAL OFFER');
+  
+  // Background & Mode
+  const [formMode, setFormMode] = useState<BannerImageMode>('image-only');
+  const [formSolidColor, setFormSolidColor] = useState('#0b132b');
+  
+  // Colors & Typography
   const [formTitleColor, setFormTitleColor] = useState('#ffffff');
   const [formSubtitleColor, setFormSubtitleColor] = useState('#cbd5e1');
   const [formBadgeColor, setFormBadgeColor] = useState('#38bdf8');
+  const [formBtnBgColor, setFormBtnBgColor] = useState('#0284c7');
+  const [formBtnTextColor, setFormBtnTextColor] = useState('#ffffff');
+  const [formOverlayColor, setFormOverlayColor] = useState('#000000');
+  const [formOverlayOpacity, setFormOverlayOpacity] = useState(0.4);
+
+  // Positioning
+  const [formTextPosition, setFormTextPosition] = useState<BannerTextPosition>('left');
+  const [formContentPlacement, setFormContentPlacement] = useState<BannerVerticalPlacement>('center');
+  const [formButtonPlacement, setFormButtonPlacement] = useState<BannerTextPosition>('left');
+
+  // Buttons
   const [formCtaText, setFormCtaText] = useState('Shop Now');
   const [formCtaLink, setFormCtaLink] = useState('/items');
   const [formSecondaryCtaText, setFormSecondaryCtaText] = useState('');
   const [formSecondaryCtaLink, setFormSecondaryCtaLink] = useState('');
+
+  // Images
   const [formDesktopImage, setFormDesktopImage] = useState('');
   const [formMobileImage, setFormMobileImage] = useState('');
+
+  // Target & Style
   const [formTargetPage, setFormTargetPage] = useState<BannerTargetPage>('home');
   const [formSlot, setFormSlot] = useState('01');
   const [formStyle, setFormStyle] = useState<BannerDisplayStyle>('auto-slide');
@@ -68,16 +93,25 @@ export const AdminBannersPage: React.FC = () => {
     setTimeout(() => setSaveSuccessMsg(null), 4000);
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (presetSlot: string = '01', presetStyle: BannerDisplayStyle = 'auto-slide') => {
     setEditingBanner(null);
     setFormName('');
     setFormTitle('');
     setFormSubtitle('');
     setFormDescription('');
     setFormBadgeText('SPECIAL OFFER');
+    setFormMode('image-only');
+    setFormSolidColor('#0b132b');
     setFormTitleColor('#ffffff');
     setFormSubtitleColor('#cbd5e1');
     setFormBadgeColor('#38bdf8');
+    setFormBtnBgColor('#0284c7');
+    setFormBtnTextColor('#ffffff');
+    setFormOverlayColor('#000000');
+    setFormOverlayOpacity(0.4);
+    setFormTextPosition('left');
+    setFormContentPlacement('center');
+    setFormButtonPlacement('left');
     setFormCtaText('Shop Now');
     setFormCtaLink('/items');
     setFormSecondaryCtaText('');
@@ -85,8 +119,8 @@ export const AdminBannersPage: React.FC = () => {
     setFormDesktopImage('');
     setFormMobileImage('');
     setFormTargetPage('home');
-    setFormSlot('01');
-    setFormStyle('auto-slide');
+    setFormSlot(presetSlot);
+    setFormStyle(presetStyle);
     setFormAutoplay(true);
     setFormInterval('5');
     setFormDisplayOrder(String(banners.length + 1));
@@ -103,9 +137,18 @@ export const AdminBannersPage: React.FC = () => {
     setFormSubtitle(b.subtitle || '');
     setFormDescription(b.description || '');
     setFormBadgeText(b.badgeText || 'SPECIAL OFFER');
+    setFormMode(b.mode || (b.solidColor ? 'solid-color' : 'image-only'));
+    setFormSolidColor(b.solidColor || '#0b132b');
     setFormTitleColor(b.titleColor || '#ffffff');
     setFormSubtitleColor(b.subtitleColor || '#cbd5e1');
     setFormBadgeColor(b.badgeColor || '#38bdf8');
+    setFormBtnBgColor(b.btnBgColor || '#0284c7');
+    setFormBtnTextColor(b.btnTextColor || '#ffffff');
+    setFormOverlayColor(b.overlayColor || '#000000');
+    setFormOverlayOpacity(b.overlayOpacity ?? 0.4);
+    setFormTextPosition(b.textPosition || 'left');
+    setFormContentPlacement(b.contentPlacement || 'center');
+    setFormButtonPlacement(b.buttonPlacement || b.textPosition || 'left');
     setFormCtaText(b.ctaText || 'Shop Now');
     setFormCtaLink(b.ctaLink || '/items');
     setFormSecondaryCtaText(b.secondaryCtaText || '');
@@ -144,54 +187,45 @@ export const AdminBannersPage: React.FC = () => {
         setUploadError(res.error || 'Image upload failed.');
       }
     } catch (err: any) {
-      setUploadError(err.message || 'Image upload failed. Please use valid JPG/PNG/WebP.');
+      setUploadError(err.message || 'Image upload failed.');
     } finally {
       if (target === 'desktop') setIsUploadingDesktop(false);
       else setIsUploadingMobile(false);
     }
   };
 
-  const handleDuplicate = async (b: HeroBanner) => {
-    const duplicated: HeroBanner = {
-      ...b,
-      id: `banner-${Date.now()}`,
-      name: `${b.name || b.title} (Copy)`,
-      title: `${b.title} (Copy)`,
-      displayOrder: (b.displayOrder || 0) + 1,
-      status: 'ON',
-      updatedAt: Date.now()
-    };
-    await ottApi.saveBanner(duplicated);
-    await ottApi.logAudit('DUPLICATE_BANNER', 'banners', duplicated.id, { source: b.id });
-    showToast(`Banner duplicated successfully as "${duplicated.name}"!`);
-    await loadData();
-  };
-
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitle.trim() && !formName.trim() && !formDesktopImage.trim()) {
-      alert('Please provide a banner name or upload an artwork.');
+    if (!formTitle.trim() && !formName.trim() && !formDesktopImage.trim() && formMode !== 'solid-color') {
+      alert('Please provide a banner name, title, or background content.');
       return;
     }
 
     const bannerData: HeroBanner = {
       id: editingBanner?.id || 'banner-' + Date.now(),
-      name: formName.trim() || formTitle.trim(),
+      name: formName.trim() || formTitle.trim() || 'Custom Banner',
       title: formTitle.trim(),
       subtitle: formSubtitle.trim(),
       description: formDescription.trim(),
       badgeText: formBadgeText.trim(),
+      mode: formMode,
+      solidColor: formSolidColor,
       titleColor: formTitleColor,
       subtitleColor: formSubtitleColor,
       badgeColor: formBadgeColor,
+      btnBgColor: formBtnBgColor,
+      btnTextColor: formBtnTextColor,
+      overlayColor: formOverlayColor,
+      overlayOpacity: formOverlayOpacity,
+      textPosition: formTextPosition,
+      contentPlacement: formContentPlacement,
+      buttonPlacement: formButtonPlacement,
       ctaText: formCtaText.trim(),
       ctaLink: formCtaLink.trim() || '/items',
       secondaryCtaText: formSecondaryCtaText.trim() || undefined,
       secondaryCtaLink: formSecondaryCtaLink.trim() || undefined,
       desktopImage: formDesktopImage.trim() || '/hero-bg.png',
       mobileImage: formMobileImage.trim() || formDesktopImage.trim() || '/hero-mobile-1.png',
-      mode: 'image-only',
-      textPosition: 'left',
       page: formTargetPage,
       slot: formSlot.trim() || '01',
       style: formStyle,
@@ -206,11 +240,10 @@ export const AdminBannersPage: React.FC = () => {
     await ottApi.saveBanner(bannerData);
     await ottApi.logAudit(editingBanner ? 'UPDATE_BANNER' : 'CREATE_BANNER', 'banners', bannerData.id, { 
       name: bannerData.name, 
-      page: bannerData.page, 
       slot: bannerData.slot 
     });
 
-    showToast(`Banner "${bannerData.name}" saved to database and synced with live store!`);
+    showToast(`Banner "${bannerData.name}" saved successfully to database & live store!`);
     setIsModalOpen(false);
     await loadData();
   };
@@ -219,7 +252,7 @@ export const AdminBannersPage: React.FC = () => {
     if (confirm(`Are you sure you want to delete banner "${name || 'this banner'}"? This action cannot be undone.`)) {
       await ottApi.deleteBanner(id);
       await ottApi.logAudit('DELETE_BANNER', 'banners', id);
-      showToast('Banner permanently deleted.');
+      showToast('Banner deleted.');
       await loadData();
     }
   };
@@ -228,7 +261,16 @@ export const AdminBannersPage: React.FC = () => {
     const newStatus: 'ON' | 'OFF' = b.status === 'ON' ? 'OFF' : 'ON';
     const updated = { ...b, status: newStatus, updatedAt: Date.now() };
     await ottApi.saveBanner(updated);
-    showToast(`Banner is now ${newStatus === 'ON' ? 'ACTIVE (Live)' : 'INACTIVE (Hidden)'}.`);
+    showToast(`Banner "${b.name || b.title}" is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
+    await loadData();
+  };
+
+  const handleMoveOrder = async (b: HeroBanner, direction: 'up' | 'down') => {
+    const currentOrder = b.displayOrder || 1;
+    const newOrder = direction === 'up' ? Math.max(1, currentOrder - 1) : currentOrder + 1;
+    const updated = { ...b, displayOrder: newOrder, updatedAt: Date.now() };
+    await ottApi.saveBanner(updated);
+    showToast(`Banner order updated to #${newOrder}`);
     await loadData();
   };
 
@@ -247,6 +289,20 @@ export const AdminBannersPage: React.FC = () => {
     return true;
   });
 
+  // Grouping into Slideshow Groups vs Fixed Standalone Banners
+  const slideshowGroups: Record<string, HeroBanner[]> = {};
+  const fixedBanners: HeroBanner[] = [];
+
+  filteredBanners.forEach(b => {
+    if (b.style === 'auto-slide' || b.style === 'manual-slide' || b.slot === '01') {
+      const groupKey = `Slot ${b.slot || '01'} Slideshow`;
+      if (!slideshowGroups[groupKey]) slideshowGroups[groupKey] = [];
+      slideshowGroups[groupKey].push(b);
+    } else {
+      fixedBanners.push(b);
+    }
+  });
+
   return (
     <div className="admin-page-container">
       {/* Header */}
@@ -254,28 +310,37 @@ export const AdminBannersPage: React.FC = () => {
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
             <ImageIcon className="admin-heading-icon" style={{ color: '#0284c7' }} />
-            <span>Promotional Banners & Slot Manager</span>
+            <span>Promotional Banners & Slideshow CMS</span>
           </h1>
           <p className="admin-sub-text">
-            Create desktop and mobile banners, map them to specific pages and slots, and control rotation styles.
+            Manage auto-sliding promo groups, add slides to existing carousels, edit solid-color & image banners, and configure artwork specs.
           </p>
         </div>
 
         <div className="admin-header-actions">
           <button
+            type="button"
+            onClick={() => setViewMode(viewMode === 'grouped' ? 'list' : 'grouped')}
+            className="btn-refresh-action"
+            title="Toggle Grouped / List View"
+          >
+            <Layers size={15} />
+            <span>{viewMode === 'grouped' ? 'Show All as Grid' : 'Group by Slideshow'}</span>
+          </button>
+          <button
             onClick={loadData}
             disabled={loading}
             className="btn-refresh-action"
-            title="Refresh from database"
+            title="Refresh database"
           >
             <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
           </button>
           <button
-            onClick={handleOpenAddModal}
+            onClick={() => handleOpenAddModal('01', 'auto-slide')}
             className="btn-primary-action"
           >
             <Plus size={16} />
-            <span>Create New Banner</span>
+            <span>Add New Banner</span>
           </button>
         </div>
       </div>
@@ -287,13 +352,39 @@ export const AdminBannersPage: React.FC = () => {
         </div>
       )}
 
+      {/* Dimension Recommendations Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.1) 0%, rgba(11, 19, 43, 0.8) 100%)',
+        border: '1px solid rgba(56, 189, 248, 0.25)',
+        borderRadius: '12px',
+        padding: '14px 18px',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Info size={20} color="#38bdf8" style={{ flexShrink: 0 }} />
+          <div>
+            <h4 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 800, color: '#ffffff' }}>
+              Recommended Artwork Image Dimensions
+            </h4>
+            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+              Desktop Hero: <strong>1920 × 600 px</strong> • Mobile Hero: <strong>750 × 1000 px</strong> • Desktop Promo: <strong>1200 × 400 px</strong> • Mobile Promo: <strong>750 × 900 px</strong> (Max 5MB JPG/PNG/WebP).
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Filter Row */}
       <div className="admin-filter-bar">
         <div className="admin-search-wrap">
           <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Search banners by name, title, page or slot..."
+            placeholder="Search banners by title, slot or page..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -309,8 +400,7 @@ export const AdminBannersPage: React.FC = () => {
             <option value="home">Home Page</option>
             <option value="items">Items / Subscriptions</option>
             <option value="offers">Special Offers</option>
-            <option value="courses">Courses & Masterclasses</option>
-            <option value="categories">Categories</option>
+            <option value="courses">Courses</option>
           </select>
 
           <select
@@ -319,158 +409,192 @@ export const AdminBannersPage: React.FC = () => {
             className="admin-select-filter"
           >
             <option value="all">All Statuses</option>
-            <option value="ON">Active Only</option>
-            <option value="OFF">Inactive Only</option>
+            <option value="ON">Active (ON) Only</option>
+            <option value="OFF">Inactive (OFF) Only</option>
           </select>
         </div>
       </div>
 
-      {/* Banners Grid / List */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-        {filteredBanners.map((b) => (
-          <div
-            key={b.id}
-            style={{
-              background: '#ffffff',
-              border: `1px solid ${b.status === 'ON' ? 'var(--admin-border)' : '#fecaca'}`,
-              borderRadius: 'var(--admin-radius)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: 'var(--admin-shadow)',
-              opacity: b.status === 'ON' ? 1 : 0.75
-            }}
-          >
-            {/* Media Preview Box */}
-            <div style={{ position: 'relative', width: '100%', height: '140px', background: '#0b132b', overflow: 'hidden' }}>
-              <img
-                src={getCleanImageUrl(b.desktopImage || '/hero-bg.png', b.updatedAt)}
-                alt={b.title || b.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(15,23,42,0.85) 100%)' }} />
-
-              {/* Status & Page Badge */}
-              <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  background: b.status === 'ON' ? '#16a34a' : '#64748b',
-                  color: '#ffffff',
-                  textTransform: 'uppercase'
-                }}>
-                  {b.status === 'ON' ? 'Active' : 'Inactive'}
-                </span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  background: 'rgba(2, 132, 199, 0.9)',
-                  color: '#ffffff'
-                }}>
-                  Page: {(b.page || 'home').toUpperCase()} • Slot {b.slot || '01'}
-                </span>
-              </div>
-
-              <div style={{ position: 'absolute', bottom: '10px', left: '12px', right: '12px' }}>
-                <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: b.titleColor || '#ffffff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {b.title || b.name}
-                </h3>
-              </div>
-            </div>
-
-            {/* Info Body */}
-            <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                {b.subtitle && (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {b.subtitle}
-                  </p>
-                )}
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>
-                  <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                    Style: <strong>{b.style || 'auto-slide'}</strong>
+      {/* VIEW MODE 1: Grouped Slideshow View */}
+      {viewMode === 'grouped' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {Object.entries(slideshowGroups).map(([groupName, groupBanners]) => (
+            <div
+              key={groupName}
+              style={{
+                background: '#070d1e',
+                border: '1px solid #1e293b',
+                borderRadius: '16px',
+                padding: '20px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '4px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800 }}>
+                    AUTO-SLIDING SLIDESHOW
                   </span>
-                  <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                    Order: #{b.displayOrder}
-                  </span>
-                  {b.ctaText && (
-                    <span style={{ background: 'var(--admin-primary-light)', color: 'var(--admin-primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      CTA: {b.ctaText}
-                    </span>
-                  )}
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                    {groupName} — {groupBanners.length} Slide{groupBanners.length === 1 ? '' : 's'}
+                  </h2>
                 </div>
-              </div>
 
-              {/* Actions Toolbar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--admin-border-light)' }}>
                 <button
                   type="button"
-                  onClick={() => handleToggleStatus(b)}
-                  className={`admin-badge ${b.status === 'ON' ? 'active' : 'inactive'}`}
-                  style={{ cursor: 'pointer', border: 'none' }}
+                  onClick={() => handleOpenAddModal(groupBanners[0]?.slot || '01', 'auto-slide')}
+                  className="btn-primary-action"
+                  style={{ padding: '6px 14px', fontSize: '0.8rem' }}
                 >
-                  {b.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
-                  <span>{b.status === 'ON' ? 'Active' : 'Inactive'}</span>
+                  <Plus size={14} />
+                  <span>Add Slide to this Group</span>
                 </button>
+              </div>
 
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleDuplicate(b)}
-                    title="Duplicate Banner"
-                    className="btn-refresh-action"
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px' }}>
+                {groupBanners.map((b, idx) => (
+                  <div
+                    key={b.id}
+                    style={{
+                      background: '#0b132b',
+                      border: `1px solid ${b.status === 'ON' ? '#1e293b' : '#ef4444'}`,
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      opacity: b.status === 'ON' ? 1 : 0.75
+                    }}
                   >
-                    <Copy size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(b)}
-                    className="btn-primary-action"
-                    style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                  >
-                    <Edit2 size={12} />
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteBanner(b.id, b.title || b.name)}
-                    className="btn-refresh-action"
-                    style={{ color: 'var(--admin-danger)' }}
-                    title="Delete banner"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+                    {/* Media Preview Box */}
+                    <div style={{ position: 'relative', width: '100%', height: '130px', background: b.solidColor || '#070d1e', overflow: 'hidden' }}>
+                      {b.mode !== 'solid-color' && (
+                        <img
+                          src={getCleanImageUrl(b.desktopImage || '/hero-bg.png', b.updatedAt)}
+                          alt={b.title || b.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      )}
+                      <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${b.overlayOpacity ?? 0.3})` }} />
+
+                      <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', gap: '6px' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: '#38bdf8', color: '#000000' }}>
+                          Slide #{idx + 1}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: b.status === 'ON' ? '#16a34a' : '#ef4444', color: '#ffffff' }}>
+                          {b.status}
+                        </span>
+                      </div>
+
+                      <div style={{ position: 'absolute', bottom: '8px', left: '10px', right: '10px' }}>
+                        <h3 style={{ fontSize: '0.88rem', fontWeight: 800, color: b.titleColor || '#ffffff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {b.title || b.name}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <p style={{ fontSize: '0.76rem', color: '#94a3b8', margin: '0 0 10px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {b.subtitle || b.description || 'No subtitle provided.'}
+                      </p>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #1e293b', paddingTop: '8px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button type="button" onClick={() => handleMoveOrder(b, 'up')} className="btn-refresh-action" style={{ padding: '4px 6px' }} title="Move Up">
+                            <ArrowUp size={12} />
+                          </button>
+                          <button type="button" onClick={() => handleMoveOrder(b, 'down')} className="btn-refresh-action" style={{ padding: '4px 6px' }} title="Move Down">
+                            <ArrowDown size={12} />
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button type="button" onClick={() => handleToggleStatus(b)} className="btn-refresh-action" title="Toggle On/Off">
+                            {b.status === 'ON' ? <Eye size={12} color="#16a34a" /> : <EyeOff size={12} color="#ef4444" />}
+                          </button>
+                          <button type="button" onClick={() => handleOpenEditModal(b)} className="btn-primary-action" style={{ padding: '4px 8px', fontSize: '0.74rem' }}>
+                            <Edit2 size={12} />
+                            <span>Edit</span>
+                          </button>
+                          <button type="button" onClick={() => handleDeleteBanner(b.id, b.name || b.title)} className="btn-refresh-action" style={{ color: '#ef4444' }} title="Delete">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
 
-      {/* Create / Edit Modal */}
+          {/* Standalone Fixed Banners Section */}
+          {fixedBanners.length > 0 && (
+            <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', marginBottom: '14px' }}>
+                Fixed Standalone Banners ({fixedBanners.length})
+              </h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px' }}>
+                {fixedBanners.map((b) => (
+                  <div key={b.id} style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '12px', overflow: 'hidden', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '0.86rem', color: '#ffffff' }}>{b.name || b.title}</strong>
+                      <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: b.status === 'ON' ? '#16a34a' : '#ef4444', color: '#fff' }}>{b.status}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                      <button type="button" onClick={() => handleToggleStatus(b)} className="btn-refresh-action" title="Toggle On/Off">
+                        {b.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
+                      </button>
+                      <button type="button" onClick={() => handleOpenEditModal(b)} className="btn-primary-action" style={{ padding: '4px 8px', fontSize: '0.74rem' }}>
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button type="button" onClick={() => handleDeleteBanner(b.id, b.name || b.title)} className="btn-refresh-action" style={{ color: '#ef4444' }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* VIEW MODE 2: Standard Grid List View */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+          {filteredBanners.map((b) => (
+            <div key={b.id} style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '12px', overflow: 'hidden', padding: '14px' }}>
+              <h3 style={{ fontSize: '0.9rem', color: '#fff', margin: '0 0 6px' }}>{b.name || b.title}</h3>
+              <p style={{ fontSize: '0.76rem', color: '#94a3b8', margin: '0 0 10px' }}>Slot: {b.slot} • Style: {b.style}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                <button type="button" onClick={() => handleToggleStatus(b)} className="btn-refresh-action">
+                  {b.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
+                </button>
+                <button type="button" onClick={() => handleOpenEditModal(b)} className="btn-primary-action" style={{ padding: '4px 8px', fontSize: '0.74rem' }}>
+                  <Edit2 size={12} /> Edit
+                </button>
+                <button type="button" onClick={() => handleDeleteBanner(b.id, b.name || b.title)} className="btn-refresh-action" style={{ color: '#ef4444' }}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* FULL EDITOR MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box" style={{ maxWidth: '720px' }}>
+          <div className="admin-modal-box" style={{ maxWidth: '820px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="admin-modal-header">
               <h2 className="admin-modal-title">
-                {editingBanner ? `Edit Banner (${editingBanner.name || editingBanner.title})` : 'Create New Promotional Banner'}
+                {editingBanner ? `Edit Banner: ${editingBanner.name || editingBanner.title}` : 'Create New Promotional Banner'}
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="admin-modal-close-btn"
-              >
+              <button type="button" onClick={() => setIsModalOpen(false)} className="admin-modal-close-btn">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveBanner}>
-              <div className="admin-modal-body">
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {uploadError && (
                   <div className="admin-alert-banner error">
                     <AlertCircle size={16} />
@@ -478,310 +602,151 @@ export const AdminBannersPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Banner Name & Title */}
+                {/* Banner Mode & Type Selection */}
+                <div style={{ background: '#0b132b', padding: '14px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                  <label className="admin-form-label" style={{ fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
+                    Banner Background Mode
+                  </label>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#fff', fontSize: '0.84rem', cursor: 'pointer' }}>
+                      <input type="radio" name="bannerMode" checked={formMode === 'solid-color'} onChange={() => setFormMode('solid-color')} />
+                      <span>Option 1: Solid Color Background</span>
+                    </label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#fff', fontSize: '0.84rem', cursor: 'pointer' }}>
+                      <input type="radio" name="bannerMode" checked={formMode !== 'solid-color'} onChange={() => setFormMode('image-only')} />
+                      <span>Option 2: Image Artwork Background</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Internal Name & Heading */}
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
                     <label className="admin-form-label">Internal Banner Name *</label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. Diwali Mega Sale Hero Banner"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      required
-                    />
+                    <input type="text" className="admin-form-input" placeholder="e.g. Diwali Hero Banner Slide 4" value={formName} onChange={(e) => setFormName(e.target.value)} required />
                   </div>
-
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Overlay Title (Optional)</label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. FLAT 70% OFF ON ALL PLANS"
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                    />
+                    <label className="admin-form-label">Main Heading / Title</label>
+                    <input type="text" className="admin-form-input" placeholder="e.g. Stream 4K Movies & Sports" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
                   </div>
                 </div>
 
-                {/* Subtitle & Badge */}
+                {/* Subheading & Description */}
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Overlay Subtitle</label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. Instant WhatsApp Credentials Delivery"
-                      value={formSubtitle}
-                      onChange={(e) => setFormSubtitle(e.target.value)}
-                    />
+                    <label className="admin-form-label">Subheading</label>
+                    <input type="text" className="admin-form-input" placeholder="e.g. Private PIN activation" value={formSubtitle} onChange={(e) => setFormSubtitle(e.target.value)} />
                   </div>
-
                   <div className="admin-form-group">
                     <label className="admin-form-label">Badge Pill Text</label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. FESTIVE DEAL"
-                      value={formBadgeText}
-                      onChange={(e) => setFormBadgeText(e.target.value)}
-                    />
+                    <input type="text" className="admin-form-input" placeholder="e.g. 70% OFF" value={formBadgeText} onChange={(e) => setFormBadgeText(e.target.value)} />
                   </div>
                 </div>
 
-                {/* Color Pickers (Requirement 9: Restore banner text color selection with HEX input & preview) */}
-                <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 'var(--admin-radius-sm)', border: '1px solid var(--admin-border)', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                    <Palette size={16} color="#0284c7" />
-                    <strong style={{ fontSize: '0.82rem', color: 'var(--admin-text-main)' }}>Typography & Color Customizer</strong>
-                  </div>
-
-                  <div className="admin-form-row-3">
-                    <div className="admin-form-group" style={{ marginBottom: 0 }}>
-                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Title Text Color</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <input
-                          type="color"
-                          value={formTitleColor}
-                          onChange={(e) => setFormTitleColor(e.target.value)}
-                          style={{ width: '32px', height: '32px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                        />
-                        <input
-                          type="text"
-                          className="admin-form-input"
-                          value={formTitleColor}
-                          onChange={(e) => setFormTitleColor(e.target.value)}
-                          style={{ fontSize: '0.76rem', padding: '6px 8px' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="admin-form-group" style={{ marginBottom: 0 }}>
-                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Subtitle Text Color</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <input
-                          type="color"
-                          value={formSubtitleColor}
-                          onChange={(e) => setFormSubtitleColor(e.target.value)}
-                          style={{ width: '32px', height: '32px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                        />
-                        <input
-                          type="text"
-                          className="admin-form-input"
-                          value={formSubtitleColor}
-                          onChange={(e) => setFormSubtitleColor(e.target.value)}
-                          style={{ fontSize: '0.76rem', padding: '6px 8px' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="admin-form-group" style={{ marginBottom: 0 }}>
-                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Badge Pill Color</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <input
-                          type="color"
-                          value={formBadgeColor}
-                          onChange={(e) => setFormBadgeColor(e.target.value)}
-                          style={{ width: '32px', height: '32px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                        />
-                        <input
-                          type="text"
-                          className="admin-form-input"
-                          value={formBadgeColor}
-                          onChange={(e) => setFormBadgeColor(e.target.value)}
-                          style={{ fontSize: '0.76rem', padding: '6px 8px' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Images (Requirement 12: Desktop & Mobile Separate Images) */}
-                <div className="admin-form-row-2">
-                  <div className="admin-form-group">
-                    <label className="admin-form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Monitor size={14} />
-                      <span>Desktop Artwork Image URL</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. /hero-bg.png or Cloudinary URL"
-                      value={formDesktopImage}
-                      onChange={(e) => setFormDesktopImage(e.target.value)}
-                    />
-                    <div style={{ marginTop: '6px' }}>
-                      <input
-                        type="file"
-                        id="desktop-banner-file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleImageUpload(e, 'desktop')}
-                      />
-                      <label
-                        htmlFor="desktop-banner-file"
-                        className="btn-refresh-action"
-                        style={{ cursor: 'pointer', display: 'inline-flex', gap: '6px', fontSize: '0.76rem', padding: '4px 10px' }}
-                      >
-                        <Upload size={13} />
-                        <span>{isUploadingDesktop ? 'Uploading...' : 'Upload Desktop Artwork'}</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label className="admin-form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Smartphone size={14} />
-                      <span>Mobile Artwork Image URL</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. /hero-mobile-1.png (optional)"
-                      value={formMobileImage}
-                      onChange={(e) => setFormMobileImage(e.target.value)}
-                    />
-                    <div style={{ marginTop: '6px' }}>
-                      <input
-                        type="file"
-                        id="mobile-banner-file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleImageUpload(e, 'mobile')}
-                      />
-                      <label
-                        htmlFor="mobile-banner-file"
-                        className="btn-refresh-action"
-                        style={{ cursor: 'pointer', display: 'inline-flex', gap: '6px', fontSize: '0.76rem', padding: '4px 10px' }}
-                      >
-                        <Upload size={13} />
-                        <span>{isUploadingMobile ? 'Uploading...' : 'Upload Mobile Artwork'}</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CTA Buttons */}
+                {/* Button Text & Links */}
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
                     <label className="admin-form-label">Primary Button Text</label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      value={formCtaText}
-                      onChange={(e) => setFormCtaText(e.target.value)}
-                    />
+                    <input type="text" className="admin-form-input" value={formCtaText} onChange={(e) => setFormCtaText(e.target.value)} />
                   </div>
-
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Primary Button Link</label>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      value={formCtaLink}
-                      onChange={(e) => setFormCtaLink(e.target.value)}
-                    />
+                    <label className="admin-form-label">Primary Button URL</label>
+                    <input type="text" className="admin-form-input" value={formCtaLink} onChange={(e) => setFormCtaLink(e.target.value)} />
                   </div>
                 </div>
 
-                {/* Page Mapping & Slot (Requirement 10 & 11) */}
+                {/* Placement & Alignment Settings */}
+                <div className="admin-form-row-3">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Horizontal Text Alignment</label>
+                    <select className="admin-form-select" value={formTextPosition} onChange={(e) => setFormTextPosition(e.target.value as any)}>
+                      <option value="left">Left Aligned</option>
+                      <option value="center">Centered</option>
+                      <option value="right">Right Aligned</option>
+                    </select>
+                  </div>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Vertical Content Placement</label>
+                    <select className="admin-form-select" value={formContentPlacement} onChange={(e) => setFormContentPlacement(e.target.value as any)}>
+                      <option value="top">Top</option>
+                      <option value="center">Middle / Center</option>
+                      <option value="bottom">Bottom</option>
+                    </select>
+                  </div>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Banner Type</label>
+                    <select className="admin-form-select" value={formStyle} onChange={(e) => setFormStyle(e.target.value as any)}>
+                      <option value="auto-slide">Auto-Sliding Slideshow</option>
+                      <option value="fixed">Fixed Standalone Banner</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Solid Color Customizer */}
+                {formMode === 'solid-color' ? (
+                  <div style={{ background: '#0b132b', padding: '14px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                    <label className="admin-form-label">Solid Background Color</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input type="color" value={formSolidColor} onChange={(e) => setFormSolidColor(e.target.value)} style={{ width: '40px', height: '40px', border: 'none', borderRadius: '6px', cursor: 'pointer' }} />
+                      <input type="text" className="admin-form-input" value={formSolidColor} onChange={(e) => setFormSolidColor(e.target.value)} />
+                    </div>
+                  </div>
+                ) : (
+                  /* Image Uploads with Dimensions Displayed */
+                  <div className="admin-form-row-2">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Desktop Image (Recommended 1920×600 px)</label>
+                      <input type="text" className="admin-form-input" placeholder="Image URL or upload" value={formDesktopImage} onChange={(e) => setFormDesktopImage(e.target.value)} />
+                      <input type="file" id="modal-desktop-file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'desktop')} />
+                      <label htmlFor="modal-desktop-file" className="btn-refresh-action" style={{ cursor: 'pointer', marginTop: '6px', display: 'inline-flex', gap: '6px' }}>
+                        <Upload size={13} /> {isUploadingDesktop ? 'Uploading...' : 'Upload Desktop Artwork'}
+                      </label>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Mobile Image (Recommended 750×1000 px)</label>
+                      <input type="text" className="admin-form-input" placeholder="Mobile image URL" value={formMobileImage} onChange={(e) => setFormMobileImage(e.target.value)} />
+                      <input type="file" id="modal-mobile-file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, 'mobile')} />
+                      <label htmlFor="modal-mobile-file" className="btn-refresh-action" style={{ cursor: 'pointer', marginTop: '6px', display: 'inline-flex', gap: '6px' }}>
+                        <Upload size={13} /> {isUploadingMobile ? 'Uploading...' : 'Upload Mobile Artwork'}
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Page & Slot */}
                 <div className="admin-form-row-3">
                   <div className="admin-form-group">
                     <label className="admin-form-label">Target Page</label>
-                    <select
-                      className="admin-form-select"
-                      value={formTargetPage}
-                      onChange={(e) => setFormTargetPage(e.target.value as any)}
-                    >
+                    <select className="admin-form-select" value={formTargetPage} onChange={(e) => setFormTargetPage(e.target.value as any)}>
                       <option value="home">Home Page</option>
                       <option value="items">Items / Subscriptions</option>
                       <option value="offers">Special Offers</option>
-                      <option value="courses">Courses</option>
                       <option value="all">All Pages</option>
                     </select>
                   </div>
-
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Banner Slot / Position</label>
-                    <select
-                      className="admin-form-select"
-                      value={formSlot}
-                      onChange={(e) => setFormSlot(e.target.value)}
-                    >
-                      <option value="01">Slot 01 (Hero Carousel)</option>
-                      <option value="02">Slot 02 (Middle Promo)</option>
-                      <option value="03">Slot 03 (Bottom Strip)</option>
-                      <option value="top">Top Header Banner</option>
-                    </select>
+                    <label className="admin-form-label">Slideshow Slot / Position</label>
+                    <input type="text" className="admin-form-input" placeholder="e.g. 01" value={formSlot} onChange={(e) => setFormSlot(e.target.value)} />
                   </div>
-
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Display Style Mode</label>
-                    <select
-                      className="admin-form-select"
-                      value={formStyle}
-                      onChange={(e) => setFormStyle(e.target.value as any)}
-                    >
-                      <option value="auto-slide">Auto Slide</option>
-                      <option value="fixed">Fixed Single</option>
-                      <option value="manual-slide">Manual Slide</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Order & Status */}
-                <div className="admin-form-row-3">
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Display Order</label>
-                    <input
-                      type="number"
-                      min="1"
-                      className="admin-form-input"
-                      value={formDisplayOrder}
-                      onChange={(e) => setFormDisplayOrder(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Auto-Slide Interval (Sec)</label>
-                    <input
-                      type="number"
-                      min="2"
-                      max="60"
-                      className="admin-form-input"
-                      value={formInterval}
-                      onChange={(e) => setFormInterval(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Status</label>
-                    <select
-                      className="admin-form-select"
-                      value={formStatus}
-                      onChange={(e) => setFormStatus(e.target.value as any)}
-                    >
-                      <option value="ON">Active (ON - Live on Website)</option>
+                    <label className="admin-form-label">Publication Status</label>
+                    <select className="admin-form-select" value={formStatus} onChange={(e) => setFormStatus(e.target.value as any)}>
+                      <option value="ON">Active (ON - Published)</option>
                       <option value="OFF">Inactive (OFF - Hidden)</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              <div className="admin-modal-footer">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="btn-refresh-action"
-                >
+              {/* Accessible Footer Buttons */}
+              <div className="admin-modal-footer" style={{ borderTop: '1px solid #1e293b', paddingTop: '14px', marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-refresh-action">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary-action"
-                >
+                <button type="submit" className="btn-primary-action" style={{ padding: '8px 24px' }}>
                   <Check size={16} />
-                  <span>{editingBanner ? 'Update Banner' : 'Save Banner'}</span>
+                  <span>Save Changes</span>
                 </button>
               </div>
             </form>

@@ -1441,7 +1441,11 @@ export const ottApi = {
     return [...INITIAL_COUPONS];
   },
 
-  async validateCoupon(code: string, currentTotal: number): Promise<{ valid: boolean; coupon?: Coupon; discountAmount: number; error?: string }> {
+  async validateCoupon(
+    code: string, 
+    currentTotal: number, 
+    cartItems?: { productId: string; categoryName?: string; categorySlug?: string; price: number; quantity: number }[]
+  ): Promise<{ valid: boolean; coupon?: Coupon; discountAmount: number; error?: string; message?: string }> {
     const cleanCode = code.trim().toUpperCase();
     if (!cleanCode) {
       return { valid: false, discountAmount: 0, error: 'Please enter a coupon code.' };
@@ -1455,11 +1459,59 @@ export const ottApi = {
     }
 
     if (!match.isActive) {
-      return { valid: false, discountAmount: 0, error: 'This coupon is currently inactive.' };
+      return { valid: false, discountAmount: 0, error: match.invalidMessage || 'This coupon is currently inactive.' };
     }
 
-    if (match.expiresAt && new Date(match.expiresAt).getTime() < Date.now()) {
-      return { valid: false, discountAmount: 0, error: 'This coupon has expired.' };
+    // Check Start Date & Time
+    if (match.startDate) {
+      const startDateTimeStr = match.startTime ? `${match.startDate}T${match.startTime}` : `${match.startDate}T00:00:00`;
+      const startTimeMs = new Date(startDateTimeStr).getTime();
+      if (!isNaN(startTimeMs) && Date.now() < startTimeMs) {
+        return { 
+          valid: false, 
+          discountAmount: 0, 
+          error: match.notStartedMessage || `This coupon is not active yet. Valid starting from ${match.startDate} ${match.startTime || ''}.` 
+        };
+      }
+    }
+
+    // Check Expiry Date & Time
+    if (match.expiresAt) {
+      const expiryDateTimeStr = match.expiryTime && !match.expiresAt.includes('T')
+        ? `${match.expiresAt}T${match.expiryTime}`
+        : match.expiresAt;
+      const expiryTimeMs = new Date(expiryDateTimeStr).getTime();
+      if (!isNaN(expiryTimeMs) && Date.now() > expiryTimeMs) {
+        return { 
+          valid: false, 
+          discountAmount: 0, 
+          error: match.expiredMessage || 'This coupon has expired.' 
+        };
+      }
+    }
+
+    // Determine Eligible Subtotal based on Applicability
+    let eligibleSubtotal = currentTotal;
+    if (cartItems && cartItems.length > 0 && match.applicability && match.applicability !== 'all') {
+      let eligibleItems = cartItems;
+      if (match.applicability === 'category' && match.applicableCategorySlugs && match.applicableCategorySlugs.length > 0) {
+        eligibleItems = cartItems.filter(item => 
+          (item.categorySlug && match.applicableCategorySlugs?.includes(item.categorySlug)) ||
+          (item.categoryName && match.applicableCategorySlugs?.some(slug => slug.toLowerCase() === item.categoryName?.toLowerCase()))
+        );
+      } else if ((match.applicability === 'single_item' || match.applicability === 'multiple_items') && match.applicableProductIds && match.applicableProductIds.length > 0) {
+        eligibleItems = cartItems.filter(item => match.applicableProductIds?.includes(item.productId));
+      }
+
+      if (eligibleItems.length === 0) {
+        return {
+          valid: false,
+          discountAmount: 0,
+          error: `Coupon "${match.code}" is not applicable to the items in your cart.`
+        };
+      }
+
+      eligibleSubtotal = eligibleItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     }
 
     if (match.minOrderAmount && currentTotal < match.minOrderAmount) {
@@ -1472,7 +1524,7 @@ export const ottApi = {
 
     let discount = 0;
     if (match.discountType === 'percentage') {
-      discount = Math.round((currentTotal * match.discountValue) / 100);
+      discount = Math.round((eligibleSubtotal * match.discountValue) / 100);
       if (match.maxDiscount && discount > match.maxDiscount) {
         discount = match.maxDiscount;
       }
@@ -1480,12 +1532,13 @@ export const ottApi = {
       discount = match.discountValue;
     }
 
-    discount = Math.min(discount, currentTotal);
+    discount = Math.min(discount, eligibleSubtotal);
 
     return {
       valid: true,
       coupon: match,
-      discountAmount: discount
+      discountAmount: discount,
+      message: match.successMessage || `Coupon "${match.code}" applied successfully!`
     };
   },
 

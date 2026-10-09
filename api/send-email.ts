@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const smtpUser = process.env.SMTP_USER || 'Fixyourmobiles7@gmail.com';
+    const smtpUser = process.env.SMTP_USER || 'Ottsellers1@gmail.com';
     const smtpPass = process.env.SMTP_PASSWORD || 'wgupwtpbbczbnbhq';
 
     const transporter = nodemailer.createTransport({

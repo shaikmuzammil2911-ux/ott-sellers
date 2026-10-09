@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Tag, Plus, Search, Edit2, Trash2, Check, X, 
   RefreshCw, AlertCircle, Eye, EyeOff, Calendar, 
-  DollarSign, Percent, Sparkles, Copy 
+  DollarSign, Percent, Sparkles, Copy, Clock, MessageSquare, CheckSquare, Square, Info
 } from 'lucide-react';
 import { ottApi } from '../../services/api';
-import { Coupon } from '../../types';
+import { Coupon, Category, Product, CouponApplicability } from '../../types';
 
 export const AdminCouponsPage: React.FC = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -16,21 +18,47 @@ export const AdminCouponsPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+
+  // Form Fields
   const [formCode, setFormCode] = useState('');
   const [formDiscountType, setFormDiscountType] = useState<'percentage' | 'fixed'>('percentage');
-  const [formDiscountValue, setFormDiscountValue] = useState('10');
+  const [formDiscountValue, setFormDiscountValue] = useState('15');
   const [formMinOrder, setFormMinOrder] = useState('');
   const [formMaxDiscount, setFormMaxDiscount] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  
+  // Date & Time Window
+  const [formStartDate, setFormStartDate] = useState('');
+  const [formStartTime, setFormStartTime] = useState('00:00');
   const [formExpiresAt, setFormExpiresAt] = useState('');
+  const [formExpiryTime, setFormExpiryTime] = useState('23:59');
+
+  // Custom Messages
+  const [formExpiredMessage, setFormExpiredMessage] = useState('This coupon code has expired.');
+  const [formInvalidMessage, setFormInvalidMessage] = useState('Invalid coupon code.');
+  const [formNotStartedMessage, setFormNotStartedMessage] = useState('This coupon has not started yet.');
+  const [formSuccessMessage, setFormSuccessMessage] = useState('Coupon applied successfully!');
+
+  // Applicability
+  const [formApplicability, setFormApplicability] = useState<CouponApplicability>('all');
+  const [formApplicableCategorySlugs, setFormApplicableCategorySlugs] = useState<string[]>([]);
+  const [formApplicableProductIds, setFormApplicableProductIds] = useState<string[]>([]);
+
   const [formIsActive, setFormIsActive] = useState(true);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await ottApi.getCoupons();
-      setCoupons(data);
+      const [cns, cats, prods] = await Promise.all([
+        ottApi.getCoupons(),
+        ottApi.getAllCategoriesAdmin(),
+        ottApi.getAllProductsAdmin()
+      ]);
+      setCoupons(cns);
+      setCategories(cats);
+      setProducts(prods);
     } catch (e) {
       console.error(e);
     } finally {
@@ -68,8 +96,25 @@ export const AdminCouponsPage: React.FC = () => {
     setFormMinOrder('299');
     setFormMaxDiscount('200');
     setFormDescription('Special promotional discount');
-    setFormExpiresAt(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    
+    const today = new Date().toISOString().split('T')[0];
+    const monthLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    setFormStartDate(today);
+    setFormStartTime('00:00');
+    setFormExpiresAt(monthLater);
+    setFormExpiryTime('23:59');
+
+    setFormExpiredMessage('This coupon code has expired.');
+    setFormInvalidMessage('Invalid coupon code.');
+    setFormNotStartedMessage('This coupon promotion has not started yet.');
+    setFormSuccessMessage('Coupon applied successfully!');
+
+    setFormApplicability('all');
+    setFormApplicableCategorySlugs([]);
+    setFormApplicableProductIds([]);
     setFormIsActive(true);
+    setFormError(null);
     setIsModalOpen(true);
   };
 
@@ -81,16 +126,59 @@ export const AdminCouponsPage: React.FC = () => {
     setFormMinOrder(c.minOrderAmount ? String(c.minOrderAmount) : '');
     setFormMaxDiscount(c.maxDiscount ? String(c.maxDiscount) : '');
     setFormDescription(c.description || '');
+    
+    setFormStartDate(c.startDate || '');
+    setFormStartTime(c.startTime || '00:00');
     setFormExpiresAt(c.expiresAt ? c.expiresAt.split('T')[0] : '');
+    setFormExpiryTime(c.expiryTime || '23:59');
+
+    setFormExpiredMessage(c.expiredMessage || 'This coupon code has expired.');
+    setFormInvalidMessage(c.invalidMessage || 'Invalid coupon code.');
+    setFormNotStartedMessage(c.notStartedMessage || 'This coupon promotion has not started yet.');
+    setFormSuccessMessage(c.successMessage || 'Coupon applied successfully!');
+
+    setFormApplicability(c.applicability || 'all');
+    setFormApplicableCategorySlugs(c.applicableCategorySlugs || []);
+    setFormApplicableProductIds(c.applicableProductIds || []);
     setFormIsActive(c.isActive);
+    setFormError(null);
     setIsModalOpen(true);
+  };
+
+  const handleToggleCategorySelection = (slug: string) => {
+    if (formApplicableCategorySlugs.includes(slug)) {
+      setFormApplicableCategorySlugs(formApplicableCategorySlugs.filter(s => s !== slug));
+    } else {
+      setFormApplicableCategorySlugs([...formApplicableCategorySlugs, slug]);
+    }
+  };
+
+  const handleToggleProductSelection = (id: string) => {
+    if (formApplicableProductIds.includes(id)) {
+      setFormApplicableProductIds(formApplicableProductIds.filter(pid => pid !== id));
+    } else {
+      setFormApplicableProductIds([...formApplicableProductIds, id]);
+    }
   };
 
   const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
     if (!formCode.trim()) {
-      alert('Coupon code is required.');
+      setFormError('Coupon code is required.');
       return;
+    }
+
+    // Validate Start vs Expiry
+    if (formStartDate && formExpiresAt) {
+      const startMs = new Date(`${formStartDate}T${formStartTime || '00:00'}`).getTime();
+      const expiryMs = new Date(`${formExpiresAt}T${formExpiryTime || '23:59'}`).getTime();
+
+      if (!isNaN(startMs) && !isNaN(expiryMs) && expiryMs <= startMs) {
+        setFormError('Expiry date and time must be later than the start date and time.');
+        return;
+      }
     }
 
     const couponData: Coupon = {
@@ -101,13 +189,23 @@ export const AdminCouponsPage: React.FC = () => {
       minOrderAmount: formMinOrder ? Number(formMinOrder) : undefined,
       maxDiscount: formMaxDiscount ? Number(formMaxDiscount) : undefined,
       description: formDescription.trim(),
-      expiresAt: formExpiresAt ? new Date(formExpiresAt).toISOString() : undefined,
+      startDate: formStartDate || undefined,
+      startTime: formStartTime || undefined,
+      expiresAt: formExpiresAt ? new Date(`${formExpiresAt}T${formExpiryTime || '23:59'}`).toISOString() : undefined,
+      expiryTime: formExpiryTime || undefined,
+      expiredMessage: formExpiredMessage.trim(),
+      invalidMessage: formInvalidMessage.trim(),
+      notStartedMessage: formNotStartedMessage.trim(),
+      successMessage: formSuccessMessage.trim(),
+      applicability: formApplicability,
+      applicableCategorySlugs: formApplicableCategorySlugs,
+      applicableProductIds: formApplicableProductIds,
       isActive: formIsActive
     };
 
     await ottApi.saveCoupon(couponData);
     await ottApi.logAudit(editingCoupon ? 'UPDATE_COUPON' : 'CREATE_COUPON', 'coupons', couponData.id, { code: couponData.code });
-    showToast(`Coupon "${couponData.code}" saved and synced!`);
+    showToast(`Coupon "${couponData.code}" saved successfully! Enforced in checkout.`);
     setIsModalOpen(false);
     await loadData();
   };
@@ -144,10 +242,10 @@ export const AdminCouponsPage: React.FC = () => {
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
             <Tag className="admin-heading-icon" style={{ color: '#0284c7' }} />
-            <span>Coupon & Discount Management</span>
+            <span>Coupon Rules & Applicability CMS</span>
           </h1>
           <p className="admin-sub-text">
-            Create unique discount codes, set percentage or flat deductions, minimum cart value, and expiry limits.
+            Configure discount caps, start & expiry windows, item/category applicability, and custom status messages.
           </p>
         </div>
 
@@ -156,7 +254,7 @@ export const AdminCouponsPage: React.FC = () => {
             onClick={loadData}
             disabled={loading}
             className="btn-refresh-action"
-            title="Refresh from database"
+            title="Refresh database"
           >
             <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
           </button>
@@ -209,15 +307,16 @@ export const AdminCouponsPage: React.FC = () => {
               <th>Discount</th>
               <th>Min Order</th>
               <th>Max Cap</th>
+              <th>Applicable To</th>
+              <th>Validity Period</th>
               <th>Status</th>
-              <th>Expiry</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredCoupons.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
                   No coupons found. Click <strong>+ Create New Coupon</strong> to add your first promotion.
                 </td>
               </tr>
@@ -230,19 +329,15 @@ export const AdminCouponsPage: React.FC = () => {
                         fontFamily: 'monospace', 
                         fontSize: '0.92rem', 
                         fontWeight: 800, 
-                        background: '#f1f5f9', 
+                        background: '#070d1e',
+                        border: '1px solid #1e293b', 
                         padding: '4px 8px', 
                         borderRadius: '6px',
                         letterSpacing: '0.04em',
-                        color: 'var(--admin-primary)'
+                        color: '#38bdf8'
                       }}>
                         {c.code}
                       </span>
-                      {c.description && (
-                        <span style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>
-                          ({c.description})
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td>
@@ -250,11 +345,21 @@ export const AdminCouponsPage: React.FC = () => {
                       {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`}
                     </strong>
                   </td>
+                  <td>{c.minOrderAmount ? `₹${c.minOrderAmount}` : 'No Min'}</td>
                   <td>
-                    {c.minOrderAmount ? `₹${c.minOrderAmount}` : 'No minimum'}
+                    <strong style={{ color: '#16a34a' }}>
+                      {c.maxDiscount ? `₹${c.maxDiscount}` : 'Uncapped'}
+                    </strong>
                   </td>
                   <td>
-                    {c.maxDiscount ? `₹${c.maxDiscount}` : 'No limit'}
+                    <span style={{ fontSize: '0.74rem', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', padding: '2px 6px', borderRadius: '4px', textTransform: 'capitalize', fontWeight: 700 }}>
+                      {c.applicability || 'all'}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                      {c.startDate ? `${c.startDate}` : 'Now'} → {c.expiresAt ? c.expiresAt.split('T')[0] : 'No Expiry'}
+                    </span>
                   </td>
                   <td>
                     <button
@@ -262,33 +367,28 @@ export const AdminCouponsPage: React.FC = () => {
                       onClick={() => handleToggleStatus(c)}
                       className={`admin-badge ${c.isActive ? 'active' : 'inactive'}`}
                       style={{ cursor: 'pointer', border: 'none' }}
-                      title="Click to toggle active status"
                     >
                       {c.isActive ? <Eye size={12} /> : <EyeOff size={12} />}
-                      <span>{c.isActive ? 'ACTIVE' : 'INACTIVE'}</span>
+                      <span>{c.isActive ? 'Active' : 'Inactive'}</span>
                     </button>
                   </td>
-                  <td style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)' }}>
-                    {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Never'}
-                  </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(c)}
-                        className="btn-refresh-action"
-                        title="Edit coupon"
+                        className="btn-primary-action"
+                        style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                       >
-                        <Edit2 size={14} />
+                        <Edit2 size={12} /> Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteCoupon(c.id, c.code)}
                         className="btn-refresh-action"
                         style={{ color: 'var(--admin-danger)' }}
-                        title="Delete coupon"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>
@@ -299,53 +399,47 @@ export const AdminCouponsPage: React.FC = () => {
         </table>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* CREATE / EDIT MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
+          <div className="admin-modal-box" style={{ maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="admin-modal-header">
               <h2 className="admin-modal-title">
-                {editingCoupon ? `Edit Coupon (${editingCoupon.code})` : 'Create New Coupon'}
+                {editingCoupon ? `Edit Coupon Rules: ${editingCoupon.code}` : 'Create New Coupon Promotion'}
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="admin-modal-close-btn"
-              >
+              <button type="button" onClick={() => setIsModalOpen(false)} className="admin-modal-close-btn">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveCoupon}>
-              <div className="admin-modal-body">
-                {/* Code Generation Row */}
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Coupon Code *</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      className="admin-form-input"
-                      placeholder="e.g. OTT2026, SAVE20"
-                      value={formCode}
-                      onChange={(e) => setFormCode(e.target.value.toUpperCase())}
-                      style={{ textTransform: 'uppercase', fontFamily: 'monospace', fontWeight: 700 }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={handleGenerateCode}
-                      className="btn-refresh-action"
-                      style={{ whiteSpace: 'nowrap', display: 'inline-flex', gap: '6px', alignItems: 'center', fontSize: '0.8rem', fontWeight: 700 }}
-                      title="Generate unique random code"
-                    >
-                      <Sparkles size={14} color="#0284c7" />
-                      <span>Auto Generate</span>
-                    </button>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {formError && (
+                  <div className="admin-alert-banner error">
+                    <AlertCircle size={16} />
+                    <span>{formError}</span>
                   </div>
-                </div>
+                )}
 
-                {/* Discount Type & Value */}
+                {/* Coupon Code & Generate */}
                 <div className="admin-form-row-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Coupon Code *</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        className="admin-form-input"
+                        placeholder="e.g. FESTIVE70"
+                        value={formCode}
+                        onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+                        required
+                      />
+                      <button type="button" onClick={handleGenerateCode} className="btn-refresh-action" title="Generate Code">
+                        <Sparkles size={14} />
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="admin-form-group">
                     <label className="admin-form-label">Discount Type</label>
                     <select
@@ -353,106 +447,217 @@ export const AdminCouponsPage: React.FC = () => {
                       value={formDiscountType}
                       onChange={(e) => setFormDiscountType(e.target.value as any)}
                     >
-                      <option value="percentage">Percentage (%) Discount</option>
-                      <option value="fixed">Flat Fixed (₹) Discount</option>
+                      <option value="percentage">Percentage Discount (%)</option>
+                      <option value="fixed">Fixed Amount Discount (₹)</option>
                     </select>
                   </div>
+                </div>
 
+                {/* Discount Value, Min Order & Max Discount Cap */}
+                <div className="admin-form-row-3">
                   <div className="admin-form-group">
                     <label className="admin-form-label">
-                      {formDiscountType === 'percentage' ? 'Percentage Value (%) *' : 'Flat Amount (₹) *'}
+                      {formDiscountType === 'percentage' ? 'Discount Percentage (%) *' : 'Discount Amount (₹) *'}
                     </label>
                     <input
                       type="number"
                       min="1"
-                      max={formDiscountType === 'percentage' ? '100' : '5000'}
                       className="admin-form-input"
                       value={formDiscountValue}
                       onChange={(e) => setFormDiscountValue(e.target.value)}
                       required
                     />
                   </div>
-                </div>
 
-                {/* Limits */}
-                <div className="admin-form-row-2">
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Min Cart Amount (₹)</label>
+                    <label className="admin-form-label">Min Cart Value (₹)</label>
                     <input
                       type="number"
                       min="0"
                       className="admin-form-input"
-                      placeholder="e.g. 299 (optional)"
+                      placeholder="e.g. 299"
                       value={formMinOrder}
                       onChange={(e) => setFormMinOrder(e.target.value)}
                     />
                   </div>
 
+                  {/* Requirement 8.A: Max Discount Cap */}
                   <div className="admin-form-group">
                     <label className="admin-form-label">Max Discount Cap (₹)</label>
                     <input
                       type="number"
-                      min="0"
+                      min="1"
                       className="admin-form-input"
-                      placeholder="e.g. 500 (optional)"
+                      placeholder="e.g. 200 (For % coupons)"
                       value={formMaxDiscount}
                       onChange={(e) => setFormMaxDiscount(e.target.value)}
-                      disabled={formDiscountType === 'fixed'}
                     />
                   </div>
                 </div>
 
-                {/* Description & Expiry */}
+                {/* Requirement 8.B: Start & Expiry Window */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
+                  <h4 style={{ margin: '0 0 10px', fontSize: '0.86rem', color: '#38bdf8', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Calendar size={14} />
+                    <span>Validity Window (Start & Expiry Date & Time)</span>
+                  </h4>
+
+                  <div className="admin-form-row-2">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Start Date & Time</label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input type="date" className="admin-form-input" value={formStartDate} onChange={(e) => setFormStartDate(e.target.value)} />
+                        <input type="time" className="admin-form-input" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Expiry Date & Time</label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input type="date" className="admin-form-input" value={formExpiresAt} onChange={(e) => setFormExpiresAt(e.target.value)} />
+                        <input type="time" className="admin-form-input" value={formExpiryTime} onChange={(e) => setFormExpiryTime(e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Requirement 8.D: Coupon Applicability */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
+                  <label className="admin-form-label" style={{ fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
+                    Where Should This Coupon Apply?
+                  </label>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', marginBottom: '12px' }}>
+                    {[
+                      { key: 'all', label: 'All Eligible Items' },
+                      { key: 'category', label: 'Selected Categories' },
+                      { key: 'single_item', label: 'Single Selected Item' },
+                      { key: 'multiple_items', label: 'Multiple Selected Items' }
+                    ].map(mode => (
+                      <button
+                        type="button"
+                        key={mode.key}
+                        onClick={() => setFormApplicability(mode.key as any)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: formApplicability === mode.key ? 'rgba(56, 189, 248, 0.15)' : '#0b132b',
+                          border: `1px solid ${formApplicability === mode.key ? '#38bdf8' : '#1e293b'}`,
+                          borderRadius: '6px',
+                          padding: '8px 10px',
+                          color: formApplicability === mode.key ? '#ffffff' : '#cbd5e1',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {formApplicability === mode.key ? <CheckSquare size={13} color="#38bdf8" /> : <Square size={13} color="#64748b" />}
+                        <span>{mode.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Category Selection */}
+                  {formApplicability === 'category' && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                      {categories.map(cat => (
+                        <button
+                          type="button"
+                          key={cat.slug}
+                          onClick={() => handleToggleCategorySelection(cat.slug)}
+                          style={{
+                            background: formApplicableCategorySlugs.includes(cat.slug) ? '#0284c7' : '#0b132b',
+                            color: '#fff',
+                            border: '1px solid #1e293b',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '0.76rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Item Selection */}
+                  {(formApplicability === 'single_item' || formApplicability === 'multiple_items') && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '6px', maxHeight: '160px', overflowY: 'auto', marginTop: '10px' }}>
+                      {products.map(prod => (
+                        <button
+                          type="button"
+                          key={prod.id}
+                          onClick={() => handleToggleProductSelection(prod.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: formApplicableProductIds.includes(prod.id) ? 'rgba(56, 189, 248, 0.2)' : '#0b132b',
+                            border: `1px solid ${formApplicableProductIds.includes(prod.id) ? '#38bdf8' : '#1e293b'}`,
+                            borderRadius: '6px',
+                            padding: '6px 8px',
+                            color: '#fff',
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                        >
+                          {formApplicableProductIds.includes(prod.id) ? <CheckSquare size={12} color="#38bdf8" /> : <Square size={12} color="#64748b" />}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prod.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Requirement 8.C: Custom Status Messages */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
+                  <h4 style={{ margin: '0 0 10px', fontSize: '0.86rem', color: '#f59e0b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MessageSquare size={14} />
+                    <span>Custom Customer Messages</span>
+                  </h4>
+
+                  <div className="admin-form-row-2">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Expired Coupon Message</label>
+                      <input type="text" className="admin-form-input" value={formExpiredMessage} onChange={(e) => setFormExpiredMessage(e.target.value)} />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Invalid Coupon Message</label>
+                      <input type="text" className="admin-form-input" value={formInvalidMessage} onChange={(e) => setFormInvalidMessage(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-row-2">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Not Started Message</label>
+                      <input type="text" className="admin-form-input" value={formNotStartedMessage} onChange={(e) => setFormNotStartedMessage(e.target.value)} />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Success Application Message</label>
+                      <input type="text" className="admin-form-input" value={formSuccessMessage} onChange={(e) => setFormSuccessMessage(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Coupon Description</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. Flash festive sale 15% discount on all subscriptions"
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                  />
-                </div>
-
-                <div className="admin-form-row-2">
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Expiration Date</label>
-                    <input
-                      type="date"
-                      className="admin-form-input"
-                      value={formExpiresAt}
-                      onChange={(e) => setFormExpiresAt(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Status</label>
-                    <select
-                      className="admin-form-select"
-                      value={formIsActive ? 'active' : 'inactive'}
-                      onChange={(e) => setFormIsActive(e.target.value === 'active')}
-                    >
-                      <option value="active">Active (Usable on Storefront)</option>
-                      <option value="inactive">Inactive (Disabled)</option>
-                    </select>
-                  </div>
+                  <label className="admin-form-label">Publication Status</label>
+                  <select className="admin-form-select" value={formIsActive ? 'active' : 'inactive'} onChange={(e) => setFormIsActive(e.target.value === 'active')}>
+                    <option value="active">Active (ON - Can be used in checkout)</option>
+                    <option value="inactive">Inactive (OFF - Disabled)</option>
+                  </select>
                 </div>
               </div>
 
               <div className="admin-modal-footer">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="btn-refresh-action"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-refresh-action">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary-action"
-                >
+                <button type="submit" className="btn-primary-action">
                   <Check size={16} />
-                  <span>{editingCoupon ? 'Update Coupon' : 'Save Coupon'}</span>
+                  <span>{editingCoupon ? 'Save Coupon Rules' : 'Create Coupon'}</span>
                 </button>
               </div>
             </form>

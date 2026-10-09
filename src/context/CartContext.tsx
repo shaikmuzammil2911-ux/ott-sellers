@@ -173,12 +173,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const res = await ottApi.validateCoupon(code, rawTotal);
+      const res = await ottApi.validateCoupon(code, rawTotal, items);
       if (res.valid && res.coupon) {
         setAppliedCoupon(res.coupon);
         setCouponError(null);
-        showToast(`Coupon "${res.coupon.code}" applied! You saved ₹${res.discountAmount}.`);
-        return { success: true, message: `Coupon applied successfully!` };
+        showToast(res.message || `Coupon "${res.coupon.code}" applied! You saved ₹${res.discountAmount}.`);
+        return { success: true, message: res.message || `Coupon applied successfully!` };
       } else {
         const err = res.error || 'Invalid or expired coupon code.';
         setCouponError(err);

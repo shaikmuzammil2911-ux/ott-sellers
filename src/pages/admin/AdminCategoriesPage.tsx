@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, 
-  FolderTree, RefreshCw, AlertCircle, Eye, EyeOff, Layers, Hash, Copy 
+  FolderTree, RefreshCw, AlertCircle, Eye, EyeOff, Layers, Hash, Copy,
+  ArrowUp, ArrowDown, LayoutGrid, CheckSquare, Square, Info
 } from 'lucide-react';
 import { ottApi } from '../../services/api';
 import { Category } from '../../types';
@@ -10,6 +11,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [placementFilter, setPlacementFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
   // Modal State
@@ -20,6 +22,11 @@ export const AdminCategoriesPage: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [formDisplayOrder, setFormDisplayOrder] = useState('1');
   const [formStatus, setFormStatus] = useState<'ON' | 'OFF'>('ON');
+  const [formPlacements, setFormPlacements] = useState<string[]>(['home', 'items']);
+  const [formIconName, setFormIconName] = useState('Compass');
+  const [formBadgeColor, setFormBadgeColor] = useState('#0284c7');
+  const [formImageUrl, setFormImageUrl] = useState('');
+
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -58,6 +65,10 @@ export const AdminCategoriesPage: React.FC = () => {
     setFormDescription('');
     setFormDisplayOrder(String(categories.length + 1));
     setFormStatus('ON');
+    setFormPlacements(['home', 'items']);
+    setFormIconName('Compass');
+    setFormBadgeColor('#0284c7');
+    setFormImageUrl('');
     setIsModalOpen(true);
   };
 
@@ -68,6 +79,10 @@ export const AdminCategoriesPage: React.FC = () => {
     setFormDescription(c.description || '');
     setFormDisplayOrder(String(c.displayOrder || 1));
     setFormStatus(c.status || 'ON');
+    setFormPlacements(c.placements && c.placements.length > 0 ? c.placements : ['home', 'items']);
+    setFormIconName(c.iconName || 'Compass');
+    setFormBadgeColor(c.badgeColor || '#0284c7');
+    setFormImageUrl(c.image || '');
     setIsModalOpen(true);
   };
 
@@ -79,14 +94,21 @@ export const AdminCategoriesPage: React.FC = () => {
     }
   };
 
-  const handleDuplicate = async (c: Category) => {
-    try {
-      const copy = await ottApi.duplicateCategory(c.id);
-      showToast(`Category "${c.name}" duplicated as "${copy.name}"!`);
-      await loadData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to duplicate category');
+  const handleTogglePlacement = (loc: string) => {
+    if (formPlacements.includes(loc)) {
+      setFormPlacements(formPlacements.filter(p => p !== loc));
+    } else {
+      setFormPlacements([...formPlacements, loc]);
     }
+  };
+
+  const handleMoveOrder = async (c: Category, direction: 'up' | 'down') => {
+    const currentOrder = c.displayOrder || 1;
+    const newOrder = direction === 'up' ? Math.max(1, currentOrder - 1) : currentOrder + 1;
+    const updated = { ...c, displayOrder: newOrder, updatedAt: Date.now() };
+    await ottApi.saveCategory(updated);
+    showToast(`Category order updated to #${newOrder}`);
+    await loadData();
   };
 
   const handleSaveCategory = async (e: React.FormEvent) => {
@@ -108,6 +130,10 @@ export const AdminCategoriesPage: React.FC = () => {
       shortDescription: formDescription.trim(),
       displayOrder: Number(formDisplayOrder) || 1,
       status: formStatus,
+      placements: formPlacements.length > 0 ? formPlacements : ['home', 'items'],
+      iconName: formIconName,
+      badgeColor: formBadgeColor,
+      image: formImageUrl.trim(),
       updatedAt: Date.now()
     };
 
@@ -117,13 +143,13 @@ export const AdminCategoriesPage: React.FC = () => {
       slug: categoryData.slug 
     });
 
-    showToast(`Category "${categoryData.name}" saved to database and live on website!`);
+    showToast(`Category "${categoryData.name}" saved & synced with live website!`);
     setIsModalOpen(false);
     await loadData();
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to permanently delete category "${name}"? This action cannot be undone.`)) {
+    if (confirm(`Are you sure you want to delete category "${name}"? Products in this category will be preserved safely.`)) {
       await ottApi.deleteCategory(id);
       await ottApi.logAudit('DELETE_CATEGORY', 'categories', id, { name });
       showToast(`Category "${name}" deleted.`);
@@ -135,7 +161,7 @@ export const AdminCategoriesPage: React.FC = () => {
     const newStatus: 'ON' | 'OFF' = c.status === 'ON' ? 'OFF' : 'ON';
     const updated = { ...c, status: newStatus, updatedAt: Date.now() };
     await ottApi.saveCategory(updated);
-    showToast(`Category is now ${newStatus === 'ON' ? 'ACTIVE' : 'INACTIVE'}.`);
+    showToast(`Category "${c.name}" is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
     await loadData();
   };
 
@@ -145,6 +171,10 @@ export const AdminCategoriesPage: React.FC = () => {
     if (!matchesSearch) return false;
     if (statusFilter === 'ON' && c.status !== 'ON') return false;
     if (statusFilter === 'OFF' && c.status !== 'OFF') return false;
+    if (placementFilter !== 'all') {
+      const placements = c.placements || ['home', 'items'];
+      if (!placements.includes(placementFilter)) return false;
+    }
     return true;
   });
 
@@ -155,10 +185,10 @@ export const AdminCategoriesPage: React.FC = () => {
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
             <FolderTree className="admin-heading-icon" style={{ color: '#0284c7' }} />
-            <span>Category Management</span>
+            <span>Category Management & Placement CMS</span>
           </h1>
           <p className="admin-sub-text">
-            Organize OTT subscriptions and services into curated streaming categories.
+            Organize subscriptions into streaming categories, set order numbers externally, and select display locations (Home, Items, Offers).
           </p>
         </div>
 
@@ -200,26 +230,39 @@ export const AdminCategoriesPage: React.FC = () => {
           />
         </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="admin-select-filter"
-        >
-          <option value="all">All Statuses</option>
-          <option value="ON">Active Only</option>
-          <option value="OFF">Inactive Only</option>
-        </select>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <select
+            value={placementFilter}
+            onChange={(e) => setPlacementFilter(e.target.value)}
+            className="admin-select-filter"
+          >
+            <option value="all">All Placement Locations</option>
+            <option value="home">Home Page Strip</option>
+            <option value="items">Items Page</option>
+            <option value="offers">Special Offers Page</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="admin-select-filter"
+          >
+            <option value="all">All Statuses</option>
+            <option value="ON">Active Only</option>
+            <option value="OFF">Inactive Only</option>
+          </select>
+        </div>
       </div>
 
-      {/* Categories Table */}
+      {/* Categories List Table */}
       <div className="admin-table-container">
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Order</th>
+              <th style={{ width: '120px' }}>Display Order</th>
               <th>Category Name</th>
               <th>URL Slug</th>
-              <th>Description</th>
+              <th>Where Placed</th>
               <th>Status</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
@@ -234,23 +277,68 @@ export const AdminCategoriesPage: React.FC = () => {
             ) : (
               filteredCategories.map((cat) => (
                 <tr key={cat.id || cat.slug}>
+                  {/* Requirement 5.A: External Order Control */}
                   <td>
-                    <span style={{ fontWeight: 700, color: 'var(--admin-text-muted)' }}>
-                      #{cat.displayOrder || 1}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        width: '32px', 
+                        height: '32px', 
+                        background: '#070d1e', 
+                        border: '1px solid #1e293b', 
+                        borderRadius: '6px', 
+                        color: '#38bdf8', 
+                        fontWeight: 800,
+                        fontSize: '0.86rem' 
+                      }}>
+                        #{cat.displayOrder || 1}
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveOrder(cat, 'up')}
+                          className="btn-refresh-action"
+                          style={{ padding: '2px 4px' }}
+                          title="Move Order Up"
+                        >
+                          <ArrowUp size={10} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveOrder(cat, 'down')}
+                          className="btn-refresh-action"
+                          style={{ padding: '2px 4px' }}
+                          title="Move Order Down"
+                        >
+                          <ArrowDown size={10} />
+                        </button>
+                      </div>
+                    </div>
                   </td>
                   <td>
-                    <strong style={{ color: 'var(--admin-text-main)', fontSize: '0.9rem' }}>
-                      {cat.name}
-                    </strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: cat.badgeColor || '#0284c7' }} />
+                      <strong style={{ color: 'var(--admin-text-main)', fontSize: '0.9rem' }}>
+                        {cat.name}
+                      </strong>
+                    </div>
                   </td>
                   <td>
                     <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.76rem', color: 'var(--admin-primary)' }}>
                       {cat.slug}
                     </code>
                   </td>
-                  <td style={{ maxWidth: '280px', color: 'var(--admin-text-muted)', fontSize: '0.78rem' }}>
-                    {cat.description || 'No description provided'}
+                  {/* Requirement 5.B: Placements Badges */}
+                  <td>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {(cat.placements || ['home', 'items']).map(p => (
+                        <span key={p} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', textTransform: 'capitalize' }}>
+                          {p}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td>
                     <button
@@ -258,28 +346,18 @@ export const AdminCategoriesPage: React.FC = () => {
                       onClick={() => handleToggleStatus(cat)}
                       className={`admin-badge ${cat.status === 'ON' ? 'active' : 'inactive'}`}
                       style={{ cursor: 'pointer', border: 'none' }}
-                      title="Click to toggle status"
                     >
                       {cat.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
-                      <span>{cat.status === 'ON' ? 'ACTIVE' : 'INACTIVE'}</span>
+                      <span>{cat.status === 'ON' ? 'Active' : 'Inactive'}</span>
                     </button>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicate(cat)}
-                        className="btn-refresh-action"
-                        title="Duplicate category"
-                      >
-                        <Copy size={13} />
-                      </button>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(cat)}
                         className="btn-primary-action"
                         style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                        title="Edit category"
                       >
                         <Edit2 size={12} />
                         <span>Edit</span>
@@ -302,10 +380,10 @@ export const AdminCategoriesPage: React.FC = () => {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* CREATE / EDIT MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
+          <div className="admin-modal-box" style={{ maxWidth: '640px' }}>
             <div className="admin-modal-header">
               <h2 className="admin-modal-title">
                 {editingCategory ? `Edit Category (${editingCategory.name})` : 'Create New Category'}
@@ -320,44 +398,84 @@ export const AdminCategoriesPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveCategory}>
-              <div className="admin-modal-body">
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Category Name *</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. Movies & TV Shows"
-                    value={formName}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    required
-                  />
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div className="admin-form-row-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Category Name *</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="e.g. Movies & Series"
+                      value={formName}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">URL Slug *</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="e.g. movies-series"
+                      value={formSlug}
+                      onChange={(e) => setFormSlug(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="admin-form-group">
-                  <label className="admin-form-label">URL Slug (e.g. movies-tv-shows)</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="movies-tv-shows"
-                    value={formSlug}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Description (Optional)</label>
+                  <label className="admin-form-label">Description</label>
                   <textarea
-                    className="admin-form-textarea"
-                    rows={3}
-                    placeholder="Short description for SEO and category preview"
+                    rows={2}
+                    className="admin-form-input"
+                    placeholder="Brief description for customer view..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                   />
                 </div>
 
+                {/* Requirement 5.B: Where Should This Category Appear? */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
+                  <label className="admin-form-label" style={{ fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
+                    Where Should This Category Appear?
+                  </label>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                    {[
+                      { key: 'home', label: 'Home Page' },
+                      { key: 'items', label: 'Items / Subscriptions' },
+                      { key: 'offers', label: 'Special Offers' }
+                    ].map(loc => (
+                      <button
+                        type="button"
+                        key={loc.key}
+                        onClick={() => handleTogglePlacement(loc.key)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          background: formPlacements.includes(loc.key) ? 'rgba(56, 189, 248, 0.15)' : '#0b132b',
+                          border: `1px solid ${formPlacements.includes(loc.key) ? '#38bdf8' : '#1e293b'}`,
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          color: formPlacements.includes(loc.key) ? '#ffffff' : '#cbd5e1',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {formPlacements.includes(loc.key) ? <CheckSquare size={14} color="#38bdf8" /> : <Square size={14} color="#64748b" />}
+                        <span>{loc.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Display Order</label>
+                    <label className="admin-form-label">Display Order Number</label>
                     <input
                       type="number"
                       min="1"
@@ -368,13 +486,13 @@ export const AdminCategoriesPage: React.FC = () => {
                   </div>
 
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Status</label>
+                    <label className="admin-form-label">Publication Status</label>
                     <select
                       className="admin-form-select"
                       value={formStatus}
                       onChange={(e) => setFormStatus(e.target.value as any)}
                     >
-                      <option value="ON">Active (ON - Displayed on Storefront)</option>
+                      <option value="ON">Active (ON - Display publicly)</option>
                       <option value="OFF">Inactive (OFF - Hidden)</option>
                     </select>
                   </div>

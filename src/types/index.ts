@@ -59,6 +59,7 @@ export interface Product {
 
 export type BannerImageMode = 'solid-color' | 'image-blur' | 'image-only';
 export type BannerTextPosition = 'left' | 'center' | 'right';
+export type BannerVerticalPlacement = 'top' | 'center' | 'bottom';
 export type BannerDisplayStyle = 'auto-slide' | 'fixed' | 'manual-slide' | 'single';
 export type BannerTargetPage = 'home' | 'courses' | 'items' | 'categories' | 'offers' | 'all';
 
@@ -77,6 +78,12 @@ export interface HeroBanner {
   mode: BannerImageMode;
   solidColor?: string;
   textPosition: BannerTextPosition;
+  contentPlacement?: BannerVerticalPlacement;
+  buttonPlacement?: BannerTextPosition;
+  btnBgColor?: string;
+  btnTextColor?: string;
+  overlayColor?: string;
+  overlayOpacity?: number;
   displayOrder: number;
   page: BannerTargetPage;
   slot: string; // e.g. '01', '02', 'hero', 'top'
@@ -105,6 +112,7 @@ export interface Category {
   image?: string;
   status?: 'ON' | 'OFF';
   displayOrder?: number;
+  placements?: ('home' | 'items' | 'offers' | string)[];
   updatedAt?: number;
 }
 
@@ -143,6 +151,8 @@ export interface CartItem {
   quantity: number;
 }
 
+export type CouponApplicability = 'all' | 'category' | 'single_item' | 'multiple_items';
+
 export interface Coupon {
   id: string;
   code: string;
@@ -152,7 +162,17 @@ export interface Coupon {
   maxDiscount?: number;
   description?: string;
   isActive: boolean;
+  startDate?: string;
+  startTime?: string;
   expiresAt?: string;
+  expiryTime?: string;
+  expiredMessage?: string;
+  invalidMessage?: string;
+  notStartedMessage?: string;
+  successMessage?: string;
+  applicability?: CouponApplicability;
+  applicableCategorySlugs?: string[];
+  applicableProductIds?: string[];
 }
 
 export type OrderStatus = 'Pending' | 'Paid' | 'Processing' | 'Delivered' | 'Completed' | 'Cancelled';
@@ -237,14 +257,19 @@ export interface HomepageSectionCMS {
 }
 
 export interface FooterQuickLink {
+  id?: string;
   label: string;
   url: string;
+  group?: string;
+  displayOrder?: number;
+  status?: 'ON' | 'OFF';
 }
 
 export interface FooterSettings {
   description: string;
   quickLinks: FooterQuickLink[];
   customerSupportLinks: FooterQuickLink[];
+  additionalLinks?: FooterQuickLink[];
   contactEmail: string;
   contactPhone: string;
   whatsappNumber: string;
@@ -284,6 +309,8 @@ export interface AdminSettings {
   supportPhone: string;
   supportWhatsApp: string;
   announcementText: string;
+  logoUrl?: string;
+  faviconUrl?: string;
   razorpayKeyId?: string;
   smtpHost?: string;
   smtpUser?: string;

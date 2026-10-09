@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, Upload, 
   Image as ImageIcon, RefreshCw, AlertCircle, Eye, EyeOff, 
-  Package, Crop, Star, Sparkles, Tag, DollarSign 
+  Package, Crop, Star, Sparkles, Tag, DollarSign, Info, Layers, CheckSquare, Square
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
@@ -20,19 +20,36 @@ export const AdminProductsPage: React.FC = () => {
   // Drawer / Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Form Fields - Group 1: Basic Information
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
+  const [formTagline, setFormTagline] = useState('');
   const [formCategorySlug, setFormCategorySlug] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+
+  // Form Fields - Group 2: Pricing
   const [formPrice, setFormPrice] = useState('199');
   const [formOriginalPrice, setFormOriginalPrice] = useState('499');
-  const [formTagline, setFormTagline] = useState('');
-  const [formImageUrl, setFormImageUrl] = useState('');
-  const [formDisplayOrder, setFormDisplayOrder] = useState('1');
-  const [formInStock, setFormInStock] = useState(true);
-  const [formInOffers, setFormInOffers] = useState(false);
   const [formOfferPrice, setFormOfferPrice] = useState('');
+  const [formInOffers, setFormInOffers] = useState(false);
+
+  // Form Fields - Group 3: Images & Media
+  const [formImageUrl, setFormImageUrl] = useState('');
+
+  // Form Fields - Group 4: Display & Publication
   const [formStatus, setFormStatus] = useState<'ON' | 'OFF'>('ON');
+  const [formInStock, setFormInStock] = useState(true);
+  const [formIsFeatured, setFormIsFeatured] = useState(false);
+  const [formIsTrending, setFormIsTrending] = useState(false);
+  const [formDisplayOrder, setFormDisplayOrder] = useState('1');
+
+  // Form Fields - Group 5: Preserved Business Fields
   const [formFeatures, setFormFeatures] = useState('');
+  const [formWarranty, setFormWarranty] = useState('Full Duration Replacement Warranty');
+
+  // Validation Errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Cropper State
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -78,17 +95,22 @@ export const AdminProductsPage: React.FC = () => {
     setEditingProduct(null);
     setFormName('');
     setFormSlug('');
+    setFormTagline('Instant WhatsApp Credentials Delivery');
     setFormCategorySlug(categories[0]?.slug || 'movies-series');
+    setFormDescription('Verified 4K streaming access with instant PIN activation.');
     setFormPrice('199');
     setFormOriginalPrice('499');
-    setFormTagline('Instant WhatsApp Credentials Delivery');
-    setFormImageUrl('');
-    setFormDisplayOrder(String(products.length + 1));
-    setFormInStock(true);
-    setFormInOffers(false);
     setFormOfferPrice('');
+    setFormInOffers(false);
+    setFormImageUrl('');
     setFormStatus('ON');
-    setFormFeatures('Private Screen with 4-Digit PIN\n4K Ultra HD Streaming\nFull Replacement Warranty');
+    setFormInStock(true);
+    setFormIsFeatured(false);
+    setFormIsTrending(false);
+    setFormDisplayOrder(String(products.length + 1));
+    setFormFeatures('Private Screen with 4-Digit PIN\n4K Ultra HD Streaming\nFull Duration Replacement Warranty');
+    setFormWarranty('Full Duration Replacement Warranty');
+    setFieldErrors({});
     setUploadError(null);
     setIsModalOpen(true);
   };
@@ -97,17 +119,22 @@ export const AdminProductsPage: React.FC = () => {
     setEditingProduct(p);
     setFormName(p.name);
     setFormSlug(p.slug);
+    setFormTagline(p.tagline || '');
     setFormCategorySlug(p.categorySlug);
+    setFormDescription(p.tagline || '');
     setFormPrice(String(p.plans?.[0]?.price || p.price || 199));
     setFormOriginalPrice(String(p.plans?.[0]?.originalPrice || p.comparePrice || 499));
-    setFormTagline(p.tagline || '');
-    setFormImageUrl(p.image);
-    setFormDisplayOrder(String(p.displayOrder || 1));
-    setFormInStock(p.inStock);
-    setFormInOffers(p.inOffers ?? false);
     setFormOfferPrice(p.offerPrice ? String(p.offerPrice) : '');
+    setFormInOffers(p.inOffers ?? false);
+    setFormImageUrl(p.image);
     setFormStatus(p.status || 'ON');
+    setFormInStock(p.inStock);
+    setFormIsFeatured(p.isFeatured ?? false);
+    setFormIsTrending(p.isTrending ?? false);
+    setFormDisplayOrder(String(p.displayOrder || 1));
     setFormFeatures((p.features || []).join('\n'));
+    setFormWarranty(p.warrantyPeriod || 'Full Duration Replacement Warranty');
+    setFieldErrors({});
     setUploadError(null);
     setIsModalOpen(true);
   };
@@ -132,27 +159,32 @@ export const AdminProductsPage: React.FC = () => {
     setIsUploading(true);
     setUploadError(null);
 
-    // Create file from blob
     const croppedFile = new File([croppedBlob], `product-${Date.now()}.webp`, { type: 'image/webp' });
     const res = await uploadService.uploadImage(croppedFile, 'products');
     setIsUploading(false);
 
     if (res.success && res.url) {
       setFormImageUrl(res.url);
-      showToast('Cropped 1:1 image uploaded and ready to save!');
+      showToast('Square product image uploaded successfully!');
     } else {
-      // Fallback to data URL
       setFormImageUrl(croppedDataUrl);
       showToast('Cropped preview ready.');
     }
   };
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!formName.trim()) errors.formName = 'Item name is required.';
+    if (!formCategorySlug) errors.formCategorySlug = 'Please select a category.';
+    if (!formPrice || Number(formPrice) <= 0) errors.formPrice = 'Please enter a valid price.';
+    if (!formImageUrl.trim()) errors.formImageUrl = 'Product image is required.';
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formImageUrl.trim()) {
-      setUploadError('Product name and square product image are required.');
-      return;
-    }
+    if (!validateForm()) return;
 
     const priceNum = Number(formPrice) || 0;
     const origPriceNum = Number(formOriginalPrice) || priceNum;
@@ -218,7 +250,9 @@ export const AdminProductsPage: React.FC = () => {
         : undefined,
       status: formStatus,
       inStock: formInStock,
-      warrantyPeriod: 'Full Duration Replacement Warranty',
+      isFeatured: formIsFeatured,
+      isTrending: formIsTrending,
+      warrantyPeriod: formWarranty.trim() || 'Full Duration Replacement Warranty',
       badge: discountPct >= 20 ? `${discountPct}% OFF` : undefined,
       updatedAt: Date.now()
     };
@@ -229,7 +263,7 @@ export const AdminProductsPage: React.FC = () => {
       price: updatedProduct.price
     });
 
-    showToast(`Product "${updatedProduct.name}" saved! Live website updated.`);
+    showToast(`Product "${updatedProduct.name}" saved & live on storefront!`);
     setIsModalOpen(false);
     await loadData();
   };
@@ -247,16 +281,17 @@ export const AdminProductsPage: React.FC = () => {
     const newStatus = p.status === 'ON' ? 'OFF' : 'ON';
     const updated: Product = { ...p, status: newStatus, updatedAt: Date.now() };
     await ottApi.saveProduct(updated);
-    showToast(`Product is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
+    showToast(`Product "${p.name}" is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
     await loadData();
   };
 
   const filteredProducts = products.filter(p => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = p.name.toLowerCase().includes(q) || p.categoryName.toLowerCase().includes(q);
+    const matchesSearch = p.name.toLowerCase().includes(q) || (p.tagline || '').toLowerCase().includes(q);
     if (!matchesSearch) return false;
     if (categoryFilter !== 'all' && p.categorySlug !== categoryFilter) return false;
-    if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+    if (statusFilter === 'ON' && p.status !== 'ON') return false;
+    if (statusFilter === 'OFF' && p.status !== 'OFF') return false;
     return true;
   });
 
@@ -266,11 +301,11 @@ export const AdminProductsPage: React.FC = () => {
       <div className="admin-header-row">
         <div className="admin-title-group">
           <h1 className="admin-main-heading">
-            <Package className="admin-heading-icon" style={{ color: '#38bdf8' }} />
-            <span>Items & Subscriptions Catalog</span>
+            <Package className="admin-heading-icon" style={{ color: '#0284c7' }} />
+            <span>Items & Subscription Products</span>
           </h1>
           <p className="admin-sub-text">
-            Manage OTT plans, prices, square 1:1 image cropping, stock status, and special offers.
+            Add new streaming subscriptions, set pricing, upload 1:1 product artwork, and manage website display options.
           </p>
         </div>
 
@@ -306,13 +341,13 @@ export const AdminProductsPage: React.FC = () => {
           <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Search products by name or category..."
+            placeholder="Search items by name or tagline..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -320,7 +355,7 @@ export const AdminProductsPage: React.FC = () => {
           >
             <option value="all">All Categories</option>
             {categories.map(c => (
-              <option key={c.id || c.slug} value={c.slug}>{c.name}</option>
+              <option key={c.slug} value={c.slug}>{c.name}</option>
             ))}
           </select>
 
@@ -330,374 +365,268 @@ export const AdminProductsPage: React.FC = () => {
             className="admin-select-filter"
           >
             <option value="all">All Statuses</option>
-            <option value="ON">Active</option>
-            <option value="OFF">Inactive</option>
+            <option value="ON">Active Only</option>
+            <option value="OFF">Inactive Only</option>
           </select>
         </div>
       </div>
 
-      {/* Products Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-        {filteredProducts.map((p) => {
-          const defaultPlan = p.plans?.[0] || { price: p.price || 199, originalPrice: p.comparePrice || 499 };
-          const imgUrl = getCleanImageUrl(p.image, p.updatedAt);
-
-          return (
-            <div
-              key={p.id}
-              style={{
-                background: '#070d1e',
-                border: `1px solid ${p.status === 'ON' ? '#1e293b' : '#334155'}`,
-                borderRadius: '14px',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                opacity: p.status === 'ON' ? 1 : 0.65
-              }}
-            >
-              {/* Square Image Preview */}
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', background: p.brandColor || '#0b132b', overflow: 'hidden' }}>
-                <img
-                  src={imgUrl}
-                  alt={p.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(7,13,30,0.85) 100%)' }} />
-
-                <span style={{
-                  position: 'absolute',
-                  top: '8px',
-                  left: '8px',
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '2px 7px',
-                  borderRadius: '4px',
-                  background: p.status === 'ON' ? '#10b981' : '#64748b',
-                  color: '#ffffff'
-                }}>
-                  {p.status === 'ON' ? 'Active' : 'Inactive'}
-                </span>
-
-                {p.inOffers && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    background: '#e50914',
-                    color: '#ffffff'
-                  }}>
-                    Special Offer
-                  </span>
-                )}
-
-                <div style={{ position: 'absolute', bottom: '8px', left: '10px', right: '10px' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase' }}>
-                    {p.categoryName}
-                  </span>
-                  <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.name}
-                  </h3>
-                </div>
-              </div>
-
-              {/* Card Footer / Pricing & Actions */}
-              <div style={{ padding: '12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                    <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>
-                      ₹ {p.inOffers && p.offerPrice ? p.offerPrice : defaultPlan.price}
+      {/* Products Table */}
+      <div className="admin-table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Item Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Stock</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
+                  No items found. Click <strong>+ Add New Item</strong> to create one.
+                </td>
+              </tr>
+            ) : (
+              filteredProducts.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <img
+                      src={getCleanImageUrl(p.image, p.updatedAt)}
+                      alt={p.name}
+                      style={{ width: '42px', height: '42px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #1e293b' }}
+                    />
+                  </td>
+                  <td>
+                    <strong style={{ color: 'var(--admin-text-main)', fontSize: '0.9rem', display: 'block' }}>{p.name}</strong>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>{p.tagline}</span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.78rem', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                      {p.categoryName}
                     </span>
-                    <span style={{ fontSize: '0.76rem', color: '#64748b', textDecoration: 'line-through' }}>
-                      ₹ {defaultPlan.originalPrice}
+                  </td>
+                  <td>
+                    <strong style={{ color: '#16a34a' }}>₹{p.price || p.plans?.[0]?.price}</strong>
+                    {p.comparePrice && <span style={{ textDecoration: 'line-through', fontSize: '0.74rem', color: '#94a3b8', marginLeft: '4px' }}>₹{p.comparePrice}</span>}
+                  </td>
+                  <td>
+                    <button type="button" onClick={() => handleToggleStatus(p)} className={`admin-badge ${p.status === 'ON' ? 'active' : 'inactive'}`} style={{ cursor: 'pointer', border: 'none' }}>
+                      {p.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
+                      <span>{p.status === 'ON' ? 'Active' : 'Inactive'}</span>
+                    </button>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: p.inStock ? '#16a34a' : '#ef4444' }}>
+                      {p.inStock ? 'In Stock' : 'Out of Stock'}
                     </span>
-                  </div>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Order #{p.displayOrder || 1}</span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleStatus(p)}
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid #1e293b',
-                      color: p.status === 'ON' ? '#e2e8f0' : '#94a3b8',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {p.status === 'ON' ? 'Deactivate' : 'Activate'}
-                  </button>
-
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(p)}
-                      style={{
-                        background: 'rgba(2, 132, 199, 0.15)',
-                        border: '1px solid rgba(2, 132, 199, 0.3)',
-                        color: '#38bdf8',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '0.72rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Edit2 size={12} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProduct(p.id, p.name)}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                        color: '#f87171',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <button type="button" onClick={() => handleOpenEditModal(p)} className="btn-primary-action" style={{ padding: '4px 10px', fontSize: '0.78rem' }}>
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button type="button" onClick={() => handleDeleteProduct(p.id, p.name)} className="btn-refresh-action" style={{ color: 'var(--admin-danger)' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {filteredProducts.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '36px 20px', color: '#94a3b8', background: '#070d1e', borderRadius: '12px', border: '1px dashed #1e293b' }}>
-          <Package size={32} style={{ opacity: 0.5, marginBottom: '6px' }} />
-          <p>No products match the filter criteria.</p>
-        </div>
-      )}
-
-      {/* Compact Side Drawer / Edit Modal */}
+      {/* SIMPLIFIED LOGICALLY GROUPED ADDING / EDITING FORM MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box compact" style={{ maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="admin-modal-box" style={{ maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="admin-modal-header">
-              <h3 className="modal-title">
-                {editingProduct ? 'Edit Item / Product' : 'Add New Item / Product'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="btn-modal-close">
+              <h2 className="admin-modal-title">
+                {editingProduct ? `Edit Item: ${editingProduct.name}` : 'Add New Item / Subscription'}
+              </h2>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="admin-modal-close-btn">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="admin-modal-body" style={{ gap: '12px' }}>
-              {uploadError && (
-                <div className="admin-auth-alert error">
-                  <AlertCircle size={16} />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              {/* 1. Basic Info */}
-              <div className="form-group-compact">
-                <label>Item Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Netflix Premium 4K UHD"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Category *</label>
-                  <select
-                    value={formCategorySlug}
-                    onChange={(e) => setFormCategorySlug(e.target.value)}
-                  >
-                    {categories.map(c => (
-                      <option key={c.id || c.slug} value={c.slug}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group-compact">
-                  <label>URL Slug</label>
-                  <input
-                    type="text"
-                    value={formSlug}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                    placeholder="auto-generated from name"
-                  />
-                </div>
-              </div>
-
-              {/* 2. Pricing */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Selling Price (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group-compact">
-                  <label>Original / MRP (₹)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formOriginalPrice}
-                    onChange={(e) => setFormOriginalPrice(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* 3. Special Offer Toggle */}
-              <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#ffffff' }}>
-                    Include in Special Offers Page
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={formInOffers}
-                    onChange={(e) => setFormInOffers(e.target.checked)}
-                    style={{ width: '16px', height: '16px', accentColor: '#e50914' }}
-                  />
-                </div>
-                {formInOffers && (
-                  <div style={{ marginTop: '8px' }}>
-                    <label style={{ fontSize: '0.74rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
-                      Special Offer Price (₹)
-                    </label>
-                    <input
-                      type="number"
-                      value={formOfferPrice}
-                      onChange={(e) => setFormOfferPrice(e.target.value)}
-                      placeholder="e.g. 149"
-                      style={{ width: '100%', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '8px', padding: '8px 12px', color: '#34d399', fontSize: '0.84rem' }}
-                    />
+            <form onSubmit={handleSaveProduct}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {uploadError && (
+                  <div className="admin-alert-banner error">
+                    <AlertCircle size={16} />
+                    <span>{uploadError}</span>
                   </div>
                 )}
-              </div>
 
-              {/* 4. Square Image & Crop Feature */}
-              <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>
-                    Square 1:1 Product Image *
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                    Crop to fit square cards
-                  </span>
+                {/* GROUP 1: BASIC INFORMATION */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '12px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#38bdf8', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Package size={16} />
+                    <span>1. Basic Information</span>
+                  </h3>
+
+                  <div className="admin-form-row-2">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Item Name *</label>
+                      <input type="text" className="admin-form-input" placeholder="e.g. Netflix Premium 4K UHD" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+                      {fieldErrors.formName && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formName}</span>}
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Primary Category *</label>
+                      <select className="admin-form-select" value={formCategorySlug} onChange={(e) => setFormCategorySlug(e.target.value)} required>
+                        {categories.map(c => (
+                          <option key={c.slug} value={c.slug}>{c.name}</option>
+                        ))}
+                      </select>
+                      {fieldErrors.formCategorySlug && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formCategorySlug}</span>}
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Short Description / Tagline</label>
+                    <input type="text" className="admin-form-input" placeholder="e.g. Stream 4K Ultra HD on 1 Screen with Private PIN" value={formTagline} onChange={(e) => setFormTagline(e.target.value)} />
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  {formImageUrl ? (
-                    <div style={{ width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #1e293b', flexShrink: 0 }}>
-                      <img src={formImageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                  ) : (
-                    <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#0b132b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #334155', flexShrink: 0 }}>
-                      <ImageIcon size={20} color="#64748b" />
-                    </div>
-                  )}
+                {/* GROUP 2: PRICING & DISCOUNTS */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '12px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <DollarSign size={16} />
+                    <span>2. Pricing & Offer Deals</span>
+                  </h3>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                    <label style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38bdf8',
-                      padding: '7px 12px',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}>
-                      <Crop size={14} />
-                      <span>{isUploading ? 'Uploading...' : 'Upload & Crop Image (1:1)'}</span>
-                      <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                  <div className="admin-form-row-3">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Selling Price (₹) *</label>
+                      <input type="number" min="0" className="admin-form-input" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} required />
+                      {fieldErrors.formPrice && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formPrice}</span>}
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Original / MRP Price (₹)</label>
+                      <input type="number" min="0" className="admin-form-input" value={formOriginalPrice} onChange={(e) => setFormOriginalPrice(e.target.value)} />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Special Offer Deal Price (₹)</label>
+                      <input type="number" min="0" className="admin-form-input" placeholder="Optional offer price" value={formOfferPrice} onChange={(e) => setFormOfferPrice(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '8px' }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={formInOffers} onChange={(e) => setFormInOffers(e.target.checked)} />
+                      <span>Feature in Special Deals & Limited Offers Section</span>
                     </label>
+                  </div>
+                </div>
 
-                    <input
-                      type="text"
-                      placeholder="Or paste direct image URL..."
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                      style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '6px', padding: '6px 10px', fontSize: '0.76rem', color: '#cbd5e1' }}
-                    />
+                {/* GROUP 3: IMAGES & 1:1 CROPPER */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '12px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f59e0b', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ImageIcon size={16} />
+                    <span>3. Product Artwork Image (Square 1:1 Ratio)</span>
+                  </h3>
+
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {formImageUrl && (
+                      <div style={{ position: 'relative' }}>
+                        <img src={getCleanImageUrl(formImageUrl)} alt="Preview" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #38bdf8' }} />
+                      </div>
+                    )}
+
+                    <div style={{ flex: 1, minWidth: '220px' }}>
+                      <input type="text" className="admin-form-input" placeholder="Image URL (or upload image below)" value={formImageUrl} onChange={(e) => setFormImageUrl(e.target.value)} required />
+                      {fieldErrors.formImageUrl && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formImageUrl}</span>}
+
+                      <div style={{ marginTop: '8px' }}>
+                        <input type="file" id="product-square-file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
+                        <label htmlFor="product-square-file" className="btn-refresh-action" style={{ cursor: 'pointer', display: 'inline-flex', gap: '6px', fontSize: '0.78rem', padding: '6px 12px' }}>
+                          <Crop size={14} />
+                          <span>{isUploading ? 'Uploading...' : 'Select & Crop Image (1:1)'}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* GROUP 4: DISPLAY & PUBLICATION */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '12px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#c084fc', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Eye size={16} />
+                    <span>4. Display & Publication Settings</span>
+                  </h3>
+
+                  <div className="admin-form-row-3">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Publication Status</label>
+                      <select className="admin-form-select" value={formStatus} onChange={(e) => setFormStatus(e.target.value as any)}>
+                        <option value="ON">Active (ON - Live on website)</option>
+                        <option value="OFF">Inactive (OFF - Hidden)</option>
+                      </select>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Stock Status</label>
+                      <select className="admin-form-select" value={formInStock ? 'yes' : 'no'} onChange={(e) => setFormInStock(e.target.value === 'yes')}>
+                        <option value="yes">In Stock (Available)</option>
+                        <option value="no">Out of Stock (Sold Out)</option>
+                      </select>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Display Order</label>
+                      <input type="number" min="1" className="admin-form-input" value={formDisplayOrder} onChange={(e) => setFormDisplayOrder(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={formIsFeatured} onChange={(e) => setFormIsFeatured(e.target.checked)} />
+                      <span>Featured Subscriptions Badge</span>
+                    </label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={formIsTrending} onChange={(e) => setFormIsTrending(e.target.checked)} />
+                      <span>Trending Badge</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* GROUP 5: FEATURES & WARRANTY (PRESERVED FIELDS) */}
+                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '12px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fb7185', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={16} />
+                    <span>5. Product Deliverables & Warranty</span>
+                  </h3>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Key Features (One feature per line)</label>
+                    <textarea rows={3} className="admin-form-input" value={formFeatures} onChange={(e) => setFormFeatures(e.target.value)} />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Warranty Guarantee Period</label>
+                    <input type="text" className="admin-form-input" value={formWarranty} onChange={(e) => setFormWarranty(e.target.value)} />
                   </div>
                 </div>
               </div>
 
-              {/* 5. Tagline & Features */}
-              <div className="form-group-compact">
-                <label>Short Tagline</label>
-                <input
-                  type="text"
-                  value={formTagline}
-                  onChange={(e) => setFormTagline(e.target.value)}
-                  placeholder="e.g. Ultra HD 4K Streaming with Private PIN"
-                />
-              </div>
-
-              <div className="form-group-compact">
-                <label>Key Features (One per line)</label>
-                <textarea
-                  rows={3}
-                  value={formFeatures}
-                  onChange={(e) => setFormFeatures(e.target.value)}
-                  placeholder="Private 4-Digit PIN Lock&#10;4K Ultra HD Dolby Atmos&#10;Full Duration Warranty"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Display Order</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formDisplayOrder}
-                    onChange={(e) => setFormDisplayOrder(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group-compact">
-                  <label>Status</label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as 'ON' | 'OFF')}
-                  >
-                    <option value="ON">Active (Visible)</option>
-                    <option value="OFF">Inactive (Hidden)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="admin-modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-modal-cancel">
+              {/* Action Buttons */}
+              <div className="admin-modal-footer" style={{ borderTop: '1px solid #1e293b', paddingTop: '14px', marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-refresh-action">
                   Cancel
                 </button>
-                <button type="submit" className="btn-modal-save">
-                  Save Item to Database
+                <button type="submit" className="btn-primary-action" style={{ padding: '8px 24px' }}>
+                  <Check size={16} />
+                  <span>{editingProduct ? 'Save Changes' : 'Save Item'}</span>
                 </button>
               </div>
             </form>
@@ -706,14 +635,16 @@ export const AdminProductsPage: React.FC = () => {
       )}
 
       {/* Image Cropper Modal */}
-      <ImageCropperModal
-        isOpen={isCropOpen}
-        imageSrc={rawImageSrc}
-        aspectRatio={1} // 1:1 Square Card Ratio
-        title="Crop Item Image (1:1 Square Ratio)"
-        onCropComplete={handleCropComplete}
-        onCancel={() => setIsCropOpen(false)}
-      />
+      {isCropOpen && (
+        <ImageCropperModal
+          isOpen={isCropOpen}
+          imageSrc={rawImageSrc}
+          onCancel={() => setIsCropOpen(false)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 };
+
+export default AdminProductsPage;

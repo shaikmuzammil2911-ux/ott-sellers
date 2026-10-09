@@ -76,11 +76,15 @@ export const Footer: React.FC = () => {
         <div className="footer-col">
           <h4 className="footer-col-title">Customer Support</h4>
           <ul className="footer-links">
-            <li><Link to="/account/orders">Track Order Status</Link></li>
-            <li><a href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp Helpline ({footer.whatsappNumber || '+91 9441323332'})</a></li>
-            <li><Link to="/search?q=faq">FAQs & Help Center</Link></li>
-            <li><a href="#terms">Terms & Conditions</a></li>
-            <li><a href="#refund">Instant Replacement Policy</a></li>
+            {(footer.customerSupportLinks || DEFAULT_FOOTER_SETTINGS.customerSupportLinks).map((link, idx) => (
+              <li key={idx}>
+                {link.url.startsWith('http') ? (
+                  <a href={link.url} target="_blank" rel="noreferrer">{link.label}</a>
+                ) : (
+                  <Link to={link.url}>{link.label}</Link>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
 
