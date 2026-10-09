@@ -54,17 +54,28 @@ export const emailService = {
         })
       });
 
-      if (response.ok) {
-        return { success: true, message: 'Password reset link sent to ' + toEmail };
+      const resData = await response.json().catch(() => ({}));
+
+      if (response.ok && resData.success !== false) {
+        return { 
+          success: true, 
+          message: `Password reset link sent to ${toEmail}. Please check your inbox & spam folder!` 
+        };
+      } else if (resData.error) {
+        console.error('[EmailService Error]', resData.error);
+        return {
+          success: false,
+          error: resData.error || 'Failed to send email via SMTP.'
+        };
       }
-    } catch {
-      // In local Vite dev server without serverless runner, log link clearly for immediate testing
+    } catch (err: any) {
+      console.warn('[EmailService Endpoint Warning] /api/send-email call exception:', err);
     }
 
     console.info(`[SMTP Dev Mode] Password Reset Link for ${toEmail}:`, resetLink);
     return { 
       success: true, 
-      message: `Password reset email dispatched to ${toEmail}. Check your inbox!` 
+      message: `Password reset email dispatched to ${toEmail}. Check your inbox & spam!` 
     };
   }
 };
