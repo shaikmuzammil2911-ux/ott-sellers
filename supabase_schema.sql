@@ -920,3 +920,21 @@ VALUES
   ('notif-3', 'Amit S.', 'Delhi NCR', 'Disney+ Hotstar Super', 'disney-hotstar-super', '12 Months', '8 mins ago', 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=100&auto=format&fit=crop&q=80', 'activated Disney+ Hotstar Annual Plan', true, 3)
 ON CONFLICT (id) DO NOTHING;
 
+-- 9. Homepage Sections CMS Seed
+INSERT INTO public.homepage_sections (id, section_key, name, title, subtitle, description, image_url, sort_order, display_order, is_active)
+VALUES
+  ('sec-hero', 'hero', 'Hero Promotional Banner', 'All Your Favourite OTT Subscriptions in One Place', 'Stream 4K Ultra HD on Netflix, Prime Video, Disney+ Hotstar', 'Verified 4K streaming accounts with instant WhatsApp credentials delivery.', '/hero-bg.png', 1, 1, true),
+  ('sec-categories', 'categories', 'Categories Bar', 'Explore Categories', 'Browse curated streaming passes by genre.', 'Select from movies, sports, music, and productivity passes.', NULL, 2, 2, true),
+  ('sec-featured', 'featured', 'Featured & Trending Subscriptions', 'Featured Subscriptions', 'Top Handpicked Deals', 'Best value OTT streaming passes with instant delivery.', NULL, 3, 3, true),
+  ('sec-courses', 'courses', 'Courses & Masterclass Bundles', 'Masterclasses & Learning Bundles', 'Upgrade Your Digital Skills', 'Get access to premium masterclasses and creative tools.', NULL, 4, 4, true),
+  ('sec-reviews', 'reviews', 'Customer Reviews & Ratings', 'Customer Reviews', 'Verified Testimonials', 'Read what our happy subscribers have to say.', NULL, 5, 5, true),
+  ('sec-why-us', 'why_choose_us', 'Why Choose Us / Trust Badges', 'Why Choose OTT SELLERS', 'Verified & Fast', 'Verified streaming, zero buffer, instant WhatsApp dispatch.', NULL, 6, 6, true),
+  ('sec-notifications', 'notifications', 'Live Purchase Popup Notifications', 'Live Purchase Notification', 'Real-Time Sales Alerts', 'Real-time sales alerts popups.', NULL, 7, 7, true)
+ON CONFLICT (section_key) DO UPDATE SET
+  name = EXCLUDED.name,
+  title = EXCLUDED.title,
+  subtitle = EXCLUDED.subtitle,
+  description = EXCLUDED.description,
+  is_active = EXCLUDED.is_active;
+
+
