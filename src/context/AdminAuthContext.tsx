@@ -16,7 +16,7 @@ interface AdminAuthContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  requestPasswordReset: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message?: string; error?: string; resetUrl?: string }>;
   resetPassword: (token: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -107,7 +107,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     ottApi.logAudit('Admin Logout', 'Auth', adminUser?.id);
   };
 
-  const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; message?: string; error?: string; resetUrl?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!isAuthorizedEmail(cleanEmail)) {
@@ -130,7 +130,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     return { 
       success: true, 
-      message: emailRes.message || `Password reset link sent to ${cleanEmail}. Please check your inbox!` 
+      message: emailRes.message || `Password reset link sent to ${cleanEmail}. Please check your inbox and spam folder!`,
+      resetUrl
     };
   };
 

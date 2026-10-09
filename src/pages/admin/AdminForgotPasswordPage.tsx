@@ -11,6 +11,7 @@ export const AdminForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState(ADMIN_CONFIG.EMAIL);
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [resetUrl, setResetUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,12 +24,16 @@ export const AdminForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+    setResetUrl(null);
 
     const res = await requestPasswordReset(email);
     setIsLoading(false);
 
     if (res.success) {
-      setSuccessMsg(res.message || `Password reset instructions sent to ${email}. Please check your inbox.`);
+      setSuccessMsg(res.message || `Password reset instructions sent to ${email}. Please check your inbox & spam folder.`);
+      if (res.resetUrl) {
+        setResetUrl(res.resetUrl);
+      }
     } else {
       setErrorMsg(res.error || 'Failed to dispatch password reset request.');
     }
@@ -58,13 +63,24 @@ export const AdminForgotPasswordPage: React.FC = () => {
         {successMsg ? (
           <div className="admin-auth-success-box">
             <CheckCircle2 size={44} color="#10b981" />
-            <h3>Reset Email Dispatched!</h3>
+            <h3>Reset Request Processed!</h3>
             <p>{successMsg}</p>
-            <p className="hint-text">
-              Check the inbox and spam folder of <strong>{email}</strong> and click the link to reset your password.
+            <p className="hint-text" style={{ marginTop: '8px', color: '#94a3b8' }}>
+              Check the inbox & spam folder of <strong>{email}</strong>.
             </p>
-            <Link to="/admin/login" className="btn-admin-submit" style={{ marginTop: '20px', textDecoration: 'none' }}>
-              Return to Admin Sign In
+            {resetUrl && (
+              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <a 
+                  href={resetUrl}
+                  className="btn-admin-submit" 
+                  style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                >
+                  🚀 Click Here to Reset Password Directly
+                </a>
+              </div>
+            )}
+            <Link to="/admin/login" className="return-store-link" style={{ marginTop: '16px', display: 'inline-block' }}>
+              ← Return to Admin Sign In
             </Link>
           </div>
         ) : (
