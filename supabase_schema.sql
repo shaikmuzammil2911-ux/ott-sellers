@@ -519,6 +519,13 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
       "Credits can be redeemed on any future subscription purchase."
     ]
   }'::jsonb,
+  items_page_cms JSONB DEFAULT '{
+    "mainHeading": "All Subscriptions & Premium Accounts",
+    "mainSubtitle": "100% verified private profiles, instant WhatsApp delivery & replacement guarantee.",
+    "quickSearchHeading": "Quick Search",
+    "categoriesHeading": "Explore Categories",
+    "itemsListingHeading": "All Available Plans"
+  }'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -528,8 +535,27 @@ ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS favicon_url TEXT;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS footer_settings JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS whatsapp_settings JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS referral_settings JSONB;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS items_page_cms JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS admin_password_hash TEXT;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS random_notifications_active BOOLEAN DEFAULT true;
+
+-- Update products with provider columns
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_id TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_slug TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_name TEXT;
+
+-- Update categories with provider columns
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS provider_id TEXT;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS provider_slug TEXT;
+
+-- Update coupons with customer message fields
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS message_heading TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS customer_message TEXT;
+
+-- Update customer_reviews with display locations and associations
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS display_locations TEXT[] DEFAULT ARRAY['home']::TEXT[];
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS product_id TEXT;
+ALTER TABLE public.customer_reviews ADD COLUMN IF NOT EXISTS category_slug TEXT;
 
 
 -- ====================================================================
