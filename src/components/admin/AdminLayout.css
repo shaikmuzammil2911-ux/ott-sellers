@@ -543,12 +543,18 @@
   margin: 0;
 }
 
-.admin-table-container {
+.admin-table-container,
+.admin-table-wrapper {
   background: #ffffff;
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--admin-shadow);
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-table {

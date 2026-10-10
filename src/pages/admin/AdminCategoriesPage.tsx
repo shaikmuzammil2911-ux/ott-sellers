@@ -268,8 +268,8 @@ export const AdminCategoriesPage: React.FC = () => {
       </div>
 
       {/* Category Table */}
-      <div className="admin-table-wrapper">
-        <table className="admin-table">
+      <div className="admin-table-container admin-table-wrapper admin-table-scroll">
+        <table className="admin-table" style={{ minWidth: '780px' }}>
           <thead>
             <tr>
               <th style={{ width: '60px' }}>Order</th>

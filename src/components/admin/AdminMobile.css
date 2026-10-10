@@ -32,6 +32,7 @@
 
 /* Universal Table Horizontal Scroll Containers */
 .admin-table-container,
+.admin-table-wrapper,
 .admin-table-scroll,
 .compact-table-wrap,
 .table-responsive-wrapper {
@@ -48,6 +49,7 @@
 }
 
 .admin-table-container::-webkit-scrollbar,
+.admin-table-wrapper::-webkit-scrollbar,
 .admin-table-scroll::-webkit-scrollbar,
 .compact-table-wrap::-webkit-scrollbar,
 .table-responsive-wrapper::-webkit-scrollbar {
@@ -55,6 +57,7 @@
 }
 
 .admin-table-container::-webkit-scrollbar-track,
+.admin-table-wrapper::-webkit-scrollbar-track,
 .admin-table-scroll::-webkit-scrollbar-track,
 .compact-table-wrap::-webkit-scrollbar-track,
 .table-responsive-wrapper::-webkit-scrollbar-track {
@@ -63,6 +66,7 @@
 }
 
 .admin-table-container::-webkit-scrollbar-thumb,
+.admin-table-wrapper::-webkit-scrollbar-thumb,
 .admin-table-scroll::-webkit-scrollbar-thumb,
 .compact-table-wrap::-webkit-scrollbar-thumb,
 .table-responsive-wrapper::-webkit-scrollbar-thumb {
@@ -71,6 +75,7 @@
 }
 
 .admin-table-container::-webkit-scrollbar-thumb:hover,
+.admin-table-wrapper::-webkit-scrollbar-thumb:hover,
 .admin-table-scroll::-webkit-scrollbar-thumb:hover,
 .compact-table-wrap::-webkit-scrollbar-thumb:hover,
 .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
@@ -79,6 +84,7 @@
 
 /* Minimum width for tables to prevent crushing columns */
 .admin-table-container table,
+.admin-table-wrapper table,
 .admin-table-scroll table,
 .compact-table-wrap table,
 .table-responsive-wrapper table,
