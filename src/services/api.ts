@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { PRODUCTS_DATA } from '../data/productsData';
 import { CATEGORIES_DATA, SUBCATEGORIES_DATA } from '../data/categoriesData';
+import { INITIAL_PROVIDERS } from '../data/providersData';
 import { CATALOGS_DATA } from '../data/catalogsData';
 import { INITIAL_BANNERS } from '../data/bannersData';
 import { INITIAL_COURSES } from '../data/coursesData';
@@ -9,9 +10,9 @@ import { INITIAL_NOTIFICATIONS } from '../data/notificationsData';
 import { INITIAL_HOMEPAGE_SECTIONS } from '../data/sectionsData';
 import { INITIAL_COUPONS } from '../data/couponsData';
 import { 
-  Product, Category, SubCategory, Catalog, Order, User, 
-  HeroBanner, Course, HomepageSectionCMS, AdminSettings, AuditLog,
-  CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings 
+  Product, Category, SubCategory, Provider, Catalog, Order, User, 
+  HeroBanner, BannerGroup, Course, HomepageSectionCMS, AdminSettings, AuditLog,
+  CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings, ItemsPageCMS 
 } from '../types';
 
 export const ADMIN_CONFIG = {
@@ -24,7 +25,9 @@ export const STORAGE_KEYS = {
   USER: 'ott_sellers_user',
   CART: 'ott_sellers_cart',
   BANNERS: 'ott_sellers_banners',
+  BANNER_GROUPS: 'ott_sellers_banner_groups',
   CATEGORIES: 'ott_sellers_categories',
+  PROVIDERS: 'ott_sellers_providers',
   PRODUCTS: 'ott_sellers_products',
   COURSES: 'ott_sellers_courses',
   SUBCATEGORIES: 'ott_sellers_subcategories',
@@ -38,8 +41,17 @@ export const STORAGE_KEYS = {
   FOOTER: 'ott_sellers_footer_cms',
   WHATSAPP: 'ott_sellers_whatsapp_cms',
   REFERRAL: 'ott_sellers_referral_cms',
+  ITEMS_PAGE_CMS: 'ott_sellers_items_page_cms',
   ADMIN_AUTH: 'ott_sellers_admin_auth_state',
   ADMIN_OTP: 'ott_sellers_admin_otp'
+};
+
+export const DEFAULT_ITEMS_PAGE_CMS: ItemsPageCMS = {
+  mainHeading: 'All Subscriptions & Premium Accounts',
+  mainSubtitle: '100% verified private profiles, instant WhatsApp delivery & replacement guarantee.',
+  quickSearchHeading: 'Quick Search',
+  categoriesHeading: 'Explore Categories',
+  itemsListingHeading: 'All Available Plans'
 };
 
 export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
@@ -76,6 +88,9 @@ export const DEFAULT_WHATSAPP_SETTINGS: WhatsAppSettings = {
   position: 'bottom-right',
   displayPages: 'all',
   tagMessage: 'Need instant help or quick subscription activation? Chat with us live on WhatsApp!',
+  generalMessageTemplate: 'Hi OTT Sellers, I would like more information about your subscription services.',
+  customerEnquiryTemplate: 'Hi OTT Sellers, I have an enquiry regarding subscription plans and instant activation.',
+  itemEnquiryTemplate: 'Hi OTT Sellers, I am interested in purchasing "{{item_name}}" ({{plan}}). Please guide me with activation details.',
   orderMessageTemplate: `Hello OTT Sellers, I would like to place an order:
 Order ID: {{order_id}}
 Customer: {{customer_name}} ({{customer_phone}})
@@ -86,6 +101,7 @@ Coupon Applied: {{coupon_code}} (Discount: ₹{{discount}})
 Final Total: ₹{{final_amount}}
 Payment Status: {{payment_status}}
 Please verify and send credentials.`,
+  contactMessageTemplate: 'Hi OTT Sellers support, I need assistance regarding my recent order.',
   updatedAt: Date.now()
 };
 
@@ -123,7 +139,7 @@ export const broadcastDataUpdate = (entityType: string) => {
 
 export const ottApi = {
   // ====================================================================
-  // 1. BANNERS (Admin CMS & Supabase with Page & Slot mapping)
+  // 1. BANNERS & BANNER GROUPS (Admin CMS & Authoritative Supabase Store)
   // ====================================================================
   async getBanners(targetPage: string = 'home', slot?: string): Promise<HeroBanner[]> {
     try {
@@ -136,6 +152,7 @@ export const ottApi = {
         const banners: HeroBanner[] = data.map(b => ({
           id: b.id,
           name: b.name || b.title,
+          groupName: b.group_name || (b.slot === '01' ? 'Hero Main Slideshow' : `Group ${b.slot || '01'}`),
           title: b.title || '',
           subtitle: b.subtitle || '',
           description: b.description || '',
@@ -143,11 +160,19 @@ export const ottApi = {
           ctaLink: b.button_url || '/items',
           secondaryCtaText: b.secondary_button_text,
           secondaryCtaLink: b.secondary_button_url,
-          desktopImage: b.image_url || b.desktop_image_url || '/hero-bg.png',
-          mobileImage: b.mobile_image_url || b.image_url || '/hero-mobile-1.png',
+          buttons: Array.isArray(b.buttons) ? b.buttons : undefined,
+          desktopImage: b.desktop_image_url || b.image_url || '/hero-bg.png',
+          mobileImage: b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png',
           mode: b.mode || 'image-only',
           solidColor: b.solid_color,
           textPosition: b.text_position || 'left',
+          contentPlacement: b.content_placement || 'center',
+          buttonPlacement: b.button_placement || 'left',
+          btnBgColor: b.btn_bg_color || '#0284c7',
+          btnTextColor: b.btn_text_color || '#ffffff',
+          btnBorderColor: b.btn_border_color || 'transparent',
+          overlayColor: b.overlay_color || '#000000',
+          overlayOpacity: Number(b.overlay_opacity) ?? 0.4,
           displayOrder: b.sort_order || b.display_order || 1,
           page: (b.page || 'home').toLowerCase() as any,
           slot: b.slot || '01',
@@ -159,6 +184,7 @@ export const ottApi = {
           titleColor: b.title_color,
           subtitleColor: b.subtitle_color,
           badgeColor: b.badge_color,
+          descriptionColor: b.description_color,
           showText: b.show_text ?? true,
           updatedAt: new Date(b.updated_at || Date.now()).getTime()
         }));
@@ -199,9 +225,10 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        return data.map(b => ({
+        const banners: HeroBanner[] = data.map(b => ({
           id: b.id,
           name: b.name || b.title,
+          groupName: b.group_name || (b.slot === '01' ? 'Hero Main Slideshow' : `Group ${b.slot || '01'}`),
           title: b.title || '',
           subtitle: b.subtitle || '',
           description: b.description || '',
@@ -209,11 +236,19 @@ export const ottApi = {
           ctaLink: b.button_url || '/items',
           secondaryCtaText: b.secondary_button_text,
           secondaryCtaLink: b.secondary_button_url,
-          desktopImage: b.image_url || b.desktop_image_url || '/hero-bg.png',
-          mobileImage: b.mobile_image_url || b.image_url || '/hero-mobile-1.png',
+          buttons: Array.isArray(b.buttons) ? b.buttons : undefined,
+          desktopImage: b.desktop_image_url || b.image_url || '/hero-bg.png',
+          mobileImage: b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png',
           mode: b.mode || 'image-only',
           solidColor: b.solid_color,
           textPosition: b.text_position || 'left',
+          contentPlacement: b.content_placement || 'center',
+          buttonPlacement: b.button_placement || 'left',
+          btnBgColor: b.btn_bg_color || '#0284c7',
+          btnTextColor: b.btn_text_color || '#ffffff',
+          btnBorderColor: b.btn_border_color || 'transparent',
+          overlayColor: b.overlay_color || '#000000',
+          overlayOpacity: Number(b.overlay_opacity) ?? 0.4,
           displayOrder: b.sort_order || b.display_order || 1,
           page: (b.page || 'home').toLowerCase() as any,
           slot: b.slot || '01',
@@ -225,9 +260,12 @@ export const ottApi = {
           titleColor: b.title_color,
           subtitleColor: b.subtitle_color,
           badgeColor: b.badge_color,
+          descriptionColor: b.description_color,
           showText: b.show_text ?? true,
           updatedAt: new Date(b.updated_at || Date.now()).getTime()
         }));
+        localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
+        return banners;
       }
     } catch {}
 
@@ -249,6 +287,7 @@ export const ottApi = {
         await supabase.from('banners').upsert({
           id: b.id,
           name: b.name || b.title,
+          group_name: b.groupName,
           title: b.title,
           subtitle: b.subtitle,
           description: b.description,
@@ -256,25 +295,35 @@ export const ottApi = {
           button_url: b.ctaLink,
           secondary_button_text: b.secondaryCtaText,
           secondary_button_url: b.secondaryCtaLink,
+          buttons: b.buttons || [],
           image_url: b.desktopImage,
           desktop_image_url: b.desktopImage,
           mobile_image_url: b.mobileImage,
           mode: b.mode,
           solid_color: b.solidColor,
           text_position: b.textPosition,
+          content_placement: b.contentPlacement || 'center',
+          button_placement: b.buttonPlacement || b.textPosition || 'left',
+          btn_bg_color: b.btnBgColor || '#0284c7',
+          btn_text_color: b.btnTextColor || '#ffffff',
+          btn_border_color: b.btnBorderColor || 'transparent',
+          overlay_color: b.overlayColor || '#000000',
+          overlay_opacity: b.overlayOpacity ?? 0.4,
           sort_order: b.displayOrder,
+          display_order: b.displayOrder,
           page: b.page || 'home',
           slot: b.slot || '01',
           style: b.style || 'auto-slide',
           autoplay: b.autoplay ?? true,
           interval: b.interval || 5,
-          status: b.status,
+          status: b.status || 'ON',
           is_active: b.status !== 'OFF',
           badge_text: b.badgeText,
           title_color: b.titleColor,
           subtitle_color: b.subtitleColor,
           badge_color: b.badgeColor,
-          show_text: b.showText,
+          description_color: b.descriptionColor,
+          show_text: b.showText ?? true,
           updated_at: new Date().toISOString()
         });
       }
@@ -307,8 +356,77 @@ export const ottApi = {
     } catch {}
   },
 
+  async getBannerGroups(): Promise<BannerGroup[]> {
+    const banners = await this.getAllBannersAdmin();
+    const groupMap = new Map<string, BannerGroup>();
+
+    // Initial default group
+    groupMap.set('01', {
+      id: '01',
+      name: 'Hero Main Slideshow',
+      slot: '01',
+      page: 'home',
+      style: 'auto-slide',
+      autoplay: true,
+      interval: 5,
+      status: 'ON',
+      description: 'Primary hero slider on top of Homepage',
+      bannerCount: 0
+    });
+
+    banners.forEach(b => {
+      const slot = b.slot || '01';
+      const existing = groupMap.get(slot);
+      if (existing) {
+        existing.bannerCount = (existing.bannerCount || 0) + 1;
+        if (b.groupName) existing.name = b.groupName;
+      } else {
+        groupMap.set(slot, {
+          id: slot,
+          name: b.groupName || `Banner Group (${slot})`,
+          slot: slot,
+          page: b.page || 'home',
+          style: b.style || 'auto-slide',
+          autoplay: b.autoplay ?? true,
+          interval: b.interval || 5,
+          status: 'ON',
+          description: `Custom banner group for ${b.page || 'home'} page`,
+          bannerCount: 1
+        });
+      }
+    });
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.BANNER_GROUPS);
+      if (stored) {
+        const customGroups: BannerGroup[] = JSON.parse(stored);
+        customGroups.forEach(g => {
+          if (!groupMap.has(g.slot)) {
+            groupMap.set(g.slot, { ...g, bannerCount: banners.filter(b => b.slot === g.slot).length });
+          }
+        });
+      }
+    } catch {}
+
+    return Array.from(groupMap.values());
+  },
+
+  async saveBannerGroup(group: BannerGroup): Promise<void> {
+    const groups = await this.getBannerGroups();
+    const idx = groups.findIndex(g => g.slot === group.slot);
+    let updated: BannerGroup[];
+    if (idx >= 0) {
+      updated = [...groups];
+      updated[idx] = group;
+    } else {
+      updated = [...groups, group];
+    }
+    localStorage.setItem(STORAGE_KEYS.BANNER_GROUPS, JSON.stringify(updated));
+    broadcastDataUpdate('banners');
+  },
+
   // ====================================================================
-  // 2. HOMEPAGE SECTIONS CMS & VISIBILITY (Hero, Categories, Featured, Reviews, etc.)
+  // 2. HOMEPAGE SECTIONS CMS & VISIBILITY
   // ====================================================================
   async getHomepageSections(): Promise<HomepageSectionCMS[]> {
     try {
@@ -412,11 +530,20 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 3. CATEGORIES (Authoritative Supabase & Compact Flow)
+  // 3. CATEGORIES MANAGEMENT (Visibility ON/OFF & Description Persistence)
   // ====================================================================
-  async getCategories(): Promise<Category[]> {
+  async getCategories(placement?: string, providerSlug?: string): Promise<Category[]> {
     const all = await this.getAllCategoriesAdmin();
-    return all.filter(c => c.status !== 'OFF');
+    return all.filter(c => {
+      if (c.status === 'OFF') return false;
+      if (placement && c.placements && c.placements.length > 0 && !c.placements.includes(placement) && !c.placements.includes('all')) {
+        return false;
+      }
+      if (providerSlug && c.providerSlug && c.providerSlug !== providerSlug) {
+        return false;
+      }
+      return true;
+    });
   },
 
   async getAllCategoriesAdmin(): Promise<Category[]> {
@@ -426,34 +553,28 @@ export const ottApi = {
         .select('*')
         .order('sort_order', { ascending: true });
 
-      if (!error && data) {
-        if (data.length > 0) {
-          const dbCategories: Category[] = data.map(c => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            description: c.description || '',
-            shortDescription: c.short_description || c.description || '',
-            image: c.image_url || '',
-            iconName: c.icon_name || 'Compass',
-            badgeColor: c.badge_color || '#0284c7',
-            bgGradient: c.bg_gradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
-            titlesCount: c.titles_count || '10+ Plans',
-            status: c.status || (c.is_active ? 'ON' : 'OFF'),
-            displayOrder: c.sort_order || 0,
-            updatedAt: new Date(c.updated_at || Date.now()).getTime()
-          }));
+      if (!error && data && data.length > 0) {
+        const dbCategories: Category[] = data.map(c => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          description: c.description || '',
+          shortDescription: c.short_description || c.description || '',
+          image: c.image_url || '',
+          iconName: c.icon_name || 'Compass',
+          badgeColor: c.badge_color || '#0284c7',
+          bgGradient: c.bg_gradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
+          titlesCount: c.titles_count || '10+ Plans',
+          status: c.status || (c.is_active ? 'ON' : 'OFF'),
+          displayOrder: c.sort_order || 0,
+          placements: Array.isArray(c.placements) ? c.placements : ['home', 'items'],
+          providerId: c.provider_id,
+          providerSlug: c.provider_slug,
+          updatedAt: new Date(c.updated_at || Date.now()).getTime()
+        }));
 
-          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(dbCategories));
-          return dbCategories;
-        } else {
-          // If DB is explicitly empty after initialization
-          const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed)) return parsed;
-          }
-        }
+        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(dbCategories));
+        return dbCategories;
       }
     } catch (e) {
       console.warn('Supabase getAllCategoriesAdmin error:', e);
@@ -463,11 +584,10 @@ export const ottApi = {
       const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
 
-    // Initial first-time seeding
     const initial = [...CATEGORIES_DATA];
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(initial));
     return initial;
@@ -478,10 +598,14 @@ export const ottApi = {
     const existingIndex = all.findIndex(c => c.id === cat.id || c.slug.toLowerCase() === cat.slug.toLowerCase());
     const categoryToSave: Category = {
       ...cat,
+      description: cat.description || '',
+      shortDescription: cat.shortDescription || cat.description || '',
+      placements: cat.placements && cat.placements.length > 0 ? cat.placements : ['home', 'items'],
       bgGradient: cat.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
       badgeColor: cat.badgeColor || '#0284c7',
       iconName: cat.iconName || 'Compass',
       titlesCount: cat.titlesCount || '10+ Plans',
+      status: cat.status || 'ON',
       updatedAt: Date.now()
     };
 
@@ -500,16 +624,19 @@ export const ottApi = {
       const payload: any = {
         name: categoryToSave.name,
         slug: categoryToSave.slug,
-        description: categoryToSave.description || '',
-        short_description: categoryToSave.shortDescription || categoryToSave.description || '',
+        description: categoryToSave.description,
+        short_description: categoryToSave.shortDescription,
         image_url: categoryToSave.image || '',
         icon_name: categoryToSave.iconName || 'Compass',
         badge_color: categoryToSave.badgeColor || '#0284c7',
         bg_gradient: categoryToSave.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
         titles_count: categoryToSave.titlesCount || '10+ Plans',
-        status: categoryToSave.status || 'ON',
+        status: categoryToSave.status,
         is_active: categoryToSave.status !== 'OFF',
         sort_order: categoryToSave.displayOrder || 0,
+        placements: categoryToSave.placements,
+        provider_id: categoryToSave.providerId,
+        provider_slug: categoryToSave.providerSlug,
         updated_at: new Date().toISOString()
       };
       if (categoryToSave.id) payload.id = categoryToSave.id;
@@ -561,23 +688,147 @@ export const ottApi = {
     return categories.find(c => c.slug.toLowerCase() === slug.toLowerCase());
   },
 
-  async getSubcategories(): Promise<SubCategory[]> {
+  // ====================================================================
+  // 4. PROVIDER MANAGEMENT & QUICK SELECT (Central Provider Store)
+  // ====================================================================
+  async getProviders(): Promise<Provider[]> {
+    const all = await this.getAllProvidersAdmin();
+    return all.filter(p => p.isActive).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  },
+
+  async getAllProvidersAdmin(): Promise<Provider[]> {
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.SUBCATEGORIES);
-      if (stored) return JSON.parse(stored);
+      const { data, error } = await supabase
+        .from('sub_categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const providers: Provider[] = data.map(p => ({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          categorySlug: p.category_slug,
+          logo: p.logo || p.image_url,
+          brandColor: p.brand_color || '#0284c7',
+          displayOrder: p.sort_order || 0,
+          isActive: p.is_active ?? true,
+          description: p.description,
+          updatedAt: new Date(p.updated_at || Date.now()).getTime()
+        }));
+
+        localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(providers));
+        return providers;
+      }
     } catch {}
-    return [...SUBCATEGORIES_DATA];
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PROVIDERS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+
+    const initial = [...INITIAL_PROVIDERS];
+    localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(initial));
+    return initial;
+  },
+
+  async saveProvider(provider: Provider): Promise<void> {
+    const all = this.getCachedProvidersAdmin();
+    const idx = all.findIndex(p => p.id === provider.id || p.slug.toLowerCase() === provider.slug.toLowerCase());
+    const providerToSave: Provider = {
+      ...provider,
+      updatedAt: Date.now()
+    };
+
+    let updated: Provider[];
+    if (idx >= 0) {
+      updated = [...all];
+      updated[idx] = providerToSave;
+    } else {
+      updated = [...all, providerToSave];
+    }
+
+    localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
+    broadcastDataUpdate('providers');
+
+    try {
+      await supabase.from('sub_categories').upsert({
+        id: providerToSave.id,
+        name: providerToSave.name,
+        slug: providerToSave.slug,
+        category_slug: providerToSave.categorySlug || 'movies-series',
+        logo: providerToSave.logo,
+        image_url: providerToSave.logo,
+        brand_color: providerToSave.brandColor || '#0284c7',
+        is_active: providerToSave.isActive,
+        sort_order: providerToSave.displayOrder || 0,
+        description: providerToSave.description,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'slug' });
+    } catch (e) {
+      console.warn('Failed to sync provider to Supabase:', e);
+    }
+  },
+
+  async deleteProvider(id: string): Promise<void> {
+    const all = this.getCachedProvidersAdmin();
+    const target = all.find(p => p.id === id || p.slug === id);
+    const updated = all.filter(p => p.id !== id && p.slug !== id);
+    localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
+    broadcastDataUpdate('providers');
+
+    try {
+      if (target?.slug) {
+        await supabase.from('sub_categories').delete().eq('slug', target.slug);
+      }
+      await supabase.from('sub_categories').delete().eq('id', id);
+    } catch {}
+  },
+
+  async getProviderBySlug(slug: string): Promise<Provider | undefined> {
+    const providers = await this.getProviders();
+    return providers.find(p => p.slug.toLowerCase() === slug.toLowerCase());
+  },
+
+  // Legacy subcategories alias
+  async getSubcategories(): Promise<SubCategory[]> {
+    const providers = await this.getProviders();
+    return providers.map(p => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      categorySlug: p.categorySlug || 'movies-series',
+      logo: p.logo || '',
+      popularProductSlug: `${p.slug}-premium`,
+      brandColor: p.brandColor || '#0284c7',
+      isActive: p.isActive,
+      displayOrder: p.displayOrder
+    }));
   },
 
   async getSubcategoryBySlug(slug: string): Promise<SubCategory | undefined> {
-    const subs = await this.getSubcategories();
-    return subs.find(s => s.slug.toLowerCase() === slug.toLowerCase());
+    const prov = await this.getProviderBySlug(slug);
+    if (!prov) return undefined;
+    return {
+      id: prov.id,
+      slug: prov.slug,
+      name: prov.name,
+      categorySlug: prov.categorySlug || 'movies-series',
+      logo: prov.logo || '',
+      popularProductSlug: `${prov.slug}-premium`,
+      brandColor: prov.brandColor || '#0284c7',
+      isActive: prov.isActive,
+      displayOrder: prov.displayOrder
+    };
   },
 
   // ====================================================================
-  // 4. PRODUCTS MANAGEMENT (Square Image Support & Authoritative Supabase Store)
+  // 5. PRODUCTS MANAGEMENT (In Stock / Out of Stock & Provider Mapping)
   // ====================================================================
-  async getProducts(): Promise<Product[]> {
+  async getProducts(categorySlug?: string, providerSlug?: string): Promise<Product[]> {
     try {
       const { data, error } = await supabase
         .from('products')
@@ -592,8 +843,11 @@ export const ottApi = {
           tagline: p.tagline || '',
           categorySlug: p.category_slug,
           categoryName: p.category_name,
-          subcategorySlug: p.subcategory_slug || '',
-          subcategoryName: p.subcategory_name || '',
+          subcategorySlug: p.subcategory_slug || p.provider_slug || '',
+          subcategoryName: p.subcategory_name || p.provider_name || '',
+          providerId: p.provider_id,
+          providerSlug: p.provider_slug || p.subcategory_slug,
+          providerName: p.provider_name || p.subcategory_name,
           catalogSlugs: p.catalog_slugs || [],
           image: p.image_url,
           bannerImage: p.banner_image_url,
@@ -626,7 +880,10 @@ export const ottApi = {
         }));
 
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-        return products.filter(p => p.status !== 'OFF');
+        return products
+          .filter(p => p.status !== 'OFF')
+          .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
+          .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase());
       }
     } catch (e) {
       console.warn('Supabase getProducts fallback:', e);
@@ -636,11 +893,19 @@ export const ottApi = {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (stored) {
         const parsed: Product[] = JSON.parse(stored);
-        return parsed.filter(p => p.status !== 'OFF').sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        return parsed
+          .filter(p => p.status !== 'OFF')
+          .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
+          .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase())
+          .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
       }
     } catch {}
 
     return [...PRODUCTS_DATA].filter(p => p.status !== 'OFF');
+  },
+
+  async getProductsBySubcategory(subcategorySlug: string): Promise<Product[]> {
+    return this.getProducts(undefined, subcategorySlug);
   },
 
   async getAllProductsAdmin(): Promise<Product[]> {
@@ -651,15 +916,18 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        return data.map(p => ({
+        const products: Product[] = data.map(p => ({
           id: p.id,
           slug: p.slug,
           name: p.name,
           tagline: p.tagline || '',
           categorySlug: p.category_slug,
           categoryName: p.category_name,
-          subcategorySlug: p.subcategory_slug || '',
-          subcategoryName: p.subcategory_name || '',
+          subcategorySlug: p.subcategory_slug || p.provider_slug || '',
+          subcategoryName: p.subcategory_name || p.provider_name || '',
+          providerId: p.provider_id,
+          providerSlug: p.provider_slug || p.subcategory_slug,
+          providerName: p.provider_name || p.subcategory_name,
           catalogSlugs: p.catalog_slugs || [],
           image: p.image_url,
           bannerImage: p.banner_image_url,
@@ -690,6 +958,8 @@ export const ottApi = {
           badge: p.badge,
           updatedAt: new Date(p.updated_at || Date.now()).getTime()
         }));
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        return products;
       }
     } catch {}
 
@@ -704,12 +974,17 @@ export const ottApi = {
   async saveProduct(product: Product): Promise<void> {
     const all = await this.getAllProductsAdmin();
     const existingIndex = all.findIndex(p => p.id === product.id || p.slug === product.slug);
+    const productToSave: Product = {
+      ...product,
+      updatedAt: Date.now()
+    };
+
     let updated: Product[];
     if (existingIndex >= 0) {
       updated = [...all];
-      updated[existingIndex] = { ...product, updatedAt: Date.now() };
+      updated[existingIndex] = productToSave;
     } else {
-      updated = [...all, { ...product, updatedAt: Date.now() }];
+      updated = [...all, productToSave];
     }
 
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
@@ -717,43 +992,46 @@ export const ottApi = {
 
     try {
       await supabase.from('products').upsert({
-        id: product.id,
-        name: product.name,
-        slug: product.slug,
-        tagline: product.tagline,
-        description: product.deliverables?.join('\n') || '',
-        category_slug: product.categorySlug,
-        category_name: product.categoryName,
-        subcategory_slug: product.subcategorySlug,
-        subcategory_name: product.subcategoryName,
-        catalog_slugs: product.catalogSlugs,
-        image_url: product.image,
-        banner_image_url: product.bannerImage,
-        brand_color: product.brandColor,
-        brand_logo_text: product.brandLogoText,
-        rating: product.rating,
-        reviews_count: product.reviewsCount,
-        default_plan: product.defaultPlan,
-        plans: product.plans,
-        price: product.plans?.[0]?.price || product.price,
-        compare_price: product.plans?.[0]?.originalPrice || product.comparePrice,
-        stock: product.stockCount ?? 999,
-        in_stock: product.inStock,
-        status: product.status || 'ON',
-        is_featured: product.isFeatured ?? false,
-        is_popular: product.isPopular ?? false,
-        is_trending: product.isTrending ?? false,
-        in_offers: product.inOffers ?? false,
-        offer_price: product.offerPrice,
-        offer_original_price: product.offerOriginalPrice,
-        offer_discount_percentage: product.offerDiscountPercentage,
-        features: product.features,
-        deliverables: product.deliverables,
-        rules: product.rules,
-        faqs: product.faqs,
-        warranty_period: product.warrantyPeriod,
-        badge: product.badge,
-        sort_order: product.displayOrder || 0,
+        id: productToSave.id,
+        name: productToSave.name,
+        slug: productToSave.slug,
+        tagline: productToSave.tagline,
+        description: productToSave.deliverables?.join('\n') || '',
+        category_slug: productToSave.categorySlug,
+        category_name: productToSave.categoryName,
+        subcategory_slug: productToSave.subcategorySlug || productToSave.providerSlug || '',
+        subcategory_name: productToSave.subcategoryName || productToSave.providerName || '',
+        provider_id: productToSave.providerId,
+        provider_slug: productToSave.providerSlug || productToSave.subcategorySlug,
+        provider_name: productToSave.providerName || productToSave.subcategoryName,
+        catalog_slugs: productToSave.catalogSlugs,
+        image_url: productToSave.image,
+        banner_image_url: productToSave.bannerImage,
+        brand_color: productToSave.brandColor,
+        brand_logo_text: productToSave.brandLogoText,
+        rating: productToSave.rating,
+        reviews_count: productToSave.reviewsCount,
+        default_plan: productToSave.defaultPlan,
+        plans: productToSave.plans,
+        price: productToSave.plans?.[0]?.price || productToSave.price,
+        compare_price: productToSave.plans?.[0]?.originalPrice || productToSave.comparePrice,
+        stock: productToSave.stockCount ?? 999,
+        in_stock: productToSave.inStock,
+        status: productToSave.status || 'ON',
+        is_featured: productToSave.isFeatured ?? false,
+        is_popular: productToSave.isPopular ?? false,
+        is_trending: productToSave.isTrending ?? false,
+        in_offers: productToSave.inOffers ?? false,
+        offer_price: productToSave.offerPrice,
+        offer_original_price: productToSave.offerOriginalPrice,
+        offer_discount_percentage: productToSave.offerDiscountPercentage,
+        features: productToSave.features,
+        deliverables: productToSave.deliverables,
+        rules: productToSave.rules,
+        faqs: productToSave.faqs,
+        warranty_period: productToSave.warrantyPeriod,
+        badge: productToSave.badge,
+        sort_order: productToSave.displayOrder || 0,
         updated_at: new Date().toISOString()
       });
     } catch (e) {
@@ -773,8 +1051,139 @@ export const ottApi = {
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
-    const products = await this.getProducts();
-    return products.find(p => p.slug.toLowerCase() === slug.toLowerCase());
+    if (!slug) return undefined;
+    const cleanSlug = decodeURIComponent(slug).trim().toLowerCase();
+
+    // 1. Direct match in active public products
+    try {
+      const products = await this.getProducts();
+      const found = products.find(p => 
+        p.slug?.toLowerCase() === cleanSlug || 
+        p.id === slug || 
+        p.id === cleanSlug ||
+        p.slug?.toLowerCase() === slug.toLowerCase()
+      );
+      if (found) return found;
+    } catch {}
+
+    // 2. Check admin cached / all products (including newly added/draft)
+    try {
+      const allAdmin = await this.getAllProductsAdmin();
+      const foundAdmin = allAdmin.find(p => 
+        p.slug?.toLowerCase() === cleanSlug || 
+        p.id === slug || 
+        p.id === cleanSlug ||
+        p.slug?.toLowerCase() === slug.toLowerCase()
+      );
+      if (foundAdmin) return foundAdmin;
+    } catch {}
+
+    // 3. Direct Supabase query by slug or ID
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .or(`slug.eq.${cleanSlug},id.eq.${slug}`)
+        .maybeSingle();
+
+      if (!error && data) {
+        return {
+          id: data.id,
+          slug: data.slug,
+          name: data.name,
+          tagline: data.tagline || '',
+          categorySlug: data.category_slug,
+          categoryName: data.category_name,
+          subcategorySlug: data.subcategory_slug || data.provider_slug || '',
+          subcategoryName: data.subcategory_name || data.provider_name || '',
+          providerId: data.provider_id,
+          providerSlug: data.provider_slug || data.subcategory_slug,
+          providerName: data.provider_name || data.subcategory_name,
+          catalogSlugs: data.catalog_slugs || [],
+          image: data.image_url,
+          bannerImage: data.banner_image_url,
+          brandColor: data.brand_color || '#0b132b',
+          brandLogoText: data.brand_logo_text || data.name.split(' ')[0],
+          rating: Number(data.rating) || 4.9,
+          reviewsCount: data.reviews_count || 120,
+          defaultPlan: data.default_plan || '1 Month',
+          plans: data.plans || [],
+          price: Number(data.price) || 0,
+          comparePrice: Number(data.compare_price) || 0,
+          features: data.features || [],
+          deliverables: data.deliverables || [],
+          rules: data.rules || [],
+          faqs: data.faqs || [],
+          isTrending: data.is_trending,
+          isPopular: data.is_popular,
+          isFeatured: data.is_featured,
+          inOffers: data.in_offers,
+          offerPrice: data.offer_price ? Number(data.offer_price) : undefined,
+          offerOriginalPrice: data.offer_original_price ? Number(data.offer_original_price) : undefined,
+          offerDiscountPercentage: data.offer_discount_percentage,
+          displayOrder: data.sort_order || 0,
+          status: data.status || 'ON',
+          inStock: data.in_stock ?? true,
+          stockCount: data.stock ?? 999,
+          warrantyPeriod: data.warranty_period || 'Full Duration Replacement Warranty',
+          badge: data.badge,
+          updatedAt: new Date(data.updated_at || Date.now()).getTime()
+        };
+      }
+    } catch {}
+
+    // 4. Initial static fallback list
+    return PRODUCTS_DATA.find(p => 
+      p.slug?.toLowerCase() === cleanSlug || 
+      p.id === slug ||
+      p.slug?.toLowerCase() === slug.toLowerCase()
+    );
+  },
+
+  async getItemsPageCMS(): Promise<ItemsPageCMS> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('items_page_cms')
+        .eq('id', 'global')
+        .maybeSingle();
+
+      if (!error && data?.items_page_cms) {
+        localStorage.setItem(STORAGE_KEYS.ITEMS_PAGE_CMS, JSON.stringify(data.items_page_cms));
+        return data.items_page_cms;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ITEMS_PAGE_CMS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return DEFAULT_ITEMS_PAGE_CMS;
+  },
+
+  async saveItemsPageCMS(cms: ItemsPageCMS): Promise<void> {
+    const item = { ...cms, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEYS.ITEMS_PAGE_CMS, JSON.stringify(item));
+    broadcastDataUpdate('items_page_cms');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        items_page_cms: item,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Supabase items page cms save error:', e);
+    }
+  },
+
+  getCachedItemsPageCMS(): ItemsPageCMS {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ITEMS_PAGE_CMS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return DEFAULT_ITEMS_PAGE_CMS;
   },
 
   async getFeaturedProducts(): Promise<Product[]> {
@@ -800,9 +1209,12 @@ export const ottApi = {
     );
   },
 
-  async getProductsBySubcategory(subcategorySlug: string): Promise<Product[]> {
+  async getProductsByProvider(providerSlug: string): Promise<Product[]> {
     const products = await this.getProducts();
-    return products.filter(p => p.subcategorySlug?.toLowerCase() === subcategorySlug.toLowerCase());
+    return products.filter(
+      p => p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() ||
+           p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase()
+    );
   },
 
   async getProductsForCatalog(catalogSlug: string): Promise<Product[]> {
@@ -823,7 +1235,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 5. COURSES MANAGEMENT
+  // 6. COURSES MANAGEMENT
   // ====================================================================
   async getCourses(): Promise<Course[]> {
     try {
@@ -965,7 +1377,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 6. ORDERS & TRANSACTIONS
+  // 7. ORDERS & TRANSACTIONS
   // ====================================================================
   async getOrders(): Promise<Order[]> {
     try {
@@ -1100,14 +1512,15 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 7. DASHBOARD METRICS (Real Database Aggregation)
+  // 8. DASHBOARD METRICS
   // ====================================================================
   async getDashboardStats() {
-    const [products, courses, categories, orders] = await Promise.all([
+    const [products, courses, categories, orders, providers] = await Promise.all([
       this.getAllProductsAdmin(),
       this.getAllCoursesAdmin(),
       this.getAllCategoriesAdmin(),
-      this.getOrders()
+      this.getOrders(),
+      this.getAllProvidersAdmin()
     ]);
 
     const totalRevenue = orders.reduce((sum, o) => sum + (o.paymentStatus === 'Success' || o.paymentStatus === 'Paid' ? o.total : 0), 0);
@@ -1120,6 +1533,7 @@ export const ottApi = {
       totalProducts: products.length,
       totalCourses: courses.length,
       totalCategories: categories.length,
+      totalProviders: providers.length,
       totalOrders: orders.length,
       totalCustomers: Math.max(uniqueCustomers, 48),
       totalRevenue,
@@ -1132,7 +1546,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 8. SITE SETTINGS & AUDIT LOGS (Admin Email: OttSellers1@gmail.com)
+  // 9. SITE SETTINGS & AUDIT LOGS
   // ====================================================================
   async getAdminSettings(): Promise<AdminSettings> {
     try {
@@ -1143,9 +1557,10 @@ export const ottApi = {
         .single();
 
       if (!error && data) {
-        return {
+        const settings: AdminSettings = {
           id: data.id,
           siteName: data.site_name || 'OTT SELLERS',
+          logoUrl: data.logo_url || '/logo.png',
           supportEmail: data.support_email || ADMIN_CONFIG.EMAIL,
           supportPhone: data.support_phone || '+91 9441323332',
           supportWhatsApp: data.support_whatsapp || '9441323332',
@@ -1156,6 +1571,8 @@ export const ottApi = {
           randomNotificationsActive: data.random_notifications_active ?? true,
           updatedAt: new Date(data.updated_at || Date.now()).getTime()
         };
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+        return settings;
       }
     } catch {}
 
@@ -1167,6 +1584,7 @@ export const ottApi = {
     return {
       id: 'global',
       siteName: 'OTT SELLERS',
+      logoUrl: '/logo.png',
       supportEmail: ADMIN_CONFIG.EMAIL,
       supportPhone: '+91 9441323332',
       supportWhatsApp: '9441323332',
@@ -1186,6 +1604,7 @@ export const ottApi = {
       await supabase.from('admin_settings').upsert({
         id: 'global',
         site_name: settings.siteName,
+        logo_url: settings.logoUrl || '/logo.png',
         support_email: settings.supportEmail || ADMIN_CONFIG.EMAIL,
         support_phone: settings.supportPhone,
         support_whatsapp: settings.supportWhatsApp,
@@ -1229,14 +1648,20 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 9. CUSTOMER REVIEWS (With Page Mapping & Approval Moderation)
+  // 10. CUSTOMER REVIEWS (Multi-Display Locations & Live Store Mapping)
   // ====================================================================
-  async getApprovedReviews(pageType: string = 'home', pageId?: string): Promise<CustomerReview[]> {
+  async getApprovedReviews(displayLocation: string = 'home', pageId?: string): Promise<CustomerReview[]> {
     const all = await this.getAllReviewsAdmin();
     return all
       .filter(r => r.status === 'approved')
-      .filter(r => !pageType || r.pageType === 'all' || !r.pageType || r.pageType === pageType)
-      .filter(r => !pageId || !r.pageId || r.pageId === pageId)
+      .filter(r => {
+        if (!displayLocation || displayLocation === 'all') return true;
+        if (r.displayLocations && r.displayLocations.length > 0) {
+          return r.displayLocations.includes('all') || r.displayLocations.includes(displayLocation as any);
+        }
+        return !r.pageType || r.pageType === 'all' || r.pageType === displayLocation;
+      })
+      .filter(r => !pageId || !r.pageId || r.pageId === pageId || r.productId === pageId || r.categorySlug === pageId)
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
@@ -1245,7 +1670,7 @@ export const ottApi = {
       const { data, error } = await supabase
         .from('customer_reviews')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('display_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
         const reviews: CustomerReview[] = data.map(r => ({
@@ -1253,9 +1678,12 @@ export const ottApi = {
           userName: r.user_name,
           userEmail: r.user_email || '',
           productName: r.product_name,
+          productId: r.product_id,
+          categorySlug: r.category_slug,
           rating: Number(r.rating) || 5,
           comment: r.comment,
           status: r.status || 'approved',
+          displayLocations: Array.isArray(r.display_locations) ? r.display_locations : [r.page_type || 'home'],
           pageType: (r.page_type || 'home').toLowerCase() as any,
           pageId: r.page_id,
           displayOrder: r.display_order || 1,
@@ -1280,7 +1708,11 @@ export const ottApi = {
     const all = await this.getAllReviewsAdmin();
     const idx = all.findIndex(r => r.id === review.id);
     let updated: CustomerReview[];
-    const itemToSave = { ...review, updatedAt: Date.now() };
+    const itemToSave: CustomerReview = { 
+      ...review, 
+      displayLocations: (review.displayLocations && review.displayLocations.length > 0 ? review.displayLocations : ['home']) as ('home' | 'courses' | 'items' | 'categories' | 'offers' | 'all')[],
+      updatedAt: Date.now() 
+    };
     if (idx >= 0) {
       updated = [...all];
       updated[idx] = itemToSave;
@@ -1297,10 +1729,13 @@ export const ottApi = {
         user_name: review.userName,
         user_email: review.userEmail,
         product_name: review.productName,
+        product_id: review.productId,
+        category_slug: review.categorySlug,
         rating: review.rating,
         comment: review.comment,
-        status: review.status,
-        page_type: review.pageType || 'home',
+        status: review.status || 'approved',
+        page_type: review.pageType || review.displayLocations?.[0] || 'home',
+        display_locations: itemToSave.displayLocations,
         page_id: review.pageId,
         display_order: review.displayOrder || 1,
         date_str: review.date,
@@ -1323,7 +1758,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 10. RANDOM SMALL MESSAGE NOTIFICATIONS CMS
+  // 11. RANDOM SMALL MESSAGE NOTIFICATIONS CMS
   // ====================================================================
   async getNotifications(): Promise<SiteNotification[]> {
     try {
@@ -1345,6 +1780,11 @@ export const ottApi = {
           message: n.message,
           isActive: n.is_active ?? true,
           displayOrder: n.display_order ?? 1,
+          startDate: n.start_date,
+          startTime: n.start_time,
+          expiresAt: n.expires_at,
+          expiryTime: n.expiry_time,
+          type: n.type || 'purchase',
           updatedAt: new Date(n.updated_at || Date.now()).getTime()
         }));
 
@@ -1389,6 +1829,11 @@ export const ottApi = {
         message: notif.message,
         is_active: notif.isActive ?? true,
         display_order: notif.displayOrder || 1,
+        start_date: notif.startDate,
+        start_time: notif.startTime,
+        expires_at: notif.expiresAt,
+        expiry_time: notif.expiryTime,
+        type: notif.type || 'purchase',
         updated_at: new Date().toISOString()
       });
     } catch (e) {
@@ -1408,7 +1853,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 11. COUPONS CMS & CART VALIDATION
+  // 12. COUPONS CMS & CART VALIDATION (Full Date/Time & Applicability Mapping)
   // ====================================================================
   async getCoupons(): Promise<Coupon[]> {
     try {
@@ -1426,7 +1871,19 @@ export const ottApi = {
           maxDiscount: c.max_discount ? Number(c.max_discount) : undefined,
           description: c.description,
           isActive: c.is_active ?? true,
-          expiresAt: c.expires_at
+          startDate: c.start_date,
+          startTime: c.start_time,
+          expiresAt: c.expires_at,
+          expiryTime: c.expiry_time,
+          messageHeading: c.message_heading,
+          customerMessage: c.customer_message,
+          expiredMessage: c.expired_message,
+          invalidMessage: c.invalid_message,
+          notStartedMessage: c.not_started_message,
+          successMessage: c.success_message,
+          applicability: c.applicability || 'all',
+          applicableCategorySlugs: Array.isArray(c.applicable_category_slugs) ? c.applicable_category_slugs : [],
+          applicableProductIds: Array.isArray(c.applicable_product_ids) ? c.applicable_product_ids : []
         }));
         localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(coupons));
         return coupons;
@@ -1477,10 +1934,14 @@ export const ottApi = {
 
     // Check Expiry Date & Time
     if (match.expiresAt) {
-      const expiryDateTimeStr = match.expiryTime && !match.expiresAt.includes('T')
-        ? `${match.expiresAt}T${match.expiryTime}`
-        : match.expiresAt;
-      const expiryTimeMs = new Date(expiryDateTimeStr).getTime();
+      let expiryTimeMs: number;
+      if (match.expiresAt.includes('T')) {
+        expiryTimeMs = new Date(match.expiresAt).getTime();
+      } else {
+        const expiryStr = match.expiryTime ? `${match.expiresAt}T${match.expiryTime}` : `${match.expiresAt}T23:59:59`;
+        expiryTimeMs = new Date(expiryStr).getTime();
+      }
+
       if (!isNaN(expiryTimeMs) && Date.now() > expiryTimeMs) {
         return { 
           valid: false, 
@@ -1565,7 +2026,20 @@ export const ottApi = {
         max_discount: coupon.maxDiscount,
         description: coupon.description,
         is_active: coupon.isActive,
-        expires_at: coupon.expiresAt
+        start_date: coupon.startDate,
+        start_time: coupon.startTime,
+        expires_at: coupon.expiresAt,
+        expiry_time: coupon.expiryTime,
+        message_heading: coupon.messageHeading,
+        customer_message: coupon.customerMessage,
+        expired_message: coupon.expiredMessage,
+        invalid_message: coupon.invalidMessage,
+        not_started_message: coupon.notStartedMessage,
+        success_message: coupon.successMessage,
+        applicability: coupon.applicability || 'all',
+        applicable_category_slugs: coupon.applicableCategorySlugs || [],
+        applicable_product_ids: coupon.applicableProductIds || [],
+        updated_at: new Date().toISOString()
       });
     } catch (e) {
       console.warn('Supabase coupons sync notice:', e);
@@ -1593,7 +2067,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 12. FOOTER CMS
+  // 13. FOOTER CMS
   // ====================================================================
   async getFooterSettings(): Promise<FooterSettings> {
     try {
@@ -1634,7 +2108,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 13. WHATSAPP CMS & DYNAMIC ORDER TEMPLATE
+  // 14. WHATSAPP CMS & DYNAMIC MESSAGE TEMPLATES
   // ====================================================================
   async getWhatsAppSettings(): Promise<WhatsAppSettings> {
     try {
@@ -1701,8 +2175,22 @@ export const ottApi = {
     return msg;
   },
 
+  formatWhatsAppEnquiryMessage(template: string, itemData: {
+    item_name: string;
+    plan?: string;
+    price?: number | string;
+    category?: string;
+  }): string {
+    let msg = template || DEFAULT_WHATSAPP_SETTINGS.itemEnquiryTemplate || 'Hi OTT Sellers, I am interested in "{{item_name}}" ({{plan}}).';
+    msg = msg.replace(/{{item_name}}/g, itemData.item_name || 'OTT Subscription');
+    msg = msg.replace(/{{plan}}/g, itemData.plan || '1 Month');
+    msg = msg.replace(/{{price}}/g, String(itemData.price || ''));
+    msg = msg.replace(/{{category}}/g, itemData.category || 'General');
+    return msg;
+  },
+
   // ====================================================================
-  // 14. REFER & EARN CMS
+  // 15. REFER & EARN CMS
   // ====================================================================
   async getReferralSettings(): Promise<ReferralSettings> {
     try {
@@ -1743,123 +2231,7 @@ export const ottApi = {
   },
 
   // ====================================================================
-  // 15. ADMIN OTP & PROFILE SECURITY
-  // ====================================================================
-  async requestAdminOTP(type: 'change_password' | 'change_email', targetEmail: string = ADMIN_CONFIG.EMAIL): Promise<{ success: boolean; message: string }> {
-    // Generate secure 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    const otpData = {
-      type,
-      targetEmail,
-      otp,
-      expiry
-    };
-
-    localStorage.setItem(STORAGE_KEYS.ADMIN_OTP, JSON.stringify(otpData));
-
-    // Try storing in Supabase or backend function if available
-    try {
-      await supabase.from('audit_logs').insert({
-        admin_user: targetEmail,
-        action: `REQUEST_OTP_${type.toUpperCase()}`,
-        entity: 'security',
-        details: { requestedAt: new Date().toISOString() }
-      });
-    } catch {}
-
-    // In a browser demo environment, notify clearly
-    return {
-      success: true,
-      message: `A 6-digit verification code has been dispatched to verified Admin email (${targetEmail}). Code valid for 10 minutes.`
-    };
-  },
-
-  async verifyAdminOTP(type: 'change_password' | 'change_email', inputOtp: string): Promise<{ valid: boolean; error?: string }> {
-    const stored = localStorage.getItem(STORAGE_KEYS.ADMIN_OTP);
-    if (!stored) {
-      return { valid: false, error: 'No active OTP request found. Please request a new verification code.' };
-    }
-
-    try {
-      const data = JSON.parse(stored);
-      if (data.type !== type) {
-        return { valid: false, error: 'Invalid verification context.' };
-      }
-      if (Date.now() > data.expiry) {
-        localStorage.removeItem(STORAGE_KEYS.ADMIN_OTP);
-        return { valid: false, error: 'Verification code has expired. Please request a new code.' };
-      }
-      if (data.otp !== inputOtp.trim()) {
-        return { valid: false, error: 'Incorrect verification code. Please check your email and try again.' };
-      }
-
-      // Valid OTP
-      localStorage.removeItem(STORAGE_KEYS.ADMIN_OTP);
-      return { valid: true };
-    } catch {
-      return { valid: false, error: 'Failed to verify code.' };
-    }
-  },
-
-  async changeAdminPassword(newPassword: string, otp: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    if (!newPassword || newPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters long.' };
-    }
-
-    const verify = await this.verifyAdminOTP('change_password', otp);
-    if (!verify.valid) {
-      return { success: false, error: verify.error };
-    }
-
-    // Update admin auth state securely in local storage
-    const authState = {
-      email: ADMIN_CONFIG.EMAIL,
-      password: newPassword,
-      updatedAt: Date.now()
-    };
-    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(authState));
-    await this.logAudit('CHANGE_PASSWORD', 'admin_security', 'auth', { updated: true });
-
-    return {
-      success: true,
-      message: 'Admin password updated successfully! Please use your new password on subsequent logins.'
-    };
-  },
-
-  async changeAdminEmail(newEmail: string, otp: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    const cleanEmail = newEmail.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { success: false, error: 'Please enter a valid email address.' };
-    }
-
-    const verify = await this.verifyAdminOTP('change_email', otp);
-    if (!verify.valid) {
-      return { success: false, error: verify.error };
-    }
-
-    const settings = await this.getAdminSettings();
-    settings.supportEmail = cleanEmail;
-    settings.smtpUser = cleanEmail;
-    await this.saveAdminSettings(settings);
-
-    const authState = {
-      email: cleanEmail,
-      password: ADMIN_CONFIG.DEFAULT_PASS,
-      updatedAt: Date.now()
-    };
-    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(authState));
-    await this.logAudit('CHANGE_EMAIL', 'admin_security', 'auth', { newEmail: cleanEmail });
-
-    return {
-      success: true,
-      message: `Admin email successfully updated to ${cleanEmail}.`
-    };
-  },
-
-  // ====================================================================
-  // 12. FAST SYNCHRONOUS HYDRATION CACHE GETTERS
+  // 16. FAST SYNCHRONOUS HYDRATION CACHE GETTERS
   // ====================================================================
   getCachedProductsAdmin(): Product[] {
     try {
@@ -1875,6 +2247,14 @@ export const ottApi = {
       if (stored) return JSON.parse(stored);
     } catch {}
     return [...CATEGORIES_DATA];
+  },
+
+  getCachedProvidersAdmin(): Provider[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PROVIDERS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...INITIAL_PROVIDERS];
   },
 
   getCachedCoursesAdmin(): Course[] {
@@ -1909,6 +2289,14 @@ export const ottApi = {
     return [...INITIAL_HOMEPAGE_SECTIONS];
   },
 
+  getCachedCouponsAdmin(): Coupon[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.COUPONS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [...INITIAL_COUPONS];
+  },
+
   // Catalogs
   async getCatalogs(): Promise<Catalog[]> {
     return [...CATALOGS_DATA];
@@ -1939,9 +2327,11 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     userName: 'Karthik S.',
     userEmail: 'karthik@example.com',
     productName: 'Netflix Premium 4K (Private PIN)',
+    productId: 'prod-1',
     rating: 5,
     comment: 'Got my 4-digit PIN within 60 seconds on WhatsApp! Streaming UHD HDR flawlessly on my LG OLED.',
     status: 'approved',
+    displayLocations: ['home', 'items'],
     pageType: 'home',
     displayOrder: 1,
     date: '06 Oct 2026'
@@ -1951,9 +2341,11 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     userName: 'Ananya Sharma',
     userEmail: 'ananya@example.com',
     productName: 'Prime Video 4K UHD',
+    productId: 'prod-2',
     rating: 5,
     comment: 'Super fast delivery and prompt customer support on WhatsApp. Highly recommended!',
     status: 'approved',
+    displayLocations: ['home', 'items'],
     pageType: 'home',
     displayOrder: 2,
     date: '05 Oct 2026'
@@ -1963,9 +2355,11 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     userName: 'Vikram Joshi',
     userEmail: 'vikram@example.com',
     productName: 'Disney+ Hotstar Super Plan',
+    productId: 'prod-3',
     rating: 4,
     comment: 'Working fine for cricket matches, high quality stream without buffering.',
     status: 'approved',
+    displayLocations: ['home'],
     pageType: 'home',
     displayOrder: 3,
     date: '04 Oct 2026'
@@ -1978,6 +2372,7 @@ export const DEFAULT_REVIEWS: CustomerReview[] = [
     rating: 5,
     comment: 'Best rates in the market with full duration warranty. Worth every rupee.',
     status: 'approved',
+    displayLocations: ['home', 'items'],
     pageType: 'home',
     displayOrder: 4,
     date: '07 Oct 2026'

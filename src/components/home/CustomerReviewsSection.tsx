@@ -14,7 +14,13 @@ export const CustomerReviewsSection: React.FC = () => {
   const loadReviews = useCallback(async () => {
     try {
       const data = await ottApi.getApprovedReviews();
-      setReviews(data);
+      const homeReviews = data.filter(r => {
+        if (r.displayLocations && r.displayLocations.length > 0) {
+          return r.displayLocations.includes('home') || r.displayLocations.includes('all');
+        }
+        return !r.pageType || r.pageType === 'home' || r.pageType === 'all';
+      });
+      setReviews(homeReviews);
     } catch (err) {
       console.error('Error fetching reviews:', err);
     } finally {

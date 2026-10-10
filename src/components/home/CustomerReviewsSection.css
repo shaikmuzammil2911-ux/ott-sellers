@@ -1,6 +1,12 @@
 .reviews-showcase-section {
-  padding: 40px 0;
+  padding: 18px 0 24px;
   position: relative;
+}
+
+@media (max-width: 768px) {
+  .reviews-showcase-section {
+    padding: 14px 0 18px;
+  }
 }
 
 .reviews-summary-card {

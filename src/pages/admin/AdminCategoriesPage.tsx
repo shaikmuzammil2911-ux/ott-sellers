@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, 
   FolderTree, RefreshCw, AlertCircle, Eye, EyeOff, Layers, Hash, Copy,
-  ArrowUp, ArrowDown, LayoutGrid, CheckSquare, Square, Info
+  ArrowUp, ArrowDown, LayoutGrid, CheckSquare, Square, Info, Sparkles
 } from 'lucide-react';
 import { ottApi } from '../../services/api';
-import { Category } from '../../types';
+import { Category, Provider } from '../../types';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [placementFilter, setPlacementFilter] = useState('all');
@@ -20,9 +21,11 @@ export const AdminCategoriesPage: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formShortDescription, setFormShortDescription] = useState('');
   const [formDisplayOrder, setFormDisplayOrder] = useState('1');
   const [formStatus, setFormStatus] = useState<'ON' | 'OFF'>('ON');
   const [formPlacements, setFormPlacements] = useState<string[]>(['home', 'items']);
+  const [formProviderSlug, setFormProviderSlug] = useState<string>('');
   const [formIconName, setFormIconName] = useState('Compass');
   const [formBadgeColor, setFormBadgeColor] = useState('#0284c7');
   const [formImageUrl, setFormImageUrl] = useState('');
@@ -32,8 +35,12 @@ export const AdminCategoriesPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const cats = await ottApi.getAllCategoriesAdmin();
-      setCategories(cats);
+      const [cats, provs] = await Promise.all([
+        ottApi.getAllCategoriesAdmin(),
+        ottApi.getAllProvidersAdmin()
+      ]);
+      setCategories(cats.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
+      setProviders(provs);
     } catch (e) {
       console.error(e);
     } finally {
@@ -63,9 +70,11 @@ export const AdminCategoriesPage: React.FC = () => {
     setFormName('');
     setFormSlug('');
     setFormDescription('');
+    setFormShortDescription('');
     setFormDisplayOrder(String(categories.length + 1));
     setFormStatus('ON');
     setFormPlacements(['home', 'items']);
+    setFormProviderSlug('');
     setFormIconName('Compass');
     setFormBadgeColor('#0284c7');
     setFormImageUrl('');
@@ -77,9 +86,11 @@ export const AdminCategoriesPage: React.FC = () => {
     setFormName(c.name);
     setFormSlug(c.slug);
     setFormDescription(c.description || '');
+    setFormShortDescription(c.shortDescription || c.description || '');
     setFormDisplayOrder(String(c.displayOrder || 1));
     setFormStatus(c.status || 'ON');
     setFormPlacements(c.placements && c.placements.length > 0 ? c.placements : ['home', 'items']);
+    setFormProviderSlug(c.providerSlug || '');
     setFormIconName(c.iconName || 'Compass');
     setFormBadgeColor(c.badgeColor || '#0284c7');
     setFormImageUrl(c.image || '');
@@ -127,10 +138,11 @@ export const AdminCategoriesPage: React.FC = () => {
       name: formName.trim(),
       slug,
       description: formDescription.trim(),
-      shortDescription: formDescription.trim(),
+      shortDescription: formShortDescription.trim() || formDescription.trim(),
       displayOrder: Number(formDisplayOrder) || 1,
       status: formStatus,
       placements: formPlacements.length > 0 ? formPlacements : ['home', 'items'],
+      providerSlug: formProviderSlug || undefined,
       iconName: formIconName,
       badgeColor: formBadgeColor,
       image: formImageUrl.trim(),
@@ -140,10 +152,11 @@ export const AdminCategoriesPage: React.FC = () => {
     await ottApi.saveCategory(categoryData);
     await ottApi.logAudit(editingCategory ? 'UPDATE_CATEGORY' : 'CREATE_CATEGORY', 'categories', categoryData.id, { 
       name: categoryData.name, 
-      slug: categoryData.slug 
+      slug: categoryData.slug,
+      status: categoryData.status 
     });
 
-    showToast(`Category "${categoryData.name}" saved & synced with live website!`);
+    showToast(`Category "${categoryData.name}" saved & visibility synced live!`);
     setIsModalOpen(false);
     await loadData();
   };
@@ -161,13 +174,13 @@ export const AdminCategoriesPage: React.FC = () => {
     const newStatus: 'ON' | 'OFF' = c.status === 'ON' ? 'OFF' : 'ON';
     const updated = { ...c, status: newStatus, updatedAt: Date.now() };
     await ottApi.saveCategory(updated);
-    showToast(`Category "${c.name}" is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
+    showToast(`Category "${c.name}" visibility set to ${newStatus === 'ON' ? 'ACTIVE (Live)' : 'INACTIVE (Hidden)'}.`);
     await loadData();
   };
 
   const filteredCategories = categories.filter(c => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q);
+    const matchesSearch = c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q);
     if (!matchesSearch) return false;
     if (statusFilter === 'ON' && c.status !== 'ON') return false;
     if (statusFilter === 'OFF' && c.status !== 'OFF') return false;
@@ -188,7 +201,7 @@ export const AdminCategoriesPage: React.FC = () => {
             <span>Category Management & Placement CMS</span>
           </h1>
           <p className="admin-sub-text">
-            Organize subscriptions into streaming categories, set order numbers externally, and select display locations (Home, Items, Offers).
+            Organize subscriptions into genres, configure descriptions, set order numbers, and control explicit visibility (ON/OFF).
           </p>
         </div>
 
@@ -206,7 +219,7 @@ export const AdminCategoriesPage: React.FC = () => {
             className="btn-primary-action"
           >
             <Plus size={16} />
-            <span>Create New Category</span>
+            <span>Add Category</span>
           </button>
         </div>
       </div>
@@ -224,150 +237,128 @@ export const AdminCategoriesPage: React.FC = () => {
           <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Search categories by name or slug..."
+            placeholder="Search categories by name, slug, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <select
-            value={placementFilter}
-            onChange={(e) => setPlacementFilter(e.target.value)}
-            className="admin-select-filter"
-          >
-            <option value="all">All Placement Locations</option>
-            <option value="home">Home Page Strip</option>
-            <option value="items">Items Page</option>
-            <option value="offers">Special Offers Page</option>
-          </select>
-
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="admin-select-filter"
           >
-            <option value="all">All Statuses</option>
-            <option value="ON">Active Only</option>
-            <option value="OFF">Inactive Only</option>
+            <option value="all">All Statuses ({categories.length})</option>
+            <option value="ON">Active (ON - {categories.filter(c => c.status === 'ON').length})</option>
+            <option value="OFF">Inactive (OFF - {categories.filter(c => c.status === 'OFF').length})</option>
+          </select>
+
+          <select
+            value={placementFilter}
+            onChange={(e) => setPlacementFilter(e.target.value)}
+            className="admin-select-filter"
+          >
+            <option value="all">All Placement Slots</option>
+            <option value="home">Homepage Placements</option>
+            <option value="items">All Subscriptions Page</option>
+            <option value="offers">Special Offers Page</option>
           </select>
         </div>
       </div>
 
-      {/* Categories List Table */}
-      <div className="admin-table-container">
+      {/* Category Table */}
+      <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
             <tr>
-              <th style={{ width: '120px' }}>Display Order</th>
-              <th>Category Name</th>
-              <th>URL Slug</th>
-              <th>Where Placed</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th style={{ width: '60px' }}>Order</th>
+              <th>Category Name & Description</th>
+              <th>Slug</th>
+              <th>Display Placements</th>
+              <th>Linked Provider</th>
+              <th>Visibility Status</th>
+              <th style={{ width: '130px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredCategories.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
-                  No categories found. Click <strong>+ Create New Category</strong> to add one.
+                <td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--admin-text-muted)' }}>
+                  No categories found matching your filter criteria.
                 </td>
               </tr>
             ) : (
-              filteredCategories.map((cat) => (
-                <tr key={cat.id || cat.slug}>
-                  {/* Requirement 5.A: External Order Control */}
+              filteredCategories.map((c, idx) => (
+                <tr key={c.id || c.slug} style={{ opacity: c.status === 'OFF' ? 0.6 : 1 }}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: '32px', 
-                        height: '32px', 
-                        background: '#070d1e', 
-                        border: '1px solid #1e293b', 
-                        borderRadius: '6px', 
-                        color: '#38bdf8', 
-                        fontWeight: 800,
-                        fontSize: '0.86rem' 
-                      }}>
-                        #{cat.displayOrder || 1}
-                      </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveOrder(cat, 'up')}
-                          className="btn-refresh-action"
-                          style={{ padding: '2px 4px' }}
-                          title="Move Order Up"
-                        >
-                          <ArrowUp size={10} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span className="order-badge">#{c.displayOrder || idx + 1}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <button type="button" onClick={() => handleMoveOrder(c, 'up')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>
+                          <ArrowUp size={11} color="#64748b" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveOrder(cat, 'down')}
-                          className="btn-refresh-action"
-                          style={{ padding: '2px 4px' }}
-                          title="Move Order Down"
-                        >
-                          <ArrowDown size={10} />
+                        <button type="button" onClick={() => handleMoveOrder(c, 'down')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>
+                          <ArrowDown size={11} color="#64748b" />
                         </button>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: cat.badgeColor || '#0284c7' }} />
-                      <strong style={{ color: 'var(--admin-text-main)', fontSize: '0.9rem' }}>
-                        {cat.name}
-                      </strong>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <strong style={{ color: 'var(--admin-text-main)', fontSize: '0.92rem' }}>{c.name}</strong>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
+                        {c.description || c.shortDescription || 'No description provided.'}
+                      </span>
                     </div>
                   </td>
                   <td>
-                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.76rem', color: 'var(--admin-primary)' }}>
-                      {cat.slug}
-                    </code>
+                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#64748b' }}>{c.slug}</span>
                   </td>
-                  {/* Requirement 5.B: Placements Badges */}
                   <td>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {(cat.placements || ['home', 'items']).map(p => (
-                        <span key={p} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', textTransform: 'capitalize' }}>
+                      {(c.placements || ['home', 'items']).map(p => (
+                        <span key={p} className="placement-pill" style={{ textTransform: 'capitalize' }}>
                           {p}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td>
+                    {c.providerSlug ? (
+                      <span className="placement-pill" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7' }}>
+                        {providers.find(p => p.slug === c.providerSlug)?.name || c.providerSlug}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>None</span>
+                    )}
+                  </td>
+                  <td>
                     <button
                       type="button"
-                      onClick={() => handleToggleStatus(cat)}
-                      className={`admin-badge ${cat.status === 'ON' ? 'active' : 'inactive'}`}
-                      style={{ cursor: 'pointer', border: 'none' }}
+                      onClick={() => handleToggleStatus(c)}
+                      className={`status-toggle-btn ${c.status === 'ON' ? 'active' : 'inactive'}`}
+                      title="Toggle visibility"
                     >
-                      {cat.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
-                      <span>{cat.status === 'ON' ? 'Active' : 'Inactive'}</span>
+                      {c.status === 'ON' ? <Eye size={12} /> : <EyeOff size={12} />}
+                      <span>{c.status === 'ON' ? 'Active (ON)' : 'Inactive (OFF)'}</span>
                     </button>
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <button
                         type="button"
-                        onClick={() => handleOpenEditModal(cat)}
+                        onClick={() => handleOpenEditModal(c)}
                         className="btn-primary-action"
                         style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                       >
-                        <Edit2 size={12} />
-                        <span>Edit</span>
+                        <Edit2 size={12} /> Edit
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                        onClick={() => handleDeleteCategory(c.id, c.name)}
                         className="btn-refresh-action"
                         style={{ color: 'var(--admin-danger)' }}
-                        title="Delete category"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -380,32 +371,28 @@ export const AdminCategoriesPage: React.FC = () => {
         </table>
       </div>
 
-      {/* CREATE / EDIT MODAL */}
+      {/* CREATE / EDIT CATEGORY MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box" style={{ maxWidth: '640px' }}>
             <div className="admin-modal-header">
               <h2 className="admin-modal-title">
-                {editingCategory ? `Edit Category (${editingCategory.name})` : 'Create New Category'}
+                {editingCategory ? `Edit Category: ${editingCategory.name}` : 'Create New Category'}
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="admin-modal-close-btn"
-              >
+              <button type="button" onClick={() => setIsModalOpen(false)} className="admin-modal-close-btn">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveCategory}>
-              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
                     <label className="admin-form-label">Category Name *</label>
                     <input
                       type="text"
                       className="admin-form-input"
-                      placeholder="e.g. Movies & Series"
+                      placeholder="e.g. Movies & Series, Live Sports"
                       value={formName}
                       onChange={(e) => handleNameChange(e.target.value)}
                       required
@@ -425,57 +412,48 @@ export const AdminCategoriesPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Description fields (Requirement 2.2) */}
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Description</label>
+                  <label className="admin-form-label">Category Full Description *</label>
                   <textarea
-                    rows={2}
-                    className="admin-form-input"
-                    placeholder="Brief description for customer view..."
+                    className="admin-form-textarea"
+                    rows={3}
+                    placeholder="Enter detailed description displayed on the Category Page header & search results..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
+                    required
                   />
                 </div>
 
-                {/* Requirement 5.B: Where Should This Category Appear? */}
-                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-                  <label className="admin-form-label" style={{ fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
-                    Where Should This Category Appear?
-                  </label>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
-                    {[
-                      { key: 'home', label: 'Home Page' },
-                      { key: 'items', label: 'Items / Subscriptions' },
-                      { key: 'offers', label: 'Special Offers' }
-                    ].map(loc => (
-                      <button
-                        type="button"
-                        key={loc.key}
-                        onClick={() => handleTogglePlacement(loc.key)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          background: formPlacements.includes(loc.key) ? 'rgba(56, 189, 248, 0.15)' : '#0b132b',
-                          border: `1px solid ${formPlacements.includes(loc.key) ? '#38bdf8' : '#1e293b'}`,
-                          borderRadius: '8px',
-                          padding: '8px 12px',
-                          color: formPlacements.includes(loc.key) ? '#ffffff' : '#cbd5e1',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {formPlacements.includes(loc.key) ? <CheckSquare size={14} color="#38bdf8" /> : <Square size={14} color="#64748b" />}
-                        <span>{loc.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Short Description / Subtitle</label>
+                  <input
+                    type="text"
+                    className="admin-form-input"
+                    placeholder="e.g. Watch Bollywood, Hollywood & trending series in 4K UHD"
+                    value={formShortDescription}
+                    onChange={(e) => setFormShortDescription(e.target.value)}
+                  />
                 </div>
 
                 <div className="admin-form-row-2">
+                  {/* Provider Selection (Requirement 3.3) */}
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Display Order Number</label>
+                    <label className="admin-form-label">Associated Provider (Quick Select)</label>
+                    <select
+                      className="admin-form-select"
+                      value={formProviderSlug}
+                      onChange={(e) => setFormProviderSlug(e.target.value)}
+                    >
+                      <option value="">None / Multiple Providers</option>
+                      {providers.map(p => (
+                        <option key={p.slug} value={p.slug}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Display Order (#)</label>
                     <input
                       type="number"
                       min="1"
@@ -484,17 +462,86 @@ export const AdminCategoriesPage: React.FC = () => {
                       onChange={(e) => setFormDisplayOrder(e.target.value)}
                     />
                   </div>
+                </div>
 
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Publication Status</label>
-                    <select
-                      className="admin-form-select"
-                      value={formStatus}
-                      onChange={(e) => setFormStatus(e.target.value as any)}
+                {/* Where should this category appear? (Requirement 2.1) */}
+                <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <label className="admin-form-label" style={{ fontWeight: 800, marginBottom: '8px' }}>
+                    Where Should This Category Appear?
+                  </label>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    {[
+                      { key: 'home', label: 'Homepage Strip' },
+                      { key: 'items', label: 'All Subscriptions Page' },
+                      { key: 'offers', label: 'Special Offers Strip' }
+                    ].map(loc => (
+                      <button
+                        type="button"
+                        key={loc.key}
+                        onClick={() => handleTogglePlacement(loc.key)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: formPlacements.includes(loc.key) ? 'rgba(2, 132, 199, 0.15)' : '#ffffff',
+                          border: `1.5px solid ${formPlacements.includes(loc.key) ? '#0284c7' : '#cbd5e1'}`,
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          color: formPlacements.includes(loc.key) ? '#0284c7' : '#475569',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {formPlacements.includes(loc.key) ? <CheckSquare size={14} color="#0284c7" /> : <Square size={14} color="#94a3b8" />}
+                        <span>{loc.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Visibility Status (Requirement 2.1) */}
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Category Visibility Status</label>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormStatus('ON')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: formStatus === 'ON' ? '#10b981' : '#f8fafc',
+                        color: formStatus === 'ON' ? '#ffffff' : '#475569',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer'
+                      }}
                     >
-                      <option value="ON">Active (ON - Display publicly)</option>
-                      <option value="OFF">Inactive (OFF - Hidden)</option>
-                    </select>
+                      <Check size={14} /> ON (Visible on Website)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormStatus('OFF')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: formStatus === 'OFF' ? '#dc2626' : '#f8fafc',
+                        color: formStatus === 'OFF' ? '#ffffff' : '#475569',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <X size={14} /> OFF (Hidden from Website)
+                    </button>
                   </div>
                 </div>
               </div>
@@ -503,16 +550,16 @@ export const AdminCategoriesPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="btn-refresh-action"
+                  className="btn-modal-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary-action"
+                  className="btn-modal-primary"
                 >
-                  <Check size={16} />
-                  <span>{editingCategory ? 'Update Category' : 'Save Category'}</span>
+                  <Check size={14} />
+                  <span>{editingCategory ? 'Save Changes' : 'Create Category'}</span>
                 </button>
               </div>
             </form>
@@ -522,5 +569,3 @@ export const AdminCategoriesPage: React.FC = () => {
     </div>
   );
 };
-
-export default AdminCategoriesPage;

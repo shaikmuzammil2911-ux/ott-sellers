@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User as UserIcon, Menu, X, ChevronDown, Flame, Film, Tv, Trophy, Smile, Crown, Layers, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { ottApi } from '../../services/api';
+import { ottApi, getCleanImageUrl } from '../../services/api';
 import { Category } from '../../types';
 import './Header.css';
 
@@ -67,6 +67,7 @@ export const Header: React.FC = () => {
 
   const [categoriesList, setCategoriesList] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
   const [supportPhone, setSupportPhone] = useState('9441323332');
+  const [logoUrl, setLogoUrl] = useState('/logo.png');
 
   const loadHeaderData = async () => {
     try {
@@ -76,6 +77,7 @@ export const Header: React.FC = () => {
       ]);
       if (cats && cats.length > 0) setCategoriesList(cats);
       if (settings?.supportWhatsApp) setSupportPhone(settings.supportWhatsApp);
+      if (settings?.logoUrl) setLogoUrl(settings.logoUrl);
     } catch {}
   };
 
@@ -98,7 +100,7 @@ export const Header: React.FC = () => {
         {/* Brand Logo */}
         <Link to="/" className="header-logo" aria-label="OTT Sellers Home">
           <img 
-            src="/logo.png" 
+            src={getCleanImageUrl(logoUrl)} 
             alt="OTT Sellers - Stream More. Pay Less." 
             className="brand-logo-img"
           />

@@ -74,6 +74,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addToCart = (product: Product, planDuration?: PlanDuration, quantity: number = 1) => {
+    if (product.inStock === false) {
+      showToast(`Sorry, "${product.name}" is currently out of stock.`);
+      return;
+    }
+
     const selectedDuration = planDuration || product.defaultPlan || '1 Month';
     const plan = product.plans?.find(p => p.duration === selectedDuration) || product.plans?.[0] || {
       duration: selectedDuration,

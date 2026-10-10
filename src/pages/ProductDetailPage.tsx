@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   Star, ShoppingCart, Zap, MessageCircle, ShieldCheck, Check, 
-  HelpCircle, ChevronDown, ChevronUp, Clock, AlertTriangle, ArrowRight 
+  HelpCircle, ChevronDown, ChevronUp, Clock, AlertTriangle, ArrowRight, X 
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../services/api';
 import { Product, PlanDuration, ProductPlan } from '../types';
@@ -142,10 +142,24 @@ export const ProductDetailPage: React.FC = () => {
           <div className="product-info-column">
             <div className="product-title-row">
               <h1 className="product-detail-title">{product.name}</h1>
-              <span className="stock-pill in-stock">
-                <Check size={13} /> In Stock ({product.stockCount || 25}+ Available)
-              </span>
+              {product.inStock ? (
+                <span className="stock-pill in-stock">
+                  <Check size={13} /> In Stock ({product.stockCount || 25}+ Available)
+                </span>
+              ) : (
+                <span className="stock-pill out-of-stock" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }}>
+                  <X size={13} /> Out of Stock
+                </span>
+              )}
             </div>
+
+            {product.providerName && (
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.78rem', background: 'rgba(168, 85, 247, 0.1)', color: '#9333ea', padding: '3px 10px', borderRadius: '6px', fontWeight: 700, border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                  ⚡ Quick Select Provider: {product.providerName}
+                </span>
+              </div>
+            )}
 
             {product.tagline && (
               <p className="product-tagline">{product.tagline}</p>

@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Grid, Flame, ShoppingBag } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { Home, Grid, Layers, Flame, User } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import './MobileBottomNav.css';
 
 export const MobileBottomNav: React.FC = () => {
-  const { totalItemsCount } = useCart();
+  const { isAuthenticated } = useAuth();
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
@@ -27,6 +27,14 @@ export const MobileBottomNav: React.FC = () => {
       </NavLink>
 
       <NavLink 
+        to="/category/movies-series" 
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
+        <Layers size={20} className="bottom-nav-icon" />
+        <span className="bottom-nav-label">Categories</span>
+      </NavLink>
+
+      <NavLink 
         to="/offers" 
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
       >
@@ -35,18 +43,14 @@ export const MobileBottomNav: React.FC = () => {
       </NavLink>
 
       <NavLink 
-        to="/cart" 
+        to={isAuthenticated ? "/account" : "/login"} 
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
       >
-        <div className="bottom-nav-cart-wrapper">
-          <ShoppingBag size={20} className="bottom-nav-icon" />
-          {totalItemsCount > 0 && (
-            <span className="bottom-nav-badge">{totalItemsCount}</span>
-          )}
-        </div>
-        <span className="bottom-nav-label">Cart</span>
+        <User size={20} className="bottom-nav-icon" />
+        <span className="bottom-nav-label">{isAuthenticated ? 'Account' : 'Login'}</span>
       </NavLink>
     </nav>
   );
 };
+
 

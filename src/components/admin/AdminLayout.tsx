@@ -3,7 +3,7 @@ import { NavLink, Outlet, Link, useNavigate, useLocation } from 'react-router-do
 import { 
   LayoutDashboard, Package, FolderTree, Image as ImageIcon, 
   Sparkles, ShoppingCart, Users, Star, Settings, LogOut, 
-  ExternalLink, Menu, X, ShieldCheck, Database, Bell, CreditCard, Mail, Tag, Gift 
+  ExternalLink, Menu, X, ShieldCheck, Database, Bell, CreditCard, Mail, Tag, Gift, Layers 
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { ADMIN_CONFIG } from '../../services/api';
@@ -46,6 +46,7 @@ export const AdminLayout: React.FC = () => {
         { label: 'Homepage & Hero', to: '/admin/hero', icon: Sparkles },
         { label: 'Banners & Slots', to: '/admin/banners', icon: ImageIcon },
         { label: 'Categories', to: '/admin/categories', icon: FolderTree },
+        { label: 'Providers (Quick Select)', to: '/admin/providers', icon: Layers },
         { label: 'Reviews', to: '/admin/reviews', icon: Star },
         { label: 'Notifications', to: '/admin/notifications', icon: Bell }
       ]

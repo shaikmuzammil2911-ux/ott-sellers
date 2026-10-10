@@ -259,68 +259,76 @@ export const CartPage: React.FC = () => {
           <div className="cart-items-column">
             {/* 1. Items List */}
             <div className="cart-items-card">
-              <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', padding: '14px 16px', borderBottom: '1px solid #f1f5f9', margin: 0 }}>
-                1. Order Subscriptions
-              </h2>
+              <div className="cart-items-header-bar">
+                <h2 className="cart-card-title">1. Selected Subscriptions ({items.length})</h2>
+              </div>
               {items.map((item) => (
                 <div key={`${item.productId}-${item.planDuration}`} className="cart-item-row">
                   {/* Square Media */}
                   <div className="cart-item-media">
-                    <img src={item.image} alt={item.name} />
+                    <img src={item.image || '/placeholder-ott.png'} alt={item.name} />
                   </div>
 
-                  {/* Info */}
-                  <div className="cart-item-info">
-                    <Link to={`/product/${item.productSlug}`} className="cart-item-name">
-                      {item.name}
-                    </Link>
-                    <div className="cart-item-plan-badge">
-                      <span>Plan: <strong>{item.planDuration}</strong></span>
+                  {/* Details Column */}
+                  <div className="cart-item-main-details">
+                    {/* Top Row: Title on Left, Delete Button on Top-Right */}
+                    <div className="cart-item-top-row">
+                      <div className="cart-item-title-wrap">
+                        <Link to={`/product/${item.productSlug}`} className="cart-item-name" title={item.name}>
+                          {item.name}
+                        </Link>
+                        <div className="cart-item-plan-badge">
+                          <span>Plan: <strong>{item.planDuration}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Delete Button (Aligned at Top-Right of Item Name, above Amount) */}
+                      <button 
+                        type="button" 
+                        className="cart-item-delete-btn"
+                        onClick={() => removeFromCart(item.productId, item.planDuration)}
+                        aria-label={`Remove ${item.name} from cart`}
+                        title="Remove item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <div className="cart-item-unit-pricing">
-                      <span className="unit-price">₹{item.price}</span>
-                      {item.originalPrice > item.price && (
-                        <span className="unit-original">₹{item.originalPrice}</span>
-                      )}
+
+                    {/* Bottom Row: Quantity Stepper on Left, Price / Amount on Right (Below Delete Button) */}
+                    <div className="cart-item-bottom-row">
+                      {/* Quantity Stepper */}
+                      <div className="cart-item-quantity-box">
+                        <button 
+                          type="button" 
+                          onClick={() => updateQuantity(item.productId, item.planDuration, item.quantity - 1)}
+                          className="qty-btn"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span className="qty-value">{item.quantity}</span>
+                        <button 
+                          type="button" 
+                          onClick={() => updateQuantity(item.productId, item.planDuration, item.quantity + 1)}
+                          className="qty-btn"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+
+                      {/* Amount (Positioned below the delete button) */}
+                      <div className="cart-item-pricing-box">
+                        <span className="cart-item-total-price">₹{item.price * item.quantity}</span>
+                        {item.quantity > 1 && (
+                          <span className="cart-item-unit-note">₹{item.price} each</span>
+                        )}
+                        {item.originalPrice > item.price && (
+                          <span className="cart-item-original-price">₹{item.originalPrice * item.quantity}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  {/* Quantity Stepper */}
-                  <div className="cart-item-quantity-box">
-                    <button 
-                      type="button" 
-                      onClick={() => updateQuantity(item.productId, item.planDuration, item.quantity - 1)}
-                      className="qty-btn"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus size={13} />
-                    </button>
-                    <span className="qty-value">{item.quantity}</span>
-                    <button 
-                      type="button" 
-                      onClick={() => updateQuantity(item.productId, item.planDuration, item.quantity + 1)}
-                      className="qty-btn"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus size={13} />
-                    </button>
-                  </div>
-
-                  {/* Subtotal */}
-                  <div className="cart-item-row-total">
-                    <span>₹{item.price * item.quantity}</span>
-                  </div>
-
-                  {/* Remove Button */}
-                  <button 
-                    type="button" 
-                    className="cart-item-remove-btn"
-                    onClick={() => removeFromCart(item.productId, item.planDuration)}
-                    aria-label={`Remove ${item.name} from cart`}
-                    title="Remove item"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               ))}
             </div>

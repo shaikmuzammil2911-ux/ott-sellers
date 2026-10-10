@@ -33,16 +33,19 @@ export const AdminCouponsPage: React.FC = () => {
   const [formExpiresAt, setFormExpiresAt] = useState('');
   const [formExpiryTime, setFormExpiryTime] = useState('23:59');
 
-  // Custom Messages
+  // Customer Facing Heading & Custom Messages (Module 7.4)
+  const [formMessageHeading, setFormMessageHeading] = useState('Special Discount Deal');
+  const [formCustomerMessage, setFormCustomerMessage] = useState('Get instant discount on your subscription order today!');
   const [formExpiredMessage, setFormExpiredMessage] = useState('This coupon code has expired.');
   const [formInvalidMessage, setFormInvalidMessage] = useState('Invalid coupon code.');
   const [formNotStartedMessage, setFormNotStartedMessage] = useState('This coupon has not started yet.');
   const [formSuccessMessage, setFormSuccessMessage] = useState('Coupon applied successfully!');
 
-  // Applicability
+  // Applicability & Item Selector Search
   const [formApplicability, setFormApplicability] = useState<CouponApplicability>('all');
   const [formApplicableCategorySlugs, setFormApplicableCategorySlugs] = useState<string[]>([]);
   const [formApplicableProductIds, setFormApplicableProductIds] = useState<string[]>([]);
+  const [itemSearchText, setItemSearchText] = useState('');
 
   const [formIsActive, setFormIsActive] = useState(true);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -105,6 +108,8 @@ export const AdminCouponsPage: React.FC = () => {
     setFormExpiresAt(monthLater);
     setFormExpiryTime('23:59');
 
+    setFormMessageHeading('Special Discount Deal');
+    setFormCustomerMessage('Get instant discount on your subscription order today!');
     setFormExpiredMessage('This coupon code has expired.');
     setFormInvalidMessage('Invalid coupon code.');
     setFormNotStartedMessage('This coupon promotion has not started yet.');
@@ -113,6 +118,7 @@ export const AdminCouponsPage: React.FC = () => {
     setFormApplicability('all');
     setFormApplicableCategorySlugs([]);
     setFormApplicableProductIds([]);
+    setItemSearchText('');
     setFormIsActive(true);
     setFormError(null);
     setIsModalOpen(true);
@@ -132,6 +138,8 @@ export const AdminCouponsPage: React.FC = () => {
     setFormExpiresAt(c.expiresAt ? c.expiresAt.split('T')[0] : '');
     setFormExpiryTime(c.expiryTime || '23:59');
 
+    setFormMessageHeading(c.messageHeading || 'Special Discount Deal');
+    setFormCustomerMessage(c.customerMessage || 'Get instant discount on your subscription order today!');
     setFormExpiredMessage(c.expiredMessage || 'This coupon code has expired.');
     setFormInvalidMessage(c.invalidMessage || 'Invalid coupon code.');
     setFormNotStartedMessage(c.notStartedMessage || 'This coupon promotion has not started yet.');
@@ -140,6 +148,7 @@ export const AdminCouponsPage: React.FC = () => {
     setFormApplicability(c.applicability || 'all');
     setFormApplicableCategorySlugs(c.applicableCategorySlugs || []);
     setFormApplicableProductIds(c.applicableProductIds || []);
+    setItemSearchText('');
     setFormIsActive(c.isActive);
     setFormError(null);
     setIsModalOpen(true);
@@ -154,11 +163,19 @@ export const AdminCouponsPage: React.FC = () => {
   };
 
   const handleToggleProductSelection = (id: string) => {
+    if (formApplicability === 'single_item') {
+      setFormApplicableProductIds([id]);
+      return;
+    }
     if (formApplicableProductIds.includes(id)) {
       setFormApplicableProductIds(formApplicableProductIds.filter(pid => pid !== id));
     } else {
       setFormApplicableProductIds([...formApplicableProductIds, id]);
     }
+  };
+
+  const handleRemoveProductSelection = (id: string) => {
+    setFormApplicableProductIds(formApplicableProductIds.filter(pid => pid !== id));
   };
 
   const handleSaveCoupon = async (e: React.FormEvent) => {
@@ -167,6 +184,21 @@ export const AdminCouponsPage: React.FC = () => {
 
     if (!formCode.trim()) {
       setFormError('Coupon code is required.');
+      return;
+    }
+
+    if (formApplicability === 'single_item' && formApplicableProductIds.length === 0) {
+      setFormError('Please select an eligible item for Single Selected Item mode.');
+      return;
+    }
+
+    if (formApplicability === 'multiple_items' && formApplicableProductIds.length === 0) {
+      setFormError('Please select at least one eligible item for Multiple Selected Items mode.');
+      return;
+    }
+
+    if (formApplicability === 'category' && formApplicableCategorySlugs.length === 0) {
+      setFormError('Please select at least one category for Selected Categories mode.');
       return;
     }
 
@@ -193,6 +225,8 @@ export const AdminCouponsPage: React.FC = () => {
       startTime: formStartTime || undefined,
       expiresAt: formExpiresAt ? new Date(`${formExpiresAt}T${formExpiryTime || '23:59'}`).toISOString() : undefined,
       expiryTime: formExpiryTime || undefined,
+      messageHeading: formMessageHeading.trim(),
+      customerMessage: formCustomerMessage.trim(),
       expiredMessage: formExpiredMessage.trim(),
       invalidMessage: formInvalidMessage.trim(),
       notStartedMessage: formNotStartedMessage.trim(),
@@ -521,7 +555,7 @@ export const AdminCouponsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Requirement 8.D: Coupon Applicability */}
+                {/* Module 7.2 & 7.3: Coupon Applicability */}
                 <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
                   <label className="admin-form-label" style={{ fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
                     Where Should This Coupon Apply?
@@ -537,7 +571,10 @@ export const AdminCouponsPage: React.FC = () => {
                       <button
                         type="button"
                         key={mode.key}
-                        onClick={() => setFormApplicability(mode.key as any)}
+                        onClick={() => {
+                          setFormApplicability(mode.key as any);
+                          setItemSearchText('');
+                        }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -558,66 +595,153 @@ export const AdminCouponsPage: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Category Selection */}
+                  {/* Mode A: Category Selection */}
                   {formApplicability === 'category' && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
-                      {categories.map(cat => (
-                        <button
-                          type="button"
-                          key={cat.slug}
-                          onClick={() => handleToggleCategorySelection(cat.slug)}
-                          style={{
-                            background: formApplicableCategorySlugs.includes(cat.slug) ? '#0284c7' : '#0b132b',
-                            color: '#fff',
-                            border: '1px solid #1e293b',
-                            borderRadius: '6px',
-                            padding: '4px 10px',
-                            fontSize: '0.76rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {cat.name}
-                        </button>
-                      ))}
+                    <div>
+                      <span style={{ fontSize: '0.76rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                        Select one or more categories where this coupon is valid:
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {categories.map(cat => {
+                          const isSelected = formApplicableCategorySlugs.includes(cat.slug);
+                          return (
+                            <button
+                              type="button"
+                              key={cat.slug}
+                              onClick={() => handleToggleCategorySelection(cat.slug)}
+                              style={{
+                                background: isSelected ? '#0284c7' : '#0b132b',
+                                color: '#fff',
+                                border: `1px solid ${isSelected ? '#38bdf8' : '#1e293b'}`,
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              {isSelected ? <Check size={12} /> : null}
+                              <span>{cat.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
-                  {/* Item Selection */}
+                  {/* Mode B & C: Single Item or Multiple Items Selector */}
                   {(formApplicability === 'single_item' || formApplicability === 'multiple_items') && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '6px', maxHeight: '160px', overflowY: 'auto', marginTop: '10px' }}>
-                      {products.map(prod => (
-                        <button
-                          type="button"
-                          key={prod.id}
-                          onClick={() => handleToggleProductSelection(prod.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: formApplicableProductIds.includes(prod.id) ? 'rgba(56, 189, 248, 0.2)' : '#0b132b',
-                            border: `1px solid ${formApplicableProductIds.includes(prod.id) ? '#38bdf8' : '#1e293b'}`,
-                            borderRadius: '6px',
-                            padding: '6px 8px',
-                            color: '#fff',
-                            fontSize: '0.76rem',
-                            cursor: 'pointer',
-                            textAlign: 'left'
-                          }}
-                        >
-                          {formApplicableProductIds.includes(prod.id) ? <CheckSquare size={12} color="#38bdf8" /> : <Square size={12} color="#64748b" />}
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prod.name}</span>
-                        </button>
-                      ))}
+                    <div>
+                      {/* Search Bar for Items */}
+                      <div style={{ marginBottom: '8px' }}>
+                        <input
+                          type="text"
+                          className="admin-form-input"
+                          placeholder={formApplicability === 'single_item' ? "Search items to select exactly one item..." : "Search items to add to eligible list..."}
+                          value={itemSearchText}
+                          onChange={(e) => setItemSearchText(e.target.value)}
+                          style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                        />
+                      </div>
+
+                      {/* Selected Items Pills (for Multiple Items mode) */}
+                      {formApplicability === 'multiple_items' && formApplicableProductIds.length > 0 && (
+                        <div style={{ marginBottom: '10px', padding: '8px', background: '#0b132b', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                            Selected Eligible Items ({formApplicableProductIds.length}):
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {formApplicableProductIds.map(pid => {
+                              const p = products.find(prod => prod.id === pid);
+                              return (
+                                <span
+                                  key={pid}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: '#0284c7',
+                                    color: '#ffffff',
+                                    fontSize: '0.74rem',
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  <span>{p?.name || pid}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveProductSelection(pid)}
+                                    style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', padding: 0 }}
+                                    title="Remove item"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Searchable Items Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                        {products
+                          .filter(p => !itemSearchText || p.name.toLowerCase().includes(itemSearchText.toLowerCase()) || p.categoryName?.toLowerCase().includes(itemSearchText.toLowerCase()))
+                          .map(prod => {
+                            const isSelected = formApplicableProductIds.includes(prod.id);
+                            return (
+                              <button
+                                type="button"
+                                key={prod.id}
+                                onClick={() => handleToggleProductSelection(prod.id)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  background: isSelected ? 'rgba(56, 189, 248, 0.2)' : '#0b132b',
+                                  border: `1px solid ${isSelected ? '#38bdf8' : '#1e293b'}`,
+                                  borderRadius: '6px',
+                                  padding: '6px 10px',
+                                  color: '#fff',
+                                  fontSize: '0.76rem',
+                                  cursor: 'pointer',
+                                  textAlign: 'left'
+                                }}
+                              >
+                                {isSelected ? <CheckSquare size={13} color="#38bdf8" /> : <Square size={13} color="#64748b" />}
+                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <strong style={{ display: 'block', fontSize: '0.76rem', color: isSelected ? '#38bdf8' : '#f8fafc' }}>{prod.name}</strong>
+                                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>₹{prod.price || prod.plans?.[0]?.price} • {prod.categoryName}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Requirement 8.C: Custom Status Messages */}
+                {/* Module 7.4: Custom Customer Message & Heading */}
                 <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
                   <h4 style={{ margin: '0 0 10px', fontSize: '0.86rem', color: '#f59e0b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <MessageSquare size={14} />
-                    <span>Custom Customer Messages</span>
+                    <span>Customer Facing Heading & Custom Messages</span>
                   </h4>
+
+                  <div className="admin-form-row-2">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Customer Message Heading</label>
+                      <input type="text" className="admin-form-input" placeholder="e.g. Special Discount Deal" value={formMessageHeading} onChange={(e) => setFormMessageHeading(e.target.value)} />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Custom Customer Message</label>
+                      <input type="text" className="admin-form-input" placeholder="e.g. Get instant discount on your order!" value={formCustomerMessage} onChange={(e) => setFormCustomerMessage(e.target.value)} />
+                    </div>
+                  </div>
 
                   <div className="admin-form-row-2">
                     <div className="admin-form-group">

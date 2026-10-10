@@ -50,9 +50,20 @@ export const CheckoutPage: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      // Authoritative database pricing verification
+      // Authoritative database pricing & stock verification
       const dbProducts = await ottApi.getProducts();
       let verifiedSubtotal = 0;
+
+      // Check stock availability
+      for (const item of items) {
+        const dbProd = dbProducts.find(p => p.id === item.productId || p.slug === item.productSlug);
+        if (dbProd && dbProd.inStock === false) {
+          setErrorMsg(`"${dbProd.name}" is currently out of stock. Please remove it from your cart before checking out.`);
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       const orderItems = items.map(i => {
         const dbProd = dbProducts.find(p => p.id === i.productId || p.slug === i.productSlug);
         const plan = dbProd?.plans?.find(p => p.duration === i.planDuration);

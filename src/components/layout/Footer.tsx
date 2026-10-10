@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Send } from 'lucide-react';
-import { ottApi, DEFAULT_FOOTER_SETTINGS } from '../../services/api';
+import { ottApi, DEFAULT_FOOTER_SETTINGS, getCleanImageUrl } from '../../services/api';
 import { FooterSettings } from '../../types';
 import './Footer.css';
 
 export const Footer: React.FC = () => {
   const [footer, setFooter] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
+  const [logoUrl, setLogoUrl] = useState('/logo.png');
 
   const loadFooter = useCallback(async () => {
     try {
-      const data = await ottApi.getFooterSettings();
+      const [data, settings] = await Promise.all([
+        ottApi.getFooterSettings(),
+        ottApi.getAdminSettings()
+      ]);
       if (data) setFooter(data);
+      if (settings?.logoUrl) setLogoUrl(settings.logoUrl);
     } catch {}
   }, []);
 
@@ -42,7 +47,7 @@ export const Footer: React.FC = () => {
         {/* Brand Column */}
         <div className="footer-col brand-col">
           <Link to="/" className="footer-logo-link">
-            <img src="/logo.png" alt="OTT Sellers" className="footer-logo-img" />
+            <img src={getCleanImageUrl(logoUrl)} alt="OTT Sellers" className="footer-logo-img" />
           </Link>
           <div className="footer-brand-tagline">
             <span className="dash-green">—</span> {footer.tagline || 'STREAM MORE. PAY LESS.'} <span className="dash-blue">—</span>

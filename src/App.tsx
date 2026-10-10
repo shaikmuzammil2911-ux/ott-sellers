@@ -45,6 +45,7 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { AdminCoursesPage } from './pages/admin/AdminCoursesPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminProvidersPage } from './pages/admin/AdminProvidersPage';
 import { AdminHeroCMSPage } from './pages/admin/AdminHeroCMSPage';
 import { AdminBannersPage } from './pages/admin/AdminBannersPage';
 import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
@@ -89,6 +90,9 @@ const AppContent: React.FC = () => {
           <Route path="/categories" element={<ItemsPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/product/:slug" element={<ProductDetailPage />} />
+          <Route path="/item/:slug" element={<ProductDetailPage />} />
+          <Route path="/items/:slug" element={<ProductDetailPage />} />
+          <Route path="/subscription/:slug" element={<ProductDetailPage />} />
           <Route path="/courses" element={<ItemsPage />} />
           <Route path="/course/:slug" element={<CourseDetailPage />} />
           <Route path="/catalogs" element={<CatalogsPage />} />
@@ -123,6 +127,7 @@ const AppContent: React.FC = () => {
             <Route path="products" element={<AdminProductsPage />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="providers" element={<AdminProvidersPage />} />
             <Route path="hero" element={<AdminHeroCMSPage />} />
             <Route path="banners" element={<AdminBannersPage />} />
             <Route path="banner" element={<AdminBannersPage />} />

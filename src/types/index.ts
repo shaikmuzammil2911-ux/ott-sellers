@@ -17,6 +17,19 @@ export interface Review {
   verified: boolean;
 }
 
+export interface Provider {
+  id: string;
+  name: string;
+  slug: string;
+  categorySlug?: string;
+  logo?: string;
+  brandColor?: string;
+  displayOrder?: number;
+  isActive: boolean;
+  description?: string;
+  updatedAt?: number;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -26,6 +39,9 @@ export interface Product {
   categoryName: string;
   subcategorySlug: string;
   subcategoryName: string;
+  providerId?: string;
+  providerSlug?: string;
+  providerName?: string;
   catalogSlugs: string[];
   image: string;
   bannerImage?: string;
@@ -63,9 +79,22 @@ export type BannerVerticalPlacement = 'top' | 'center' | 'bottom';
 export type BannerDisplayStyle = 'auto-slide' | 'fixed' | 'manual-slide' | 'single';
 export type BannerTargetPage = 'home' | 'courses' | 'items' | 'categories' | 'offers' | 'all';
 
+export interface BannerButton {
+  id: string;
+  label: string;
+  link: string;
+  style?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  bgColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  placement?: 'left' | 'center' | 'right';
+  target?: '_self' | '_blank';
+}
+
 export interface HeroBanner {
   id: string;
   name?: string;
+  groupName?: string;
   title: string;
   subtitle: string;
   description?: string;
@@ -73,6 +102,7 @@ export interface HeroBanner {
   ctaLink: string;
   secondaryCtaText?: string;
   secondaryCtaLink?: string;
+  buttons?: BannerButton[];
   desktopImage: string;
   mobileImage: string;
   mode: BannerImageMode;
@@ -82,11 +112,12 @@ export interface HeroBanner {
   buttonPlacement?: BannerTextPosition;
   btnBgColor?: string;
   btnTextColor?: string;
+  btnBorderColor?: string;
   overlayColor?: string;
   overlayOpacity?: number;
   displayOrder: number;
   page: BannerTargetPage;
-  slot: string; // e.g. '01', '02', 'hero', 'top'
+  slot: string; // e.g. '01', '02', 'hero', 'top', or custom group ID
   style: BannerDisplayStyle;
   autoplay: boolean;
   interval: number; // in seconds (e.g. 5)
@@ -96,7 +127,21 @@ export interface HeroBanner {
   titleColor?: string;
   subtitleColor?: string;
   badgeColor?: string;
+  descriptionColor?: string;
   updatedAt?: number;
+}
+
+export interface BannerGroup {
+  id: string;
+  name: string;
+  slot: string;
+  page: BannerTargetPage;
+  style: BannerDisplayStyle;
+  autoplay: boolean;
+  interval: number;
+  status: 'ON' | 'OFF';
+  description?: string;
+  bannerCount?: number;
 }
 
 export interface Category {
@@ -113,6 +158,8 @@ export interface Category {
   status?: 'ON' | 'OFF';
   displayOrder?: number;
   placements?: ('home' | 'items' | 'offers' | string)[];
+  providerId?: string;
+  providerSlug?: string;
   updatedAt?: number;
 }
 
@@ -124,6 +171,8 @@ export interface SubCategory {
   logo: string;
   popularProductSlug: string;
   brandColor: string;
+  isActive?: boolean;
+  displayOrder?: number;
 }
 
 export interface Catalog {
@@ -166,6 +215,8 @@ export interface Coupon {
   startTime?: string;
   expiresAt?: string;
   expiryTime?: string;
+  messageHeading?: string;
+  customerMessage?: string;
   expiredMessage?: string;
   invalidMessage?: string;
   notStartedMessage?: string;
@@ -288,7 +339,12 @@ export interface WhatsAppSettings {
   position: 'bottom-right' | 'bottom-left';
   displayPages: 'all' | 'home' | 'items' | 'cart';
   tagMessage: string;
+  generalMessage?: string;
+  generalMessageTemplate?: string;
+  customerEnquiryTemplate?: string;
+  itemEnquiryTemplate?: string;
   orderMessageTemplate: string;
+  contactMessageTemplate?: string;
   updatedAt?: number;
 }
 
@@ -334,11 +390,14 @@ export interface AuditLog {
 export interface CustomerReview {
   id: string;
   userName: string;
-  userEmail: string;
+  userEmail?: string;
   productName: string;
+  productId?: string;
+  categorySlug?: string;
   rating: number;
   comment: string;
   status: 'approved' | 'pending' | 'rejected';
+  displayLocations?: ('home' | 'courses' | 'items' | 'categories' | 'offers' | 'all')[];
   pageType?: 'home' | 'courses' | 'items' | 'categories' | 'offers' | 'all';
   pageId?: string;
   displayOrder?: number;
@@ -358,6 +417,21 @@ export interface SiteNotification {
   message?: string;
   isActive: boolean;
   displayOrder?: number;
+  startDate?: string;
+  startTime?: string;
+  expiresAt?: string;
+  expiryTime?: string;
+  type?: 'purchase' | 'alert' | 'announcement';
   updatedAt?: number;
 }
+
+export interface ItemsPageCMS {
+  mainHeading: string;
+  mainSubtitle: string;
+  quickSearchHeading: string;
+  categoriesHeading: string;
+  itemsListingHeading: string;
+  updatedAt?: number;
+}
+
 

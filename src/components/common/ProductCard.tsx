@@ -47,20 +47,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           loading="lazy"
         />
         
-        {/* Discount / Savings Badge */}
-        {savings > 0 && (
+        {/* Discount / Savings Badge or Out of Stock Badge */}
+        {!product.inStock ? (
+          <span className="out-of-stock-badge" style={{ position: 'absolute', top: '8px', right: '8px', background: '#dc2626', color: '#ffffff', fontSize: '0.7rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', zIndex: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Out of Stock
+          </span>
+        ) : savings > 0 ? (
           <span className="discount-badge">
             Save ₹{savings}
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* 2. Compact Body: Name, Category, Pricing, Add to Cart */}
       <div className="product-card-body">
-        {/* Category Pill */}
-        <span className="product-card-category-tag">
-          {product.categoryName || 'OTT Subscription'}
-        </span>
+        {/* Category & Provider Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+          <span className="product-card-category-tag">
+            {product.categoryName || 'OTT Subscription'}
+          </span>
+          {product.providerName && (
+            <span style={{ fontSize: '0.68rem', background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+              {product.providerName}
+            </span>
+          )}
+        </div>
 
         {/* Item Name */}
         <Link 
@@ -85,14 +96,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
 
-        {/* Action Button: Add to Cart */}
+        {/* Action Button: Add to Cart / Out of Stock */}
         <button 
           type="button" 
-          className={`btn-add-cart ${isInCart ? 'added-state' : ''}`}
-          onClick={handleAddToCart}
-          aria-label={`Add ${product.name} to cart`}
+          className={`btn-add-cart ${isInCart ? 'added-state' : ''} ${!product.inStock ? 'out-of-stock' : ''}`}
+          onClick={product.inStock ? handleAddToCart : (e) => e.stopPropagation()}
+          disabled={!product.inStock}
+          aria-label={product.inStock ? `Add ${product.name} to cart` : `${product.name} is out of stock`}
+          style={!product.inStock ? { background: '#f1f5f9', color: '#94a3b8', cursor: 'not-allowed', border: '1px solid #cbd5e1' } : undefined}
         >
-          {isInCart ? (
+          {!product.inStock ? (
+            <span>Out of Stock</span>
+          ) : isInCart ? (
             <>
               <Check size={14} />
               <span>In Cart</span>

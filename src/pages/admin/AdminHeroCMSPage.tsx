@@ -173,22 +173,26 @@ export const AdminHeroCMSPage: React.FC = () => {
 
     await ottApi.saveHomepageSection(updatedCMS);
 
-    // Sync banner table for hero slider
+    // Synchronize primary hero banner (slot 01, order 1) safely
     try {
       const banners = await ottApi.getAllBannersAdmin();
-      if (banners.length > 0) {
-        const first = { ...banners[0] };
-        first.title = title.trim();
-        first.subtitle = subtitle.trim();
-        first.badgeText = badgeText.trim();
-        first.titleColor = titleColor;
-        first.subtitleColor = subtitleColor;
-        first.badgeColor = badgeColor;
-        first.ctaText = ctaText.trim();
-        first.ctaLink = ctaLink.trim();
-        first.desktopImage = desktopImage;
-        if (mobileImage) first.mobileImage = mobileImage;
-        banners[0] = first;
+      const heroIdx = banners.findIndex(b => b.slot === '01' && b.displayOrder === 1);
+      if (heroIdx >= 0) {
+        const heroBanner = { ...banners[heroIdx] };
+        heroBanner.title = title.trim();
+        heroBanner.subtitle = subtitle.trim();
+        heroBanner.description = description.trim();
+        heroBanner.badgeText = badgeText.trim();
+        heroBanner.titleColor = titleColor;
+        heroBanner.subtitleColor = subtitleColor;
+        heroBanner.badgeColor = badgeColor;
+        heroBanner.ctaText = ctaText.trim();
+        heroBanner.ctaLink = ctaLink.trim();
+        heroBanner.secondaryCtaText = secondaryCtaText.trim() || undefined;
+        heroBanner.secondaryCtaLink = secondaryCtaLink.trim() || undefined;
+        heroBanner.desktopImage = desktopImage;
+        if (mobileImage) heroBanner.mobileImage = mobileImage;
+        banners[heroIdx] = heroBanner;
         await ottApi.saveBanners(banners);
       }
     } catch {}

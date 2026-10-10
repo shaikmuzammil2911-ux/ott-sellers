@@ -6,14 +6,16 @@ import {
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
-import { Product, Category } from '../../types';
+import { Product, Category, Provider } from '../../types';
 import { ImageCropperModal } from '../../components/admin/ImageCropperModal';
 
 export const AdminProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(() => ottApi.getCachedProductsAdmin());
   const [categories, setCategories] = useState<Category[]>(() => ottApi.getCachedCategoriesAdmin());
+  const [providers, setProviders] = useState<Provider[]>(() => ottApi.getCachedProvidersAdmin());
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [providerFilter, setProviderFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +28,7 @@ export const AdminProductsPage: React.FC = () => {
   const [formSlug, setFormSlug] = useState('');
   const [formTagline, setFormTagline] = useState('');
   const [formCategorySlug, setFormCategorySlug] = useState('');
+  const [formProviderSlug, setFormProviderSlug] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
   // Form Fields - Group 2: Pricing
@@ -61,12 +64,14 @@ export const AdminProductsPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [prods, cats] = await Promise.all([
+      const [prods, cats, provs] = await Promise.all([
         ottApi.getAllProductsAdmin(),
-        ottApi.getAllCategoriesAdmin()
+        ottApi.getAllCategoriesAdmin(),
+        ottApi.getAllProvidersAdmin()
       ]);
       setProducts(prods);
       setCategories(cats);
+      setProviders(provs);
     } catch (e) {
       console.error(e);
     } finally {
@@ -97,6 +102,7 @@ export const AdminProductsPage: React.FC = () => {
     setFormSlug('');
     setFormTagline('Instant WhatsApp Credentials Delivery');
     setFormCategorySlug(categories[0]?.slug || 'movies-series');
+    setFormProviderSlug('');
     setFormDescription('Verified 4K streaming access with instant PIN activation.');
     setFormPrice('199');
     setFormOriginalPrice('499');
@@ -121,6 +127,7 @@ export const AdminProductsPage: React.FC = () => {
     setFormSlug(p.slug);
     setFormTagline(p.tagline || '');
     setFormCategorySlug(p.categorySlug);
+    setFormProviderSlug(p.providerSlug || '');
     setFormDescription(p.tagline || '');
     setFormPrice(String(p.plans?.[0]?.price || p.price || 199));
     setFormOriginalPrice(String(p.plans?.[0]?.originalPrice || p.comparePrice || 499));
@@ -190,6 +197,7 @@ export const AdminProductsPage: React.FC = () => {
     const origPriceNum = Number(formOriginalPrice) || priceNum;
     const discountPct = origPriceNum > priceNum ? Math.round(((origPriceNum - priceNum) / origPriceNum) * 100) : 0;
     const cat = categories.find(c => c.slug === formCategorySlug);
+    const prov = providers.find(pr => pr.slug === formProviderSlug);
     const featuresList = formFeatures.split('\n').map(f => f.trim()).filter(Boolean);
 
     const generatedSlug = formSlug.trim() 
@@ -203,11 +211,14 @@ export const AdminProductsPage: React.FC = () => {
       tagline: formTagline.trim(),
       categorySlug: formCategorySlug,
       categoryName: cat?.name || 'OTT Subscriptions',
+      providerId: prov?.id,
+      providerSlug: prov?.slug || (formProviderSlug || undefined),
+      providerName: prov?.name,
       subcategorySlug: editingProduct?.subcategorySlug || 'ott',
       subcategoryName: editingProduct?.subcategoryName || 'Streaming',
       catalogSlugs: editingProduct?.catalogSlugs || [],
       image: formImageUrl.trim(),
-      brandColor: editingProduct?.brandColor || '#0b132b',
+      brandColor: prov?.brandColor || editingProduct?.brandColor || '#0b132b',
       brandLogoText: editingProduct?.brandLogoText || formName.split(' ')[0],
       rating: editingProduct?.rating || 4.9,
       reviewsCount: editingProduct?.reviewsCount || 120,
@@ -260,7 +271,9 @@ export const AdminProductsPage: React.FC = () => {
     await ottApi.saveProduct(updatedProduct);
     await ottApi.logAudit(editingProduct ? 'UPDATE_PRODUCT' : 'CREATE_PRODUCT', 'products', updatedProduct.id, {
       name: updatedProduct.name,
-      price: updatedProduct.price
+      price: updatedProduct.price,
+      inStock: updatedProduct.inStock,
+      providerSlug: updatedProduct.providerSlug
     });
 
     showToast(`Product "${updatedProduct.name}" saved & live on storefront!`);
@@ -285,11 +298,20 @@ export const AdminProductsPage: React.FC = () => {
     await loadData();
   };
 
+  const handleToggleStock = async (p: Product) => {
+    const newStock = !p.inStock;
+    const updated: Product = { ...p, inStock: newStock, updatedAt: Date.now() };
+    await ottApi.saveProduct(updated);
+    showToast(`Product "${p.name}" marked as ${newStock ? 'In Stock' : 'Out of Stock'}.`);
+    await loadData();
+  };
+
   const filteredProducts = products.filter(p => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = p.name.toLowerCase().includes(q) || (p.tagline || '').toLowerCase().includes(q);
     if (!matchesSearch) return false;
     if (categoryFilter !== 'all' && p.categorySlug !== categoryFilter) return false;
+    if (providerFilter !== 'all' && p.providerSlug !== providerFilter) return false;
     if (statusFilter === 'ON' && p.status !== 'ON') return false;
     if (statusFilter === 'OFF' && p.status !== 'OFF') return false;
     return true;
@@ -360,6 +382,17 @@ export const AdminProductsPage: React.FC = () => {
           </select>
 
           <select
+            value={providerFilter}
+            onChange={(e) => setProviderFilter(e.target.value)}
+            className="admin-select-filter"
+          >
+            <option value="all">All Providers (Quick Select)</option>
+            {providers.map(pr => (
+              <option key={pr.slug} value={pr.slug}>{pr.name}</option>
+            ))}
+          </select>
+
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="admin-select-filter"
@@ -378,7 +411,7 @@ export const AdminProductsPage: React.FC = () => {
             <tr>
               <th>Image</th>
               <th>Item Name</th>
-              <th>Category</th>
+              <th>Category / Provider</th>
               <th>Price</th>
               <th>Status</th>
               <th>Stock</th>
@@ -407,9 +440,16 @@ export const AdminProductsPage: React.FC = () => {
                     <span style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>{p.tagline}</span>
                   </td>
                   <td>
-                    <span style={{ fontSize: '0.78rem', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                      {p.categoryName}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '0.78rem', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, width: 'fit-content' }}>
+                        {p.categoryName}
+                      </span>
+                      {p.providerName && (
+                        <span style={{ fontSize: '0.72rem', background: 'rgba(168, 85, 247, 0.1)', color: '#c084fc', padding: '1px 6px', borderRadius: '4px', fontWeight: 600, width: 'fit-content' }}>
+                          ⚡ {p.providerName}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <strong style={{ color: '#16a34a' }}>₹{p.price || p.plans?.[0]?.price}</strong>
@@ -422,9 +462,16 @@ export const AdminProductsPage: React.FC = () => {
                     </button>
                   </td>
                   <td>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: p.inStock ? '#16a34a' : '#ef4444' }}>
-                      {p.inStock ? 'In Stock' : 'Out of Stock'}
-                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => handleToggleStock(p)}
+                      className={`admin-badge ${p.inStock ? 'active' : 'inactive'}`}
+                      style={{ cursor: 'pointer', border: 'none', background: p.inStock ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: p.inStock ? '#22c55e' : '#ef4444' }}
+                      title="Click to toggle stock status"
+                    >
+                      {p.inStock ? <Check size={12} /> : <X size={12} />}
+                      <span>{p.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                    </button>
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
@@ -472,13 +519,13 @@ export const AdminProductsPage: React.FC = () => {
                     <span>1. Basic Information</span>
                   </h3>
 
-                  <div className="admin-form-row-2">
-                    <div className="admin-form-group">
-                      <label className="admin-form-label">Item Name *</label>
-                      <input type="text" className="admin-form-input" placeholder="e.g. Netflix Premium 4K UHD" value={formName} onChange={(e) => setFormName(e.target.value)} required />
-                      {fieldErrors.formName && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formName}</span>}
-                    </div>
+                  <div className="admin-form-group" style={{ marginBottom: '12px' }}>
+                    <label className="admin-form-label">Item Name *</label>
+                    <input type="text" className="admin-form-input" placeholder="e.g. Netflix Premium 4K UHD" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+                    {fieldErrors.formName && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formName}</span>}
+                  </div>
 
+                  <div className="admin-form-row-2">
                     <div className="admin-form-group">
                       <label className="admin-form-label">Primary Category *</label>
                       <select className="admin-form-select" value={formCategorySlug} onChange={(e) => setFormCategorySlug(e.target.value)} required>
@@ -487,6 +534,16 @@ export const AdminProductsPage: React.FC = () => {
                         ))}
                       </select>
                       {fieldErrors.formCategorySlug && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{fieldErrors.formCategorySlug}</span>}
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Provider (Quick Select)</label>
+                      <select className="admin-form-select" value={formProviderSlug} onChange={(e) => setFormProviderSlug(e.target.value)}>
+                        <option value="">No Provider (General OTT)</option>
+                        {providers.map(pr => (
+                          <option key={pr.slug} value={pr.slug}>{pr.name} ({pr.slug})</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 

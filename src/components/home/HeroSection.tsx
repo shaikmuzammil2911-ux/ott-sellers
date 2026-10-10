@@ -209,39 +209,84 @@ export const HeroSection: React.FC = () => {
                   </p>
                 )}
 
-                {/* Genre Tags Strip */}
-                <div className="hero-genre-tags">
-                  <span className="genre-pill">Movies</span>
-                  <span className="bullet">•</span>
-                  <span className="genre-pill">Web Series</span>
-                  <span className="bullet">•</span>
-                  <span className="genre-pill">Live TV</span>
-                  <span className="bullet">•</span>
-                  <span className="genre-pill">Sports</span>
-                  <span className="bullet">•</span>
-                  <span className="genre-pill">4K UHD</span>
-                </div>
+                {currentBanner.description && (
+                  <p 
+                    className="hero-description-note"
+                    style={{
+                      margin: '4px 0 10px',
+                      fontSize: '0.82rem',
+                      color: currentBanner.descriptionColor || '#94a3b8'
+                    }}
+                  >
+                    {currentBanner.description}
+                  </p>
+                )}
 
                 {/* Action CTA Buttons */}
-                <div className="hero-ctas-row">
-                  {currentBanner.ctaText && (
-                    <Link 
-                      to={currentBanner.ctaLink || '/items'} 
-                      className="btn-hero-primary animated-cta"
-                    >
-                      <span>{currentBanner.ctaText}</span>
-                      <ArrowRight size={15} className="cta-arrow" />
-                    </Link>
-                  )}
+                <div className="hero-ctas-row" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                  {/* If custom buttons array configured */}
+                  {currentBanner.buttons && currentBanner.buttons.length > 0 ? (
+                    currentBanner.buttons.map(btn => {
+                      const isExternal = btn.link.startsWith('http');
+                      const customStyle = {
+                        backgroundColor: btn.bgColor || currentBanner.btnBgColor || '#0284c7',
+                        color: btn.textColor || currentBanner.btnTextColor || '#ffffff',
+                        borderColor: btn.borderColor || currentBanner.btnBorderColor || 'transparent'
+                      };
+                      if (isExternal) {
+                        return (
+                          <a
+                            key={btn.id}
+                            href={btn.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-hero-primary animated-cta"
+                            style={customStyle}
+                          >
+                            <span>{btn.label}</span>
+                            <ArrowRight size={15} className="cta-arrow" />
+                          </a>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={btn.id}
+                          to={btn.link}
+                          className="btn-hero-primary animated-cta"
+                          style={customStyle}
+                        >
+                          <span>{btn.label}</span>
+                          <ArrowRight size={15} className="cta-arrow" />
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <>
+                      {currentBanner.ctaText && (
+                        <Link 
+                          to={currentBanner.ctaLink || '/items'} 
+                          className="btn-hero-primary animated-cta"
+                          style={{
+                            backgroundColor: currentBanner.btnBgColor || '#0284c7',
+                            color: currentBanner.btnTextColor || '#ffffff',
+                            borderColor: currentBanner.btnBorderColor || 'transparent'
+                          }}
+                        >
+                          <span>{currentBanner.ctaText}</span>
+                          <ArrowRight size={15} className="cta-arrow" />
+                        </Link>
+                      )}
 
-                  {currentBanner.secondaryCtaText && (
-                    <a 
-                      href={currentBanner.secondaryCtaLink || '#categories'} 
-                      className="btn-hero-secondary"
-                    >
-                      <Play size={13} className="play-icon" />
-                      <span>{currentBanner.secondaryCtaText}</span>
-                    </a>
+                      {currentBanner.secondaryCtaText && (
+                        <a 
+                          href={currentBanner.secondaryCtaLink || '#categories'} 
+                          className="btn-hero-secondary"
+                        >
+                          <Play size={13} className="play-icon" />
+                          <span>{currentBanner.secondaryCtaText}</span>
+                        </a>
+                      )}
+                    </>
                   )}
 
                   {/* Instant Trust Micro-points */}
