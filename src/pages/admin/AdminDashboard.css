@@ -191,3 +191,114 @@
   border-color: #bae6fd;
   color: var(--admin-primary);
 }
+
+/* 3. Dashboard Card Panels & Compact Tables */
+.admin-card-panel {
+  background: #ffffff;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 16px 18px;
+  box-shadow: var(--admin-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title-wrap h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--admin-text-main);
+  margin: 0;
+}
+
+.panel-icon {
+  flex-shrink: 0;
+}
+
+.panel-icon.text-amber { color: #f59e0b; }
+.panel-icon.text-cyan { color: #0284c7; }
+.panel-icon.text-emerald { color: #10b981; }
+
+.panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.panel-link:hover {
+  text-decoration: underline;
+}
+
+.compact-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panel-empty-text {
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+  text-align: center;
+  padding: 24px 0;
+  margin: 0;
+}
+
+.order-number-text {
+  font-size: 0.8rem;
+  color: var(--admin-text-main);
+}
+
+.table-customer-name,
+.table-product-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+}
+
+.table-total-amt {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pill.completed,
+.status-pill.paid,
+.status-pill.active,
+.status-pill.on {
+  background: var(--admin-success-light);
+  color: var(--admin-success);
+}
+
+.status-pill.pending {
+  background: var(--admin-warning-light);
+  color: var(--admin-warning);
+}
+
+.status-pill.cancelled,
+.status-pill.inactive,
+.status-pill.off {
+  background: var(--admin-danger-light);
+  color: var(--admin-danger);
+}
+

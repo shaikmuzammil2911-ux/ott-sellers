@@ -528,7 +528,7 @@ export const AdminBannersPage: React.FC = () => {
       </div>
 
       {/* Banners Grid / List */}
-      <div className="admin-banners-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', marginTop: '16px' }}>
+      <div className="admin-banners-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
         {filteredBanners.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: 'var(--admin-text-muted)' }}>
             No banners found. Click <strong>Create Banner</strong> to add a new slide or group.

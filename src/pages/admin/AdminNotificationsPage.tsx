@@ -261,7 +261,7 @@ export const AdminNotificationsPage: React.FC = () => {
       </div>
 
       {/* Cards List */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
         {filtered.map((n) => (
           <div
             key={n.id}

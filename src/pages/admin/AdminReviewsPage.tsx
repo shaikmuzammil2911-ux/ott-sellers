@@ -269,7 +269,7 @@ export const AdminReviewsPage: React.FC = () => {
       </div>
 
       {/* Reviews Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
         {filteredReviews.map((r) => {
           const locs = r.displayLocations && r.displayLocations.length > 0 ? r.displayLocations : [r.pageType || 'home'];
           return (
