@@ -19,9 +19,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { to, subject, html, text } = req.body;
+  const { to, subject, html, text } = req.body || {};
+  const recipientEmail = (to || 'fixyourmobiles7@gmail.com').trim();
 
-  if (!to || !subject) {
+  if (!recipientEmail || !subject) {
     return res.status(400).json({ error: 'Missing recipient email address or email subject' });
   }
 
@@ -51,14 +52,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const mailOptions = {
       from: process.env.SMTP_FROM || `"OTT SELLERS Support" <${cleanUser}>`,
-      to,
+      to: recipientEmail,
       subject,
       text: text || '',
       html: html || `<p>${text}</p>`
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log(`[SMTP Success] Email dispatched to ${to} (MessageID: ${info.messageId})`);
+    console.log(`[SMTP Success] Email dispatched to ${recipientEmail} (MessageID: ${info.messageId})`);
     return res.status(200).json({ success: true, messageId: info.messageId });
   } catch (error: any) {
     console.error('[SMTP Error] Failed to send email via Nodemailer:', error);

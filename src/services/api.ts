@@ -16,7 +16,7 @@ import {
 } from '../types';
 
 export const ADMIN_CONFIG = {
-  EMAIL: 'Ottsellers00@gmail.com',
+  EMAIL: 'fixyourmobiles7@gmail.com',
   DEFAULT_PASS: 'Fixyourmobiles@2026'
 };
 

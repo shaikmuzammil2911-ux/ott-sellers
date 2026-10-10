@@ -44,7 +44,12 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const isAuthorizedEmail = (email: string) => {
     const clean = email.trim().toLowerCase();
     const envAdmin = (import.meta.env.ADMIN_EMAIL || ADMIN_CONFIG.EMAIL).toLowerCase();
-    return clean === envAdmin || clean === 'ottsellers00@gmail.com' || clean === 'ottsellers1@gmail.com';
+    return (
+      clean === envAdmin ||
+      clean === 'fixyourmobiles7@gmail.com' ||
+      clean === 'ottsellers00@gmail.com' ||
+      clean === 'ottsellers1@gmail.com'
+    );
   };
 
   const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
