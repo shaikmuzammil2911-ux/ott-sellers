@@ -21,6 +21,7 @@ export const ProductDetailPage: React.FC = () => {
   const [whatsAppSettings, setWhatsAppSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const loadProduct = async () => {
     if (!slug) return;
@@ -170,8 +171,6 @@ export const ProductDetailPage: React.FC = () => {
   const discountPct = (originalPrice > effectivePrice && originalPrice > 0) 
     ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) 
     : (selectedPlan?.discountPercentage || 0);
-
-  const [quantity, setQuantity] = useState(1);
 
   const isInCart = Array.isArray(items) && items.some(
     i => i.productId === product.id && i.planDuration === selectedDuration
