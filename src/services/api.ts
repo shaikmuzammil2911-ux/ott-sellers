@@ -10,7 +10,7 @@ import { INITIAL_NOTIFICATIONS } from '../data/notificationsData';
 import { INITIAL_HOMEPAGE_SECTIONS } from '../data/sectionsData';
 import { INITIAL_COUPONS } from '../data/couponsData';
 import { 
-  Product, Category, SubCategory, Provider, Catalog, Order, User, 
+  Product, ProductPlan, Category, SubCategory, Provider, Catalog, Order, User, 
   HeroBanner, BannerGroup, Course, HomepageSectionCMS, AdminSettings, AuditLog,
   CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings, ItemsPageCMS 
 } from '../types';
@@ -139,6 +139,110 @@ export const broadcastDataUpdate = (entityType: string) => {
   } catch {
     // Ignore non-browser environments
   }
+};
+
+export const parseJsonArray = <T = any>(val: any, fallback: T[] = []): T[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') return [parsed as unknown as T];
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+};
+
+export const mapProductFromDb = (p: any): Product => {
+  if (!p) return null as any;
+  const plans = parseJsonArray<ProductPlan>(p.plans, []);
+  const features = parseJsonArray<string>(p.features, []);
+  const deliverables = parseJsonArray<string>(p.deliverables, []);
+  const rules = parseJsonArray<string>(p.rules, []);
+  const faqs = parseJsonArray<any>(p.faqs, []);
+  const catalogSlugs = parseJsonArray<string>(p.catalog_slugs || p.catalogSlugs, []);
+
+  const defaultPlan = p.default_plan || p.defaultPlan || (plans[0]?.duration) || '1 Month';
+  const price = Number(plans[0]?.price ?? (p.price || 0));
+  const comparePrice = Number(plans[0]?.originalPrice ?? (p.compare_price ?? (p.comparePrice || 0)));
+
+  const safePlans: ProductPlan[] = plans.length > 0 ? plans : [
+    {
+      duration: defaultPlan,
+      price: price || 199,
+      originalPrice: comparePrice || 499,
+      discountPercentage: (comparePrice > price && comparePrice > 0) ? Math.round(((comparePrice - price) / comparePrice) * 100) : 20,
+      isPopular: true
+    }
+  ];
+
+  return {
+    id: String(p.id || ''),
+    slug: String(p.slug || p.id || ''),
+    name: String(p.name || 'OTT Subscription'),
+    tagline: p.tagline || '',
+    categorySlug: String(p.category_slug || p.categorySlug || 'movies-series'),
+    categoryName: String(p.category_name || p.categoryName || 'Movies & Series'),
+    subcategorySlug: p.subcategory_slug || p.subcategorySlug || p.provider_slug || p.providerSlug || '',
+    subcategoryName: p.subcategory_name || p.subcategoryName || p.provider_name || p.providerName || '',
+    providerId: p.provider_id || p.providerId,
+    providerSlug: p.provider_slug || p.providerSlug || p.subcategory_slug || p.subcategorySlug,
+    providerName: p.provider_name || p.providerName || p.subcategory_name || p.subcategoryName,
+    catalogSlugs,
+    image: p.image_url || p.image || '/placeholder-ott.png',
+    bannerImage: p.banner_image_url || p.bannerImage,
+    brandColor: p.brand_color || p.brandColor || '#0b132b',
+    brandLogoText: p.brand_logo_text || p.brandLogoText || (p.name ? String(p.name).split(' ')[0] : 'OTT'),
+    rating: Number(p.rating) || 4.9,
+    reviewsCount: Number(p.reviews_count || p.reviewsCount) || 120,
+    defaultPlan,
+    plans: safePlans,
+    price: price || safePlans[0].price,
+    comparePrice: comparePrice || safePlans[0].originalPrice,
+    features,
+    deliverables,
+    rules,
+    faqs,
+    isTrending: Boolean(p.is_trending ?? p.isTrending),
+    isPopular: Boolean(p.is_popular ?? p.isPopular),
+    isFeatured: Boolean(p.is_featured ?? p.isFeatured),
+    inOffers: Boolean(p.in_offers ?? p.inOffers),
+    offerPrice: (p.offer_price != null || p.offerPrice != null) ? Number(p.offer_price ?? p.offerPrice) : undefined,
+    offerOriginalPrice: (p.offer_original_price != null || p.offerOriginalPrice != null) ? Number(p.offer_original_price ?? p.offerOriginalPrice) : undefined,
+    offerDiscountPercentage: p.offer_discount_percentage ?? p.offerDiscountPercentage,
+    displayOrder: Number(p.sort_order ?? p.displayOrder) || 0,
+    status: p.status || 'ON',
+    inStock: p.in_stock !== false && p.inStock !== false,
+    stockCount: Number(p.stock ?? p.stockCount) || 999,
+    warrantyPeriod: p.warranty_period || p.warrantyPeriod || 'Full Duration Replacement Warranty',
+    badge: p.badge,
+    updatedAt: new Date(p.updated_at || p.updatedAt || Date.now()).getTime()
+  };
+};
+
+export const mapCourseFromDb = (c: any): Course => {
+  return {
+    id: String(c.id || ''),
+    title: String(c.title || 'Masterclass Course'),
+    slug: String(c.slug || c.id || ''),
+    shortDescription: c.short_description || c.shortDescription || '',
+    description: c.description || '',
+    content: c.content || '',
+    imageUrl: c.image_url || c.imageUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60',
+    price: Number(c.price) || 0,
+    comparePrice: Number(c.compare_price || c.comparePrice) || 0,
+    duration: c.duration || '4 Weeks',
+    status: c.status || 'published',
+    isFeatured: Boolean(c.is_featured ?? c.isFeatured),
+    sortOrder: Number(c.sort_order ?? c.sortOrder) || 0,
+    features: parseJsonArray<string>(c.features, []),
+    curriculum: parseJsonArray<string>(c.curriculum, []),
+    faqs: parseJsonArray<any>(c.faqs, []),
+    categorySlug: c.category_slug || c.categorySlug || 'combos',
+    updatedAt: new Date(c.updated_at || c.updatedAt || Date.now()).getTime()
+  };
 };
 
 export const ottApi = {
@@ -1060,48 +1164,7 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const products: Product[] = data.map(p => ({
-          id: p.id,
-          slug: p.slug,
-          name: p.name,
-          tagline: p.tagline || '',
-          categorySlug: p.category_slug,
-          categoryName: p.category_name,
-          subcategorySlug: p.subcategory_slug || p.provider_slug || '',
-          subcategoryName: p.subcategory_name || p.provider_name || '',
-          providerId: p.provider_id,
-          providerSlug: p.provider_slug || p.subcategory_slug,
-          providerName: p.provider_name || p.subcategory_name,
-          catalogSlugs: p.catalog_slugs || [],
-          image: p.image_url,
-          bannerImage: p.banner_image_url,
-          brandColor: p.brand_color || '#0b132b',
-          brandLogoText: p.brand_logo_text || p.name.split(' ')[0],
-          rating: Number(p.rating) || 4.9,
-          reviewsCount: p.reviews_count || 120,
-          defaultPlan: p.default_plan || '1 Month',
-          plans: p.plans || [],
-          price: Number(p.price) || 0,
-          comparePrice: Number(p.compare_price) || 0,
-          features: p.features || [],
-          deliverables: p.deliverables || [],
-          rules: p.rules || [],
-          faqs: p.faqs || [],
-          isTrending: p.is_trending,
-          isPopular: p.is_popular,
-          isFeatured: p.is_featured,
-          inOffers: p.in_offers,
-          offerPrice: p.offer_price ? Number(p.offer_price) : undefined,
-          offerOriginalPrice: p.offer_original_price ? Number(p.offer_original_price) : undefined,
-          offerDiscountPercentage: p.offer_discount_percentage,
-          displayOrder: p.sort_order || 0,
-          status: p.status || 'ON',
-          inStock: p.in_stock ?? true,
-          stockCount: p.stock ?? 999,
-          warrantyPeriod: p.warranty_period || 'Full Duration Replacement Warranty',
-          badge: p.badge,
-          updatedAt: new Date(p.updated_at || Date.now()).getTime()
-        }));
+        const products: Product[] = data.map(mapProductFromDb);
 
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
         return products
@@ -1116,16 +1179,19 @@ export const ottApi = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (stored) {
-        const parsed: Product[] = JSON.parse(stored);
-        return parsed
-          .filter(p => p.status !== 'OFF')
-          .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
-          .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase())
-          .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        const parsed: any[] = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map(mapProductFromDb)
+            .filter(p => p.status !== 'OFF')
+            .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
+            .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase())
+            .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        }
       }
     } catch {}
 
-    return [...PRODUCTS_DATA].filter(p => p.status !== 'OFF');
+    return [...PRODUCTS_DATA].map(mapProductFromDb).filter(p => p.status !== 'OFF');
   },
 
   async getProductsBySubcategory(subcategorySlug: string): Promise<Product[]> {
@@ -1140,48 +1206,7 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const products: Product[] = data.map(p => ({
-          id: p.id,
-          slug: p.slug,
-          name: p.name,
-          tagline: p.tagline || '',
-          categorySlug: p.category_slug,
-          categoryName: p.category_name,
-          subcategorySlug: p.subcategory_slug || p.provider_slug || '',
-          subcategoryName: p.subcategory_name || p.provider_name || '',
-          providerId: p.provider_id,
-          providerSlug: p.provider_slug || p.subcategory_slug,
-          providerName: p.provider_name || p.subcategory_name,
-          catalogSlugs: p.catalog_slugs || [],
-          image: p.image_url,
-          bannerImage: p.banner_image_url,
-          brandColor: p.brand_color || '#0b132b',
-          brandLogoText: p.brand_logo_text || p.name.split(' ')[0],
-          rating: Number(p.rating) || 4.9,
-          reviewsCount: p.reviews_count || 120,
-          defaultPlan: p.default_plan || '1 Month',
-          plans: p.plans || [],
-          price: Number(p.price) || 0,
-          comparePrice: Number(p.compare_price) || 0,
-          features: p.features || [],
-          deliverables: p.deliverables || [],
-          rules: p.rules || [],
-          faqs: p.faqs || [],
-          isTrending: p.is_trending,
-          isPopular: p.is_popular,
-          isFeatured: p.is_featured,
-          inOffers: p.in_offers,
-          offerPrice: p.offer_price ? Number(p.offer_price) : undefined,
-          offerOriginalPrice: p.offer_original_price ? Number(p.offer_original_price) : undefined,
-          offerDiscountPercentage: p.offer_discount_percentage,
-          displayOrder: p.sort_order || 0,
-          status: p.status || 'ON',
-          inStock: p.in_stock ?? true,
-          stockCount: p.stock ?? 999,
-          warrantyPeriod: p.warranty_period || 'Full Duration Replacement Warranty',
-          badge: p.badge,
-          updatedAt: new Date(p.updated_at || Date.now()).getTime()
-        }));
+        const products: Product[] = data.map(mapProductFromDb);
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
         return products;
       }
@@ -1189,10 +1214,13 @@ export const ottApi = {
 
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed: any[] = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed.map(mapProductFromDb);
+      }
     } catch {}
 
-    return [...PRODUCTS_DATA];
+    return [...PRODUCTS_DATA].map(mapProductFromDb);
   },
 
   async saveProduct(product: Product): Promise<void> {
@@ -1341,57 +1369,17 @@ export const ottApi = {
       }
 
       if (!error && data) {
-        return {
-          id: data.id,
-          slug: data.slug,
-          name: data.name,
-          tagline: data.tagline || '',
-          categorySlug: data.category_slug,
-          categoryName: data.category_name,
-          subcategorySlug: data.subcategory_slug || data.provider_slug || '',
-          subcategoryName: data.subcategory_name || data.provider_name || '',
-          providerId: data.provider_id,
-          providerSlug: data.provider_slug || data.subcategory_slug,
-          providerName: data.provider_name || data.subcategory_name,
-          catalogSlugs: data.catalog_slugs || [],
-          image: data.image_url,
-          bannerImage: data.banner_image_url,
-          brandColor: data.brand_color || '#0b132b',
-          brandLogoText: data.brand_logo_text || data.name.split(' ')[0],
-          rating: Number(data.rating) || 4.9,
-          reviewsCount: data.reviews_count || 120,
-          defaultPlan: data.default_plan || '1 Month',
-          plans: data.plans || [],
-          price: Number(data.price) || 0,
-          comparePrice: Number(data.compare_price) || 0,
-          features: data.features || [],
-          deliverables: data.deliverables || [],
-          rules: data.rules || [],
-          faqs: data.faqs || [],
-          isTrending: data.is_trending,
-          isPopular: data.is_popular,
-          isFeatured: data.is_featured,
-          inOffers: data.in_offers,
-          offerPrice: data.offer_price ? Number(data.offer_price) : undefined,
-          offerOriginalPrice: data.offer_original_price ? Number(data.offer_original_price) : undefined,
-          offerDiscountPercentage: data.offer_discount_percentage,
-          displayOrder: data.sort_order || 0,
-          status: data.status || 'ON',
-          inStock: data.in_stock ?? true,
-          stockCount: data.stock ?? 999,
-          warrantyPeriod: data.warranty_period || 'Full Duration Replacement Warranty',
-          badge: data.badge,
-          updatedAt: new Date(data.updated_at || Date.now()).getTime()
-        };
+        return mapProductFromDb(data);
       }
     } catch {}
 
     // 4. Initial static fallback list
-    return PRODUCTS_DATA.find(p => 
+    const fallbackProd = PRODUCTS_DATA.find(p => 
       p.slug?.toLowerCase() === cleanSlug || 
       p.id === slug ||
       p.slug?.toLowerCase() === slug.toLowerCase()
     );
+    return fallbackProd ? mapProductFromDb(fallbackProd) : undefined;
   },
 
   async getItemsPageCMS(): Promise<ItemsPageCMS> {
@@ -1499,26 +1487,7 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const courses: Course[] = data.map(c => ({
-          id: c.id,
-          title: c.title,
-          slug: c.slug,
-          shortDescription: c.short_description,
-          description: c.description || '',
-          content: c.content,
-          imageUrl: c.image_url,
-          price: Number(c.price) || 0,
-          comparePrice: Number(c.compare_price) || 0,
-          duration: c.duration || '4 Weeks',
-          status: c.status || 'published',
-          isFeatured: c.is_featured,
-          sortOrder: c.sort_order || 0,
-          features: c.features || [],
-          curriculum: c.curriculum || [],
-          faqs: c.faqs || [],
-          categorySlug: c.category_slug || 'combos',
-          updatedAt: new Date(c.updated_at || Date.now()).getTime()
-        }));
+        const courses: Course[] = data.map(mapCourseFromDb);
 
         localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
         return courses.filter(c => c.status !== 'archived');
@@ -1528,12 +1497,12 @@ export const ottApi = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
       if (stored) {
-        const parsed: Course[] = JSON.parse(stored);
-        return parsed.filter(c => c.status !== 'archived');
+        const parsed: any[] = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed.map(mapCourseFromDb).filter(c => c.status !== 'archived');
       }
     } catch {}
 
-    return [...INITIAL_COURSES];
+    return [...INITIAL_COURSES].map(mapCourseFromDb);
   },
 
   async getAllCoursesAdmin(): Promise<Course[]> {
@@ -1544,26 +1513,7 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        return data.map(c => ({
-          id: c.id,
-          title: c.title,
-          slug: c.slug,
-          shortDescription: c.short_description,
-          description: c.description || '',
-          content: c.content,
-          imageUrl: c.image_url,
-          price: Number(c.price) || 0,
-          comparePrice: Number(c.compare_price) || 0,
-          duration: c.duration || '4 Weeks',
-          status: c.status || 'published',
-          isFeatured: c.is_featured,
-          sortOrder: c.sort_order || 0,
-          features: c.features || [],
-          curriculum: c.curriculum || [],
-          faqs: c.faqs || [],
-          categorySlug: c.category_slug || 'combos',
-          updatedAt: new Date(c.updated_at || Date.now()).getTime()
-        }));
+        return data.map(mapCourseFromDb);
       }
     } catch {}
 

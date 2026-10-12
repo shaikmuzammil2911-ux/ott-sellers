@@ -75,7 +75,7 @@ export const CategoryPage: React.FC = () => {
 
       // Price filter
       if (selectedPriceRange !== 'all') {
-        const price = p.plans[0].price;
+        const price = p.plans?.[0]?.price ?? p.price ?? 0;
         if (selectedPriceRange === 'under-250' && price >= 250) return false;
         if (selectedPriceRange === '250-500' && (price < 250 || price > 500)) return false;
         if (selectedPriceRange === '500-1000' && (price < 500 || price > 1000)) return false;
@@ -84,10 +84,12 @@ export const CategoryPage: React.FC = () => {
 
       return true;
     }).sort((a, b) => {
-      if (sortBy === 'price-low') return a.plans[0].price - b.plans[0].price;
-      if (sortBy === 'price-high') return b.plans[0].price - a.plans[0].price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      return b.reviewsCount - a.reviewsCount;
+      const priceA = a.plans?.[0]?.price ?? a.price ?? 0;
+      const priceB = b.plans?.[0]?.price ?? b.price ?? 0;
+      if (sortBy === 'price-low') return priceA - priceB;
+      if (sortBy === 'price-high') return priceB - priceA;
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      return (b.reviewsCount || 0) - (a.reviewsCount || 0);
     });
   }, [products, selectedSubcategory, selectedPriceRange, sortBy]);
 

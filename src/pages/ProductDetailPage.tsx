@@ -140,7 +140,14 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const safePlans = (product.plans && product.plans.length > 0) ? product.plans : [
+  const rawPlans = product.plans;
+  const parsedPlans: ProductPlan[] = Array.isArray(rawPlans)
+    ? rawPlans
+    : (typeof rawPlans === 'string'
+      ? (() => { try { const p = JSON.parse(rawPlans); return Array.isArray(p) ? p : []; } catch { return []; } })()
+      : []);
+
+  const safePlans: ProductPlan[] = parsedPlans.length > 0 ? parsedPlans : [
     {
       duration: product.defaultPlan || selectedDuration || '1 Month',
       price: Number(product.price) || 199,
@@ -150,17 +157,22 @@ export const ProductDetailPage: React.FC = () => {
   ];
 
   const selectedPlan: ProductPlan = 
-    safePlans.find(p => p.duration === selectedDuration) || safePlans[0];
+    safePlans.find(p => p.duration === selectedDuration) || safePlans[0] || {
+      duration: '1 Month',
+      price: 199,
+      originalPrice: 499,
+      discountPercentage: 20
+    };
 
-  const effectivePrice = product.inOffers && product.offerPrice ? Number(product.offerPrice) : Number(selectedPlan.price || 199);
-  const originalPrice = product.inOffers && product.offerOriginalPrice ? Number(product.offerOriginalPrice) : Number(selectedPlan.originalPrice || 499);
+  const effectivePrice = product.inOffers && product.offerPrice ? Number(product.offerPrice) : Number(selectedPlan?.price || product.price || 199);
+  const originalPrice = product.inOffers && product.offerOriginalPrice ? Number(product.offerOriginalPrice) : Number(selectedPlan?.originalPrice || product.comparePrice || 499);
   const discountPct = (originalPrice > effectivePrice && originalPrice > 0) 
     ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) 
-    : (selectedPlan.discountPercentage || 0);
+    : (selectedPlan?.discountPercentage || 0);
 
   const [quantity, setQuantity] = useState(1);
 
-  const isInCart = items.some(
+  const isInCart = Array.isArray(items) && items.some(
     i => i.productId === product.id && i.planDuration === selectedDuration
   );
 
@@ -175,15 +187,22 @@ export const ProductDetailPage: React.FC = () => {
     navigate('/cart');
   };
 
-  const targetPhone = (whatsAppSettings?.number || '919441323332').replace(/[^0-9]/g, '');
-  const enquiryTemplate = whatsAppSettings?.itemEnquiryTemplate || 'Hi OTT Sellers! Is {productName} ({duration}) available for instant activation at ₹{price}?';
-  const whatsappMessage = ottApi.formatWhatsAppEnquiryMessage(enquiryTemplate, {
-    productName: product.name || 'OTT Subscription',
-    duration: selectedDuration,
-    price: effectivePrice,
-    category: product.categoryName || product.categorySlug || 'OTT'
-  });
-  const whatsappUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+  let whatsappUrl = '#';
+  try {
+    const targetPhone = String(whatsAppSettings?.number || '919441323332').replace(/[^0-9]/g, '');
+    const enquiryTemplate = whatsAppSettings?.itemEnquiryTemplate || 'Hi OTT Sellers! Is {productName} ({duration}) available for instant activation at ₹{price}?';
+    const whatsappMessage = typeof ottApi?.formatWhatsAppEnquiryMessage === 'function'
+      ? ottApi.formatWhatsAppEnquiryMessage(enquiryTemplate, {
+          productName: product.name || 'OTT Subscription',
+          duration: selectedDuration,
+          price: effectivePrice,
+          category: product.categoryName || product.categorySlug || 'OTT'
+        })
+      : `Hi OTT Sellers! Is ${product.name || 'OTT Subscription'} (${selectedDuration}) available?`;
+    whatsappUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+  } catch {
+    whatsappUrl = `https://wa.me/919441323332?text=${encodeURIComponent(`Hi OTT Sellers! Interested in ${product.name || 'OTT Subscription'}`)}`;
+  }
 
   return (
     <div className="product-detail-page">
@@ -288,7 +307,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Plan Selector if multiple plans exist */}
-            {product.plans && product.plans.length > 1 && (
+            {safePlans.length > 1 && (
               <div className="plan-selector-container">
                 <label className="plan-selector-label">
                   <span>Select Subscription Duration:</span>
@@ -296,7 +315,7 @@ export const ProductDetailPage: React.FC = () => {
                 </label>
                 
                 <div className="plan-options-grid">
-                  {product.plans.map(plan => {
+                  {safePlans.map(plan => {
                     const isSelected = plan.duration === selectedDuration;
                     return (
                       <button
@@ -401,19 +420,27 @@ export const ProductDetailPage: React.FC = () => {
             </a>
 
             {/* Key Deliverables Highlights */}
-            {product.features && product.features.length > 0 && (
-              <div className="product-quick-features" style={{ marginTop: '16px' }}>
-                <h3 className="quick-features-title">Subscription Highlights:</h3>
-                <ul className="features-checklist">
-                  {product.features.slice(0, 4).map((f, idx) => (
-                    <li key={idx}>
-                      <Check size={14} className="feature-check" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {(() => {
+              const feats = Array.isArray(product.features)
+                ? product.features
+                : (typeof product.features === 'string'
+                  ? (() => { try { const p = JSON.parse(product.features); return Array.isArray(p) ? p : []; } catch { return []; } })()
+                  : []);
+              if (feats.length === 0) return null;
+              return (
+                <div className="product-quick-features" style={{ marginTop: '16px' }}>
+                  <h3 className="quick-features-title">Subscription Highlights:</h3>
+                  <ul className="features-checklist">
+                    {feats.slice(0, 4).map((f: any, idx: number) => (
+                      <li key={idx}>
+                        <Check size={14} className="feature-check" />
+                        <span>{typeof f === 'string' ? f : String(f)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
           </div>
         </div>
 

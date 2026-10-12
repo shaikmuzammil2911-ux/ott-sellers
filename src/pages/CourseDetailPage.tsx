@@ -51,6 +51,10 @@ export const CourseDetailPage: React.FC = () => {
     );
   }
 
+  const safeFeatures = Array.isArray(course.features) ? course.features : [];
+  const safeCurriculum = Array.isArray(course.curriculum) ? course.curriculum : [];
+  const safeFaqs = Array.isArray(course.faqs) ? course.faqs : [];
+
   const handleAddToCart = () => {
     const courseProduct: Product = {
       id: course.id,
@@ -185,7 +189,7 @@ export const CourseDetailPage: React.FC = () => {
 
               {/* Features list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px' }}>
-                {(course.features || []).map((feat, idx) => (
+                {safeFeatures.map((feat, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#e2e8f0' }}>
                     <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Check size={12} strokeWidth={3} />
@@ -253,7 +257,7 @@ export const CourseDetailPage: React.FC = () => {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {(course.curriculum || []).map((mod, idx) => (
+              {safeCurriculum.map((mod, idx) => (
                 <div key={idx} style={{ padding: '14px 18px', background: '#0b132b', border: '1px solid #1e293b', borderRadius: '14px', color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>
                   {mod}
                 </div>
@@ -287,7 +291,7 @@ export const CourseDetailPage: React.FC = () => {
             <div style={{ background: 'rgba(15, 23, 42, 0.5)', border: '1px solid #1e293b', borderRadius: '24px', padding: '24px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>Frequently Asked Questions</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {(course.faqs || []).map((faq, idx) => (
+                {safeFaqs.map((faq, idx) => (
                   <div key={idx} style={{ border: '1px solid #1e293b', borderRadius: '12px', overflow: 'hidden' }}>
                     <button
                       onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}

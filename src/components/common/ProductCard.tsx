@@ -14,7 +14,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, items } = useCart();
   const navigate = useNavigate();
 
-  const defaultPlan = product.plans?.[0] || {
+  const plans = Array.isArray(product.plans) ? product.plans : [];
+  const defaultPlan = (typeof plans[0] === 'object' && plans[0] !== null) ? plans[0] : {
     duration: product.defaultPlan || '1 Month',
     price: product.price || 199,
     originalPrice: product.comparePrice || 499,
