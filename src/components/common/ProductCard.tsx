@@ -24,7 +24,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isInCart = items.some(i => i.productId === product.id && i.planDuration === defaultPlan.duration);
 
   const handleCardClick = () => {
-    navigate(`/product/${product.slug}`);
+    const targetSlug = product.slug || product.id;
+    if (targetSlug) {
+      navigate(`/product/${encodeURIComponent(targetSlug)}`);
+    }
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -75,7 +78,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Item Name */}
         <Link 
-          to={`/product/${product.slug}`} 
+          to={`/product/${encodeURIComponent(product.slug || product.id)}`} 
           className="product-card-name" 
           onClick={(e) => e.stopPropagation()}
           title={product.name}

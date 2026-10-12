@@ -16,8 +16,44 @@
 }
 
 @media (max-width: 600px) {
+  .checkout-result-page {
+    padding: 20px 0 110px;
+  }
   .result-card {
-    padding: 28px 18px;
+    padding: 24px 14px;
+    border-radius: var(--radius-lg);
+  }
+  .order-receipt-summary-box {
+    padding: 14px 14px;
+    gap: 10px;
+  }
+  .receipt-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+  .receipt-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .receipt-value {
+    font-size: 0.95rem;
+  }
+  .next-step-item {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .next-step-item strong {
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+  .next-step-item p {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+  .result-actions-row {
+    gap: 10px;
+    margin-bottom: 20px;
   }
 }
 

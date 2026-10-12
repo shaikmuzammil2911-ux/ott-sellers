@@ -183,6 +183,11 @@ export const ItemsPage: React.FC = () => {
     }
   };
 
+  const formatHeading = (val?: string, fallback: string = '') => {
+    if (!val) return fallback;
+    return val.replace(/^[@&]\s*/, '').trim() || fallback;
+  };
+
   const selectedProviderObj = providers.find(pr => pr.slug.toLowerCase() === selectedProvider.toLowerCase());
   const selectedCategoryObj = categories.find(c => c.slug.toLowerCase() === selectedCategory.toLowerCase());
 
@@ -193,44 +198,11 @@ export const ItemsPage: React.FC = () => {
         <div className="items-page-header-block">
           <div className="items-header-text">
             <h1 className="items-main-title">
-              {cmsHeadings.mainHeading || DEFAULT_ITEMS_PAGE_CMS.mainHeading}
+              {formatHeading(cmsHeadings.mainHeading, DEFAULT_ITEMS_PAGE_CMS.mainHeading)}
             </h1>
             <p className="items-main-subtitle">
-              {cmsHeadings.mainSubtitle || DEFAULT_ITEMS_PAGE_CMS.mainSubtitle}
+              {formatHeading(cmsHeadings.mainSubtitle, DEFAULT_ITEMS_PAGE_CMS.mainSubtitle)}
             </p>
-          </div>
-
-          {/* Search Box */}
-          <div className="items-search-input-wrap">
-            <Search size={17} className="search-input-icon" />
-            <input
-              type="text"
-              placeholder="Search Netflix, Prime, Hotstar, Plans..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                const params: Record<string, string> = {};
-                if (selectedProvider !== 'all') params.quick_search = selectedProvider;
-                if (selectedCategory !== 'all') params.category = selectedCategory;
-                if (e.target.value) params.q = e.target.value;
-                setSearchParams(params);
-              }}
-            />
-            {searchQuery && (
-              <button 
-                type="button" 
-                className="search-clear-btn"
-                onClick={() => {
-                  setSearchQuery('');
-                  const params: Record<string, string> = {};
-                  if (selectedProvider !== 'all') params.quick_search = selectedProvider;
-                  if (selectedCategory !== 'all') params.category = selectedCategory;
-                  setSearchParams(params);
-                }}
-              >
-                <X size={15} />
-              </button>
-            )}
           </div>
         </div>
 
@@ -239,7 +211,7 @@ export const ItemsPage: React.FC = () => {
           <div className="quick-search-header-row">
             <div className="quick-search-badge-title">
               <Zap size={15} className="quick-search-icon" />
-              <span>{cmsHeadings.quickSearchHeading || 'Quick Search'}</span>
+              <span>{formatHeading(cmsHeadings.quickSearchHeading, 'Quick Search')}</span>
             </div>
             {selectedProvider !== 'all' && (
               <button
@@ -296,7 +268,7 @@ export const ItemsPage: React.FC = () => {
             <div className="categories-header-left">
               <Layers size={17} color="#0284c7" />
               <h2 className="categories-section-title">
-                {cmsHeadings.categoriesHeading || 'Explore Categories'}
+                {formatHeading(cmsHeadings.categoriesHeading, 'Explore Categories')}
               </h2>
             </div>
             {selectedCategory !== 'all' && (
@@ -360,7 +332,7 @@ export const ItemsPage: React.FC = () => {
                     {getCategoryIcon(cat.iconName)}
                   </div>
                   <div className="category-card-content">
-                    <span className="category-card-name">{cat.name}</span>
+                    <span className="category-card-name">{formatHeading(cat.name)}</span>
                     <span className="category-card-count">{count} {count === 1 ? 'Subscription' : 'Subscriptions'}</span>
                   </div>
                 </button>

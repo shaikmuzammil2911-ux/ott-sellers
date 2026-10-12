@@ -92,15 +92,28 @@ input, select, textarea {
 
 /* Section Common Styling */
 .section {
-  padding-top: 36px;
-  padding-bottom: 36px;
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 768px) {
+  .section-header {
+    margin-bottom: 12px;
+  }
 }
 
 .section-title {
@@ -486,4 +499,11 @@ input, select, textarea {
 .reveal-delay-2 { transition-delay: 0.2s; }
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
+
+.home-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
 

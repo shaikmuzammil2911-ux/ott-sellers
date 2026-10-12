@@ -20,62 +20,143 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedDuration, setSelectedDuration] = useState<PlanDuration>('1 Month');
   const [whatsAppSettings, setWhatsAppSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    const loadProduct = async () => {
-      if (!slug) return;
-      setLoading(true);
+  const loadProduct = async () => {
+    if (!slug) return;
+    setLoading(true);
+    setHasError(false);
+    try {
       const [prod, ws] = await Promise.all([
         ottApi.getProductBySlug(slug),
-        ottApi.getWhatsAppSettings()
+        ottApi.getWhatsAppSettings().catch(() => null)
       ]);
       if (prod) {
         setProduct(prod);
-        setSelectedDuration(prod.defaultPlan || '1 Month');
-        const related = await ottApi.getProductsByCategory(prod.categorySlug);
-        setRelatedProducts(related.filter(r => r.id !== prod.id).slice(0, 5));
+        setSelectedDuration(prod.defaultPlan || (prod.plans && prod.plans[0]?.duration) || '1 Month');
+        if (prod.categorySlug) {
+          try {
+            const related = await ottApi.getProductsByCategory(prod.categorySlug);
+            setRelatedProducts((related || []).filter(r => r.id !== prod.id).slice(0, 5));
+          } catch {
+            setRelatedProducts([]);
+          }
+        }
+      } else {
+        setProduct(null);
       }
       if (ws) {
         setWhatsAppSettings(ws);
       }
+    } catch (err) {
+      console.error('Error loading product details:', err);
+      setHasError(true);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
     loadProduct();
   }, [slug]);
 
   if (loading) {
     return (
-      <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}>
-        <p>Loading subscription details...</p>
+      <div className="product-detail-page">
+        <div className="container" style={{ padding: '36px 16px' }}>
+          <div className="product-main-grid" style={{ opacity: 0.7 }}>
+            <div className="product-media-column">
+              <div 
+                style={{ 
+                  aspectRatio: '1 / 1', 
+                  borderRadius: '16px', 
+                  background: 'linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'prodSkeletonShimmer 1.5s infinite'
+                }} 
+              />
+            </div>
+            <div className="product-info-column" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ height: '32px', width: '70%', background: '#e2e8f0', borderRadius: '8px' }} />
+              <div style={{ height: '20px', width: '40%', background: '#e2e8f0', borderRadius: '6px' }} />
+              <div style={{ height: '48px', width: '50%', background: '#e2e8f0', borderRadius: '8px' }} />
+              <div style={{ height: '44px', width: '100%', background: '#e2e8f0', borderRadius: '8px' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="container" style={{ padding: '60px 16px', textAlign: 'center' }}>
+        <AlertTriangle size={48} color="#dc2626" style={{ margin: '0 auto 16px' }} />
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+          Unable to Load Subscription
+        </h2>
+        <p style={{ color: '#64748b', marginBottom: '24px' }}>
+          A network or data error occurred while fetching details for this subscription.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button 
+            type="button" 
+            onClick={loadProduct}
+            className="btn-primary" 
+            style={{ padding: '10px 20px', borderRadius: '8px' }}
+          >
+            Retry Loading
+          </button>
+          <Link 
+            to="/items" 
+            className="btn-secondary" 
+            style={{ padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', background: '#f1f5f9', color: '#0f172a' }}
+          >
+            Browse All Subscriptions
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}>
-        <h2>Subscription Not Found</h2>
-        <p>The product you are looking for does not exist or may have been updated.</p>
-        <Link to="/items" className="btn-primary" style={{ marginTop: '20px', display: 'inline-block' }}>
+      <div className="container" style={{ padding: '60px 16px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+          Subscription Not Found
+        </h2>
+        <p style={{ color: '#64748b', marginBottom: '24px' }}>
+          The subscription you are looking for does not exist or may have been updated.
+        </p>
+        <Link 
+          to="/items" 
+          className="btn-primary" 
+          style={{ padding: '10px 20px', borderRadius: '8px', display: 'inline-block', textDecoration: 'none' }}
+        >
           Browse All Subscriptions
         </Link>
       </div>
     );
   }
 
-  const selectedPlan: ProductPlan = 
-    product.plans?.find(p => p.duration === selectedDuration) || product.plans?.[0] || {
-      duration: selectedDuration,
-      price: product.price || 199,
-      originalPrice: product.comparePrice || 499,
+  const safePlans = (product.plans && product.plans.length > 0) ? product.plans : [
+    {
+      duration: product.defaultPlan || selectedDuration || '1 Month',
+      price: Number(product.price) || 199,
+      originalPrice: Number(product.comparePrice) || 499,
       discountPercentage: 20
-    };
+    }
+  ];
 
-  const effectivePrice = product.inOffers && product.offerPrice ? product.offerPrice : selectedPlan.price;
-  const originalPrice = product.inOffers && product.offerOriginalPrice ? product.offerOriginalPrice : selectedPlan.originalPrice;
-  const discountPct = originalPrice > effectivePrice ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) : selectedPlan.discountPercentage;
+  const selectedPlan: ProductPlan = 
+    safePlans.find(p => p.duration === selectedDuration) || safePlans[0];
+
+  const effectivePrice = product.inOffers && product.offerPrice ? Number(product.offerPrice) : Number(selectedPlan.price || 199);
+  const originalPrice = product.inOffers && product.offerOriginalPrice ? Number(product.offerOriginalPrice) : Number(selectedPlan.originalPrice || 499);
+  const discountPct = (originalPrice > effectivePrice && originalPrice > 0) 
+    ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) 
+    : (selectedPlan.discountPercentage || 0);
 
   const [quantity, setQuantity] = useState(1);
 
@@ -97,10 +178,10 @@ export const ProductDetailPage: React.FC = () => {
   const targetPhone = (whatsAppSettings?.number || '919441323332').replace(/[^0-9]/g, '');
   const enquiryTemplate = whatsAppSettings?.itemEnquiryTemplate || 'Hi OTT Sellers! Is {productName} ({duration}) available for instant activation at ₹{price}?';
   const whatsappMessage = ottApi.formatWhatsAppEnquiryMessage(enquiryTemplate, {
-    productName: product.name,
+    productName: product.name || 'OTT Subscription',
     duration: selectedDuration,
     price: effectivePrice,
-    category: product.categoryName || product.categorySlug
+    category: product.categoryName || product.categorySlug || 'OTT'
   });
   const whatsappUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(whatsappMessage)}`;
 
@@ -122,7 +203,7 @@ export const ProductDetailPage: React.FC = () => {
               />
               <div className="product-detail-media-overlay">
                 <span className="product-detail-brand-badge">
-                  {product.brandLogoText || product.name.split(' ')[0]}
+                  {product.brandLogoText || (product.name ? product.name.split(' ')[0] : 'OTT')}
                 </span>
               </div>
               {discountPct > 0 && (
@@ -183,10 +264,10 @@ export const ProductDetailPage: React.FC = () => {
             <div className="product-detail-rating-row">
               <div className="rating-stars-badge">
                 <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                <span>{product.rating ? product.rating.toFixed(1) : '4.9'}</span>
+                <span>{typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating.toFixed(1) : '4.9'}</span>
               </div>
               <span className="rating-count-text">
-                ({(product.reviewsCount || 120).toLocaleString()} verified customer ratings)
+                ({Number(product.reviewsCount || 120).toLocaleString()} verified customer ratings)
               </span>
             </div>
 

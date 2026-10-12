@@ -1316,11 +1316,29 @@ export const ottApi = {
 
     // 3. Direct Supabase query by slug or ID
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('products')
         .select('*')
-        .or(`slug.eq.${cleanSlug},id.eq.${slug}`)
+        .eq('slug', slug)
         .maybeSingle();
+
+      if (!data) {
+        const res2 = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', slug)
+          .maybeSingle();
+        data = res2.data;
+      }
+
+      if (!data) {
+        const res3 = await supabase
+          .from('products')
+          .select('*')
+          .ilike('slug', cleanSlug)
+          .maybeSingle();
+        data = res3.data;
+      }
 
       if (!error && data) {
         return {

@@ -8,9 +8,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin: 12px 0 20px;
+  gap: 16px;
+  margin: 8px 0 16px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .items-page-header-block {
+    margin: 6px 0 12px;
+  }
 }
 
 .items-header-text {
@@ -24,6 +30,12 @@
   color: var(--text-primary);
   margin: 0 0 6px;
   letter-spacing: -0.02em;
+}
+
+@media (max-width: 640px) {
+  .items-main-title {
+    font-size: 1.35rem;
+  }
 }
 
 .items-main-subtitle {

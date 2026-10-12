@@ -39,7 +39,7 @@ export const PopularCategorySection: React.FC<PopularCategorySectionProps> = ({ 
 
       // Price filter
       if (selectedPriceRanges.length > 0) {
-        const price = product.plans[0].price;
+        const price = (product.plans && product.plans[0]?.price) || product.price || 0;
         const matchesAnyRange = selectedPriceRanges.some(range => {
           if (range === 'under-200') return price < 200;
           if (range === '200-500') return price >= 200 && price <= 500;
@@ -52,10 +52,12 @@ export const PopularCategorySection: React.FC<PopularCategorySectionProps> = ({ 
 
       return true;
     }).sort((a, b) => {
-      if (sortBy === 'price-low') return a.plans[0].price - b.plans[0].price;
-      if (sortBy === 'price-high') return b.plans[0].price - a.plans[0].price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      return b.reviewsCount - a.reviewsCount; // Popularity default
+      const pA = (a.plans && a.plans[0]?.price) || a.price || 0;
+      const pB = (b.plans && b.plans[0]?.price) || b.price || 0;
+      if (sortBy === 'price-low') return pA - pB;
+      if (sortBy === 'price-high') return pB - pA;
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      return (b.reviewsCount || 0) - (a.reviewsCount || 0); // Popularity default
     });
   }, [products, selectedCategory, selectedPriceRanges, sortBy]);
 

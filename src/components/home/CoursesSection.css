@@ -5,7 +5,7 @@
 
 @media (max-width: 768px) {
   .courses-showcase-section {
-    padding: 14px 0 18px;
+    padding: 10px 0 14px;
   }
 }
 
@@ -216,6 +216,7 @@
 @media (max-width: 640px) {
   .courses-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 14px;
+    margin-top: 14px;
   }
 }

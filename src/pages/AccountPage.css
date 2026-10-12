@@ -483,6 +483,54 @@
   color: #ffffff;
 }
 
+@media (max-width: 640px) {
+  .orders-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .orders-page-title {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+  .orders-page-header .btn-primary {
+    width: auto;
+    align-self: flex-start;
+    padding: 9px 16px;
+    font-size: 0.86rem;
+  }
+  .order-history-card {
+    padding: 16px;
+    border-radius: var(--radius-lg);
+  }
+  .order-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+  .order-item-chip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+  .order-item-chip .item-qty-tag {
+    margin-top: 2px;
+  }
+  .order-history-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .btn-view-order-details {
+    width: 100%;
+    justify-content: center;
+    padding: 11px 14px;
+  }
+}
+
 /* Order Detail Specifics */
 .order-detail-header-card {
   display: flex;

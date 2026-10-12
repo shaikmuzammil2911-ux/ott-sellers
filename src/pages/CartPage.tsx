@@ -61,9 +61,10 @@ export const CartPage: React.FC = () => {
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputCouponCode.trim()) return;
+    const cleanCode = inputCouponCode.trim().toUpperCase();
+    if (!cleanCode) return;
     setIsApplying(true);
-    await applyCoupon(inputCouponCode.trim());
+    await applyCoupon(cleanCode);
     setIsApplying(false);
   };
 
@@ -430,7 +431,11 @@ export const CartPage: React.FC = () => {
                     type="text" 
                     placeholder="Enter Coupon Code" 
                     value={inputCouponCode}
-                    onChange={(e) => setInputCouponCode(e.target.value.toUpperCase())}
+                    onChange={(e) => setInputCouponCode(e.target.value)}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoComplete="off"
                     className="coupon-input"
                   />
                   <button 
@@ -497,106 +502,77 @@ export const CartPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Payment Options Popup / Modal (Requirement 51 & 53) */}
+      {/* Choose Payment Method Modal */}
       {isPaymentModalOpen && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal-box" style={{ maxWidth: '480px' }}>
-            <div className="admin-modal-header">
-              <h2 className="admin-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CreditCard size={18} color="#0284c7" />
-                <span>Choose Payment Method</span>
-              </h2>
+        <div className="checkout-modal-overlay" onClick={() => setIsPaymentModalOpen(false)}>
+          <div className="checkout-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-payment-title">
+            <div className="checkout-modal-header">
+              <div className="checkout-modal-title-wrap">
+                <CreditCard size={20} className="checkout-modal-header-icon" />
+                <h2 id="modal-payment-title" className="checkout-modal-title">Choose Payment Method</h2>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="admin-modal-close-btn"
+                className="checkout-modal-close-btn"
+                aria-label="Close payment options"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="admin-modal-body">
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 700, color: '#0f172a' }}>
-                  <span>Total Payable:</span>
-                  <span style={{ fontSize: '1.1rem', color: '#0284c7' }}>₹{totalPrice}</span>
+            <div className="checkout-modal-body">
+              {/* Order & Delivery Summary Pill */}
+              <div className="checkout-order-summary-box">
+                <div className="summary-amount-row">
+                  <span className="summary-amount-label">Total Payable:</span>
+                  <span className="summary-amount-value">₹{totalPrice}</span>
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '4px' }}>
+                <div className="summary-credentials-note">
                   Delivering credentials to: <strong>{whatsapp || phone}</strong> ({fullName})
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Method 1: Razorpay Online Payment */}
+              {/* Payment Methods */}
+              <div className="payment-options-stack">
+                {/* Method 1: Razorpay Online Payment Gateway */}
                 <button
                   type="button"
                   onClick={handleRazorpayPayment}
                   disabled={isProcessingPayment}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 16px',
-                    background: '#ffffff',
-                    border: '1.5px solid #0284c7',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease'
-                  }}
+                  className="payment-option-card online-gateway-card"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ background: '#e0f2fe', color: '#0284c7', width: '38px', height: '38px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CreditCard size={20} />
+                  <div className="payment-option-content">
+                    <div className="payment-option-icon-box online-icon-box">
+                      <CreditCard size={22} />
                     </div>
-                    <div>
-                      <strong style={{ display: 'block', fontSize: '0.9rem', color: '#0f172a' }}>Online Payment Gateway</strong>
-                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>UPI (GPay, PhonePe, Paytm), Cards, NetBanking</span>
+                    <div className="payment-option-texts">
+                      <strong className="payment-option-heading">Online Payment Gateway</strong>
+                      <span className="payment-option-subtext">Pay securely using supported UPI apps, cards, or NetBanking.</span>
                     </div>
                   </div>
-                  <ArrowRight size={16} color="#0284c7" />
+                  <ArrowRight size={18} className="payment-option-arrow" />
                 </button>
 
-                {/* Method 2: Direct WhatsApp Verification & Instant Pay */}
+                {/* Method 2: Direct WhatsApp Instant Order */}
                 <button
                   type="button"
                   onClick={handleWhatsAppOrder}
                   disabled={isProcessingPayment}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 16px',
-                    background: '#ffffff',
-                    border: '1.5px solid #22c55e',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease'
-                  }}
+                  className="payment-option-card whatsapp-instant-card"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <MessageCircle size={20} />
+                  <div className="payment-option-content">
+                    <div className="payment-option-icon-box whatsapp-icon-box">
+                      <MessageCircle size={22} />
                     </div>
-                    <div>
-                      <strong style={{ display: 'block', fontSize: '0.9rem', color: '#0f172a' }}>WhatsApp Instant Order</strong>
-                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Chat with agent, send order via prefilled message & pay</span>
+                    <div className="payment-option-texts">
+                      <strong className="payment-option-heading">WhatsApp Instant Order</strong>
+                      <span className="payment-option-subtext">Continue on WhatsApp to confirm your order with our team.</span>
                     </div>
                   </div>
-                  <ArrowRight size={16} color="#16a34a" />
+                  <ArrowRight size={18} className="payment-option-arrow" />
                 </button>
               </div>
-            </div>
-
-            <div className="admin-modal-footer">
-              <button
-                type="button"
-                onClick={() => setIsPaymentModalOpen(false)}
-                className="btn-refresh-action"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </div>

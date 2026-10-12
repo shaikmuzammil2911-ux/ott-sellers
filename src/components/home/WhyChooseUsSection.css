@@ -4,7 +4,10 @@
 
 @media (max-width: 768px) {
   .why-choose-section {
-    padding: 12px 0 16px;
+    padding: 10px 0 16px;
+  }
+  .center-aligned {
+    margin-bottom: 16px;
   }
 }
 

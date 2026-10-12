@@ -107,7 +107,10 @@
 
 @media (max-width: 640px) {
   .home-categories-strip-section {
-    padding: 8px 0 14px;
+    padding: 6px 0 10px;
+  }
+  .home-categories-header {
+    margin-bottom: 8px;
   }
   .home-categories-heading {
     font-size: 1.05rem;
