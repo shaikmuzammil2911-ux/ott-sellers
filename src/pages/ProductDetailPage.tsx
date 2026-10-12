@@ -33,11 +33,12 @@ export const ProductDetailPage: React.FC = () => {
       ]);
       if (prod) {
         setProduct(prod);
-        setSelectedDuration(prod.defaultPlan || (prod.plans && prod.plans[0]?.duration) || '1 Month');
+        const initialDuration = prod.defaultPlan || (Array.isArray(prod.plans) && prod.plans[0]?.duration) || '1 Month';
+        setSelectedDuration(initialDuration);
         if (prod.categorySlug) {
           try {
             const related = await ottApi.getProductsByCategory(prod.categorySlug);
-            setRelatedProducts((related || []).filter(r => r.id !== prod.id).slice(0, 5));
+            setRelatedProducts((related || []).filter(r => r && r.id && r.id !== prod.id).slice(0, 5));
           } catch {
             setRelatedProducts([]);
           }
@@ -458,7 +459,7 @@ export const ProductDetailPage: React.FC = () => {
               </Link>
             </div>
             <div className="product-grid five-cols">
-              {relatedProducts.map(rel => (
+              {relatedProducts.filter(r => r && r.id).map(rel => (
                 <ProductCard key={rel.id} product={rel} />
               ))}
             </div>

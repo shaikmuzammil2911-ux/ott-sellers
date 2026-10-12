@@ -1444,35 +1444,41 @@ export const ottApi = {
   },
 
   async getProductsByCategory(categorySlug: string): Promise<Product[]> {
+    if (!categorySlug) return [];
+    const targetSlug = categorySlug.trim().toLowerCase();
     const products = await this.getProducts();
     return products.filter(
-      p => p.categorySlug.toLowerCase() === categorySlug.toLowerCase() ||
-           p.subcategorySlug?.toLowerCase() === categorySlug.toLowerCase()
+      p => (p.categorySlug && p.categorySlug.toLowerCase() === targetSlug) ||
+           (p.subcategorySlug && p.subcategorySlug.toLowerCase() === targetSlug)
     );
   },
 
   async getProductsByProvider(providerSlug: string): Promise<Product[]> {
+    if (!providerSlug) return [];
+    const targetSlug = providerSlug.trim().toLowerCase();
     const products = await this.getProducts();
     return products.filter(
-      p => p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() ||
-           p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase()
+      p => (p.providerSlug && p.providerSlug.toLowerCase() === targetSlug) ||
+           (p.subcategorySlug && p.subcategorySlug.toLowerCase() === targetSlug)
     );
   },
 
   async getProductsForCatalog(catalogSlug: string): Promise<Product[]> {
+    if (!catalogSlug) return [];
+    const targetSlug = catalogSlug.trim().toLowerCase();
     const products = await this.getProducts();
-    return products.filter(p => p.catalogSlugs && p.catalogSlugs.includes(catalogSlug));
+    return products.filter(p => Array.isArray(p.catalogSlugs) && p.catalogSlugs.some(s => s?.toLowerCase() === targetSlug));
   },
 
   async searchProducts(query: string): Promise<Product[]> {
-    const q = query.trim().toLowerCase();
+    const q = (query || '').trim().toLowerCase();
     if (!q) return [];
     const products = await this.getProducts();
     return products.filter(p => 
-      p.name.toLowerCase().includes(q) ||
-      p.categoryName.toLowerCase().includes(q) ||
-      p.tagline.toLowerCase().includes(q) ||
-      p.features.some(f => f.toLowerCase().includes(q))
+      (p.name && p.name.toLowerCase().includes(q)) ||
+      (p.categoryName && p.categoryName.toLowerCase().includes(q)) ||
+      (p.tagline && p.tagline.toLowerCase().includes(q)) ||
+      (Array.isArray(p.features) && p.features.some(f => typeof f === 'string' && f.toLowerCase().includes(q)))
     );
   },
 

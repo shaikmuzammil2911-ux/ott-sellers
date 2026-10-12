@@ -28,6 +28,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
+    try {
+      localStorage.removeItem('ott_sellers_products');
+      localStorage.removeItem('ott_sellers_categories');
+      localStorage.removeItem('ott_sellers_subcategories');
+    } catch {}
     this.setState({ hasError: false, error: null });
     window.location.reload();
   };
@@ -77,9 +82,28 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.props.fallbackTitle || 'Unable to Load Content'}
             </h2>
 
-            <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5, marginBottom: '24px' }}>
+            <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
               {this.props.fallbackMessage || 'An unexpected rendering issue occurred. Please refresh or return to all subscriptions.'}
             </p>
+
+            {this.state.error && (
+              <div 
+                style={{ 
+                  margin: '0 0 20px 0', 
+                  padding: '10px 12px', 
+                  background: '#fef2f2', 
+                  border: '1px solid #fecaca', 
+                  borderRadius: '8px', 
+                  color: '#b91c1c', 
+                  fontSize: '0.78rem', 
+                  textAlign: 'left', 
+                  wordBreak: 'break-word',
+                  fontFamily: 'monospace'
+                }}
+              >
+                <strong>Error detail:</strong> {this.state.error.message || String(this.state.error)}
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button
