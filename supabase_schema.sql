@@ -313,6 +313,47 @@ ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS applicable_product_ids TEXT[
 ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- ====================================================================
+-- 7.5. COURSES & MASTERCLASSES TABLE
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.courses (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  short_description TEXT,
+  description TEXT,
+  content TEXT,
+  image_url TEXT,
+  price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  compare_price NUMERIC(10,2) DEFAULT 0,
+  duration TEXT DEFAULT '4 Weeks',
+  status TEXT DEFAULT 'published',
+  is_featured BOOLEAN DEFAULT true,
+  sort_order INT DEFAULT 0,
+  features JSONB DEFAULT '[]'::jsonb,
+  curriculum JSONB DEFAULT '[]'::jsonb,
+  faqs JSONB DEFAULT '[]'::jsonb,
+  category_slug TEXT DEFAULT 'combos',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS short_description TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS price NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS compare_price NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS duration TEXT DEFAULT '4 Weeks';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'published';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT true;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS curriculum JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS category_slug TEXT DEFAULT 'combos';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- ====================================================================
 -- 8. CUSTOMER REVIEWS TABLE (Live CMS Moderation)
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS public.customer_reviews (
@@ -569,6 +610,7 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homepage_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_notifications ENABLE ROW LEVEL SECURITY;
@@ -595,6 +637,9 @@ CREATE POLICY "Public homepage_sections read" ON public.homepage_sections FOR SE
 
 DROP POLICY IF EXISTS "Public coupons read" ON public.coupons;
 CREATE POLICY "Public coupons read" ON public.coupons FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public courses read" ON public.courses;
+CREATE POLICY "Public courses read" ON public.courses FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public customer_reviews read" ON public.customer_reviews;
 CREATE POLICY "Public customer_reviews read" ON public.customer_reviews FOR SELECT USING (true);
@@ -636,6 +681,9 @@ CREATE POLICY "Full access homepage_sections" ON public.homepage_sections FOR AL
 
 DROP POLICY IF EXISTS "Full access coupons" ON public.coupons;
 CREATE POLICY "Full access coupons" ON public.coupons FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Full access courses" ON public.courses;
+CREATE POLICY "Full access courses" ON public.courses FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Full access customer_reviews" ON public.customer_reviews;
 CREATE POLICY "Full access customer_reviews" ON public.customer_reviews FOR ALL USING (true) WITH CHECK (true);
@@ -721,7 +769,7 @@ ON CONFLICT (id) DO UPDATE SET
   status = EXCLUDED.status;
 
 -- 4. Hero Banners
-INSERT INTO public.banners (id, name, title, subtitle, description, image_url, desktop_image_url, mobile_image_url, button_text, button_url, badge_text, badge_color, title_color, subtitle_color, page, slot, style, autoplay, interval, sort_order, display_order, is_active, status)
+INSERT INTO public.banners (id, name, title, subtitle, description, image_url, desktop_image_url, mobile_image_url, mode, button_text, button_url, badge_text, badge_color, title_color, subtitle_color, page, slot, style, autoplay, interval, sort_order, display_order, is_active, status)
 VALUES
   (
     'banner-1',
@@ -732,6 +780,7 @@ VALUES
     '/hero-bg.png',
     '/hero-bg.png',
     '/hero-mobile-1.png',
+    'image-only',
     'Shop Now',
     '/items',
     '70% OFF FLASH SALE',
@@ -757,6 +806,7 @@ VALUES
     '/hero-bg.png',
     '/hero-bg.png',
     '/hero-mobile-1.png',
+    'image-only',
     'Get Sports Pass',
     '/items?category=live-sports',
     'CRICKET SPECIAL',
@@ -776,6 +826,9 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET 
   title = EXCLUDED.title,
   subtitle = EXCLUDED.subtitle,
+  mode = EXCLUDED.mode,
+  desktop_image_url = EXCLUDED.desktop_image_url,
+  image_url = EXCLUDED.image_url,
   status = EXCLUDED.status;
 
 -- 5. Products (Sample OTT Subscriptions)
@@ -962,5 +1015,53 @@ ON CONFLICT (section_key) DO UPDATE SET
   subtitle = EXCLUDED.subtitle,
   description = EXCLUDED.description,
   is_active = EXCLUDED.is_active;
+
+-- 10. Courses & Masterclasses Seed
+INSERT INTO public.courses (
+  id, title, slug, short_description, description, content, image_url, price, compare_price, duration, status, is_featured, features, curriculum, faqs, category_slug
+)
+VALUES
+  (
+    'course-ott-reselling',
+    'OTT Subscriptions Reselling Mastery Course',
+    'ott-subscriptions-reselling-mastery',
+    'Learn how to build a 6-figure monthly digital reselling business with verified bulk wholesale distributors.',
+    'Complete step-by-step masterclass covering supplier sourcing, payment gateways, WhatsApp automation bots, Facebook/Instagram ads, customer management, and replacement warranty handling.',
+    'Module 1: Introduction to Wholesale Digital Goods\nModule 2: Direct Tier-1 Supplier Sourcing\nModule 3: Setting Up Automated WhatsApp Billing Bots\nModule 4: Marketing on Social Media & Telegram Channels\nModule 5: Payment Gateway Setup & Risk Management',
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80',
+    499,
+    1999,
+    '3 Hours Video Masterclass',
+    'published',
+    true,
+    '["Access to 10+ Verified Direct Wholesale Suppliers", "Ready-to-use WhatsApp Order Message Templates", "Excel Customer Tracker & Expiry Notification Sheet", "Lifetime Discord / WhatsApp Community Access"]'::jsonb,
+    '["1. Introduction to Digital OTT Reselling Model", "2. Connecting with Authentic Wholesale Suppliers", "3. Creating Your Brand & Pricing Strategy", "4. Setting Up WhatsApp Business & Auto-responders", "5. Scaling to 100+ Daily Orders with Paid Ads"]'::jsonb,
+    '[{"question": "Do I need prior technical experience?", "answer": "No, this course is designed for absolute beginners and provides actionable templates."}, {"question": "Will I get supplier contacts?", "answer": "Yes, full verified direct supplier list is included in the resources folder."}]'::jsonb,
+    'combos'
+  ),
+  (
+    'course-digital-marketing-ecommerce',
+    'High-Converting Meta Ads for Digital Products',
+    'high-converting-meta-ads-digital-products',
+    'Master Facebook & Instagram Ads to sell digital services and memberships with 5x+ ROAS.',
+    'Comprehensive blueprint for ad creatives, audience targeting in India/GCC, tracking conversions without website bans, and automating customer onboarding.',
+    'Module 1: Creative Ad Design using Canva\nModule 2: Campaign Structure & Budget Optimization\nModule 3: Retargeting Custom Audiences\nModule 4: Handling Customer Queries on WhatsApp',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80',
+    399,
+    1499,
+    '2.5 Hours Masterclass',
+    'published',
+    true,
+    '["Copy-paste Ad Headlines & Hooks", "Targeting Cheatsheet for Digital Entertainment Buyers", "Video Ad Templates & Mockups"]'::jsonb,
+    '["1. Finding the Right Audience for Subscriptions", "2. Crafting High-CTR Ad Creatives", "3. Setting Up Meta Pixel & Custom Conversions", "4. Retargeting Cart Abandoners on WhatsApp"]'::jsonb,
+    '[{"question": "Does this work for small ad budgets?", "answer": "Yes, strategies start from just ₹200/day ad spend."}]'::jsonb,
+    'combos'
+  )
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  slug = EXCLUDED.slug,
+  price = EXCLUDED.price,
+  compare_price = EXCLUDED.compare_price,
+  status = EXCLUDED.status;
 
 
