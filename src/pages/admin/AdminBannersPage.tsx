@@ -246,7 +246,8 @@ export const AdminBannersPage: React.FC = () => {
     setFormSubtitle(b.subtitle || '');
     setFormDescription(b.description || '');
     setFormBadgeText(b.badgeText || 'SPECIAL OFFER');
-    setFormMode(b.mode || (b.solidColor ? 'solid-color' : 'image-only'));
+    const resolvedMode = (b.desktopImage || b.mobileImage) ? 'image-only' : (b.mode || 'image-only');
+    setFormMode(resolvedMode);
     setFormSolidColor(b.solidColor || '#0b132b');
     setFormTitleColor(b.titleColor || '#ffffff');
     setFormSubtitleColor(b.subtitleColor || '#cbd5e1');
@@ -321,6 +322,7 @@ export const AdminBannersPage: React.FC = () => {
         } else {
           setFormMobileImage(res.url);
         }
+        setFormMode('image-only');
       } else {
         setUploadError(res.error || 'Image upload failed.');
       }
@@ -339,6 +341,13 @@ export const AdminBannersPage: React.FC = () => {
       return;
     }
 
+    let modeToSave = formMode;
+    if (formDesktopImage.trim() || formMobileImage.trim()) {
+      if (modeToSave === 'solid-color') {
+        modeToSave = 'image-only';
+      }
+    }
+
     const bannerData: HeroBanner = {
       id: editingBanner?.id || 'banner-' + Date.now(),
       name: formName.trim() || formTitle.trim() || 'Custom Banner',
@@ -347,7 +356,7 @@ export const AdminBannersPage: React.FC = () => {
       subtitle: formSubtitle.trim(),
       description: formDescription.trim(),
       badgeText: formBadgeText.trim(),
-      mode: formMode,
+      mode: modeToSave,
       solidColor: formSolidColor,
       titleColor: formTitleColor,
       subtitleColor: formSubtitleColor,
@@ -416,6 +425,7 @@ export const AdminBannersPage: React.FC = () => {
   const handleToggleStatus = async (b: HeroBanner) => {
     const nextStatus: 'ON' | 'OFF' = b.status === 'ON' ? 'OFF' : 'ON';
     const updated = { ...b, status: nextStatus, updatedAt: Date.now() };
+    setBanners(prev => prev.map(item => item.id === b.id ? updated : item));
     await ottApi.saveBanner(updated);
     showToast(`Banner is now ${nextStatus === 'ON' ? 'ACTIVE (Live)' : 'INACTIVE (Hidden)'}.`);
     await loadData();
@@ -552,7 +562,7 @@ export const AdminBannersPage: React.FC = () => {
               <div 
                 style={{
                   height: '140px',
-                  background: b.mode === 'solid-color' ? (b.solidColor || '#0b132b') : '#070d1e',
+                  background: b.solidColor || '#070d1e',
                   position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
@@ -560,12 +570,19 @@ export const AdminBannersPage: React.FC = () => {
                   overflow: 'hidden'
                 }}
               >
-                {b.mode !== 'solid-color' && (
+                {(b.desktopImage || b.mobileImage) ? (
                   <img 
-                    src={getCleanImageUrl(b.desktopImage, b.updatedAt)} 
-                    alt={b.title} 
+                    src={getCleanImageUrl(b.desktopImage || b.mobileImage, b.updatedAt)} 
+                    alt={b.title || b.name} 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/hero-bg.png';
+                    }}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
+                ) : (
+                  <div style={{ color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center', padding: '12px' }}>
+                    {b.title || b.name || 'Solid Color Banner'}
+                  </div>
                 )}
                 
                 {/* Floating Group Badge */}
@@ -1104,6 +1121,20 @@ export const AdminBannersPage: React.FC = () => {
                     4. Desktop & Mobile Banner Images (Upload & Replace)
                   </h4>
 
+                  <div className="admin-form-group" style={{ marginBottom: '14px' }}>
+                    <label className="admin-form-label" style={{ fontWeight: 700 }}>Banner Visual Presentation Mode</label>
+                    <select
+                      className="admin-form-select"
+                      value={formMode}
+                      onChange={(e) => setFormMode(e.target.value as any)}
+                    >
+                      <option value="image-only">Image Artwork (Recommended — Displays uploaded photo)</option>
+                      <option value="image-with-text">Image Artwork with Text Overlay</option>
+                      <option value="image-blur">Cinematic Blurred Image Background</option>
+                      <option value="solid-color">Solid Background Color Only</option>
+                    </select>
+                  </div>
+
                   <div className="admin-form-row-2">
                     {/* Desktop Image */}
                     <div className="admin-form-group">
@@ -1113,7 +1144,10 @@ export const AdminBannersPage: React.FC = () => {
                         className="admin-form-input"
                         placeholder="Image URL or upload below"
                         value={formDesktopImage}
-                        onChange={(e) => setFormDesktopImage(e.target.value)}
+                        onChange={(e) => {
+                          setFormDesktopImage(e.target.value);
+                          if (e.target.value.trim() && formMode === 'solid-color') setFormMode('image-only');
+                        }}
                       />
                       <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                         <label className="btn-primary-action" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '0.78rem' }}>
@@ -1134,7 +1168,14 @@ export const AdminBannersPage: React.FC = () => {
                       </div>
                       {formDesktopImage && (
                         <div style={{ marginTop: '8px', height: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
-                          <img src={getCleanImageUrl(formDesktopImage)} alt="PC Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img 
+                            src={getCleanImageUrl(formDesktopImage)} 
+                            alt="PC Preview" 
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/hero-bg.png';
+                            }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
                         </div>
                       )}
                     </div>
@@ -1147,7 +1188,10 @@ export const AdminBannersPage: React.FC = () => {
                         className="admin-form-input"
                         placeholder="Mobile image URL (fallback to PC if empty)"
                         value={formMobileImage}
-                        onChange={(e) => setFormMobileImage(e.target.value)}
+                        onChange={(e) => {
+                          setFormMobileImage(e.target.value);
+                          if (e.target.value.trim() && formMode === 'solid-color') setFormMode('image-only');
+                        }}
                       />
                       <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                         <label className="btn-primary-action" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '0.78rem' }}>
@@ -1168,7 +1212,14 @@ export const AdminBannersPage: React.FC = () => {
                       </div>
                       {formMobileImage && (
                         <div style={{ marginTop: '8px', height: '80px', width: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
-                          <img src={getCleanImageUrl(formMobileImage)} alt="Mobile Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img 
+                            src={getCleanImageUrl(formMobileImage)} 
+                            alt="Mobile Preview" 
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/hero-mobile-1.png';
+                            }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
                         </div>
                       )}
                     </div>

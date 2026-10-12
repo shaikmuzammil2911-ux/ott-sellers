@@ -132,6 +132,10 @@ export const getCleanImageUrl = (url?: string, timestamp?: number | string): str
 export const broadcastDataUpdate = (entityType: string) => {
   try {
     window.dispatchEvent(new CustomEvent('ott_data_updated', { detail: { entityType, timestamp: Date.now() } }));
+    // Also trigger cross-tab storage event for all active tabs and windows
+    try {
+      localStorage.setItem(`ott_last_sync_${entityType}`, String(Date.now()));
+    } catch {}
   } catch {
     // Ignore non-browser environments
   }
@@ -149,49 +153,56 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const banners: HeroBanner[] = data.map(b => ({
-          id: b.id,
-          name: b.name || b.title,
-          groupName: b.group_name || (b.slot === '01' ? 'Hero Main Slideshow' : `Group ${b.slot || '01'}`),
-          title: b.title || '',
-          subtitle: b.subtitle || '',
-          description: b.description || '',
-          ctaText: b.button_text || 'Shop Now',
-          ctaLink: b.button_url || '/items',
-          secondaryCtaText: b.secondary_button_text,
-          secondaryCtaLink: b.secondary_button_url,
-          buttons: Array.isArray(b.buttons) ? b.buttons : undefined,
-          desktopImage: b.desktop_image_url || b.image_url || '/hero-bg.png',
-          mobileImage: b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png',
-          mode: b.mode || 'image-only',
-          solidColor: b.solid_color,
-          textPosition: b.text_position || 'left',
-          contentPlacement: b.content_placement || 'center',
-          buttonPlacement: b.button_placement || 'left',
-          btnBgColor: b.btn_bg_color || '#0284c7',
-          btnTextColor: b.btn_text_color || '#ffffff',
-          btnBorderColor: b.btn_border_color || 'transparent',
-          overlayColor: b.overlay_color || '#000000',
-          overlayOpacity: Number(b.overlay_opacity) ?? 0.4,
-          displayOrder: b.sort_order || b.display_order || 1,
-          page: (b.page || 'home').toLowerCase() as any,
-          slot: b.slot || '01',
-          style: b.style || 'auto-slide',
-          autoplay: b.autoplay ?? true,
-          interval: Number(b.interval) || 5,
-          status: b.status || (b.is_active ? 'ON' : 'OFF'),
-          badgeText: b.badge_text,
-          titleColor: b.title_color,
-          subtitleColor: b.subtitle_color,
-          badgeColor: b.badge_color,
-          descriptionColor: b.description_color,
-          showText: b.show_text ?? true,
-          updatedAt: new Date(b.updated_at || Date.now()).getTime()
-        }));
+        const banners: HeroBanner[] = data.map(b => {
+          const desktopImg = b.desktop_image_url || b.image_url || '/hero-bg.png';
+          const mobileImg = b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png';
+          const isLive = b.status ? b.status.toUpperCase() === 'ON' : (b.is_active !== false);
+          const resolvedMode = (desktopImg || mobileImg) && b.mode === 'solid-color' ? 'image-only' : (b.mode || 'image-only');
+
+          return {
+            id: b.id,
+            name: b.name || b.title,
+            groupName: b.group_name || (b.slot === '01' ? 'Hero Main Slideshow' : `Group ${b.slot || '01'}`),
+            title: b.title || '',
+            subtitle: b.subtitle || '',
+            description: b.description || '',
+            ctaText: b.button_text || 'Shop Now',
+            ctaLink: b.button_url || '/items',
+            secondaryCtaText: b.secondary_button_text,
+            secondaryCtaLink: b.secondary_button_url,
+            buttons: Array.isArray(b.buttons) ? b.buttons : undefined,
+            desktopImage: desktopImg,
+            mobileImage: mobileImg,
+            mode: resolvedMode,
+            solidColor: b.solid_color,
+            textPosition: b.text_position || 'left',
+            contentPlacement: b.content_placement || 'center',
+            buttonPlacement: b.button_placement || 'left',
+            btnBgColor: b.btn_bg_color || '#0284c7',
+            btnTextColor: b.btn_text_color || '#ffffff',
+            btnBorderColor: b.btn_border_color || 'transparent',
+            overlayColor: b.overlay_color || '#000000',
+            overlayOpacity: Number(b.overlay_opacity) ?? 0.4,
+            displayOrder: b.sort_order || b.display_order || 1,
+            page: (b.page || 'home').toLowerCase() as any,
+            slot: b.slot || '01',
+            style: b.style || 'auto-slide',
+            autoplay: b.autoplay ?? true,
+            interval: Number(b.interval) || 5,
+            status: isLive ? 'ON' : 'OFF',
+            badgeText: b.badge_text,
+            titleColor: b.title_color,
+            subtitleColor: b.subtitle_color,
+            badgeColor: b.badge_color,
+            descriptionColor: b.description_color,
+            showText: b.show_text ?? true,
+            updatedAt: new Date(b.updated_at || Date.now()).getTime()
+          };
+        });
 
         localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
         return banners
-          .filter(b => b.status !== 'OFF')
+          .filter(b => b.status === 'ON')
           .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase())
           .filter(b => !slot || b.slot === slot);
       }
@@ -205,7 +216,7 @@ export const ottApi = {
       if (stored) {
         const parsed: HeroBanner[] = JSON.parse(stored);
         return parsed
-          .filter(b => b.status !== 'OFF')
+          .filter(b => b.status === 'ON')
           .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase())
           .filter(b => !slot || b.slot === slot)
           .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -213,7 +224,7 @@ export const ottApi = {
     } catch {}
 
     return INITIAL_BANNERS
-      .filter(b => b.status !== 'OFF')
+      .filter(b => b.status === 'ON')
       .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase());
   },
 
@@ -225,45 +236,51 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const banners: HeroBanner[] = data.map(b => ({
-          id: b.id,
-          name: b.name || b.title,
-          groupName: b.group_name || (b.slot === '01' ? 'Hero Main Slideshow' : `Group ${b.slot || '01'}`),
-          title: b.title || '',
-          subtitle: b.subtitle || '',
-          description: b.description || '',
-          ctaText: b.button_text || 'Shop Now',
-          ctaLink: b.button_url || '/items',
-          secondaryCtaText: b.secondary_button_text,
-          secondaryCtaLink: b.secondary_button_url,
-          buttons: Array.isArray(b.buttons) ? b.buttons : undefined,
-          desktopImage: b.desktop_image_url || b.image_url || '/hero-bg.png',
-          mobileImage: b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png',
-          mode: b.mode || 'image-only',
-          solidColor: b.solid_color,
-          textPosition: b.text_position || 'left',
-          contentPlacement: b.content_placement || 'center',
-          buttonPlacement: b.button_placement || 'left',
-          btnBgColor: b.btn_bg_color || '#0284c7',
-          btnTextColor: b.btn_text_color || '#ffffff',
-          btnBorderColor: b.btn_border_color || 'transparent',
-          overlayColor: b.overlay_color || '#000000',
-          overlayOpacity: Number(b.overlay_opacity) ?? 0.4,
-          displayOrder: b.sort_order || b.display_order || 1,
-          page: (b.page || 'home').toLowerCase() as any,
-          slot: b.slot || '01',
-          style: b.style || 'auto-slide',
-          autoplay: b.autoplay ?? true,
-          interval: Number(b.interval) || 5,
-          status: b.status || (b.is_active ? 'ON' : 'OFF'),
-          badgeText: b.badge_text,
-          titleColor: b.title_color,
-          subtitleColor: b.subtitle_color,
-          badgeColor: b.badge_color,
-          descriptionColor: b.description_color,
-          showText: b.show_text ?? true,
-          updatedAt: new Date(b.updated_at || Date.now()).getTime()
-        }));
+        const banners: HeroBanner[] = data.map(b => {
+          const isLive = b.status ? b.status.toUpperCase() === 'ON' : (b.is_active ?? true);
+          const desktopImg = b.desktop_image_url || b.image_url || '/hero-bg.png';
+          const mobileImg = b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png';
+          const resolvedMode = (desktopImg || mobileImg) && b.mode === 'solid-color' ? 'image-only' : (b.mode || 'image-only');
+          return {
+            id: b.id,
+            name: b.name || b.title,
+            groupName: b.group_name || (b.slot === '01' ? 'Hero Main Slideshow' : `Group ${b.slot || '01'}`),
+            title: b.title || '',
+            subtitle: b.subtitle || '',
+            description: b.description || '',
+            ctaText: b.button_text || 'Shop Now',
+            ctaLink: b.button_url || '/items',
+            secondaryCtaText: b.secondary_button_text,
+            secondaryCtaLink: b.secondary_button_url,
+            buttons: Array.isArray(b.buttons) ? b.buttons : undefined,
+            desktopImage: desktopImg,
+            mobileImage: mobileImg,
+            mode: resolvedMode,
+            solidColor: b.solid_color || '#070d1e',
+            textPosition: b.text_position || 'left',
+            contentPlacement: b.content_placement || 'center',
+            buttonPlacement: b.button_placement || 'left',
+            btnBgColor: b.btn_bg_color || '#0284c7',
+            btnTextColor: b.btn_text_color || '#ffffff',
+            btnBorderColor: b.btn_border_color || 'transparent',
+            overlayColor: b.overlay_color || '#000000',
+            overlayOpacity: Number(b.overlay_opacity) ?? 0.4,
+            displayOrder: b.sort_order || b.display_order || 1,
+            page: (b.page || 'home').toLowerCase() as any,
+            slot: b.slot || '01',
+            style: b.style || 'auto-slide',
+            autoplay: b.autoplay ?? true,
+            interval: Number(b.interval) || 5,
+            status: isLive ? 'ON' : 'OFF',
+            badgeText: b.badge_text,
+            titleColor: b.title_color,
+            subtitleColor: b.subtitle_color,
+            badgeColor: b.badge_color,
+            descriptionColor: b.description_color,
+            showText: b.show_text ?? true,
+            updatedAt: new Date(b.updated_at || Date.now()).getTime()
+          };
+        });
         localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
         return banners;
       }
@@ -284,7 +301,12 @@ export const ottApi = {
 
       // Sync to Supabase
       for (const b of banners) {
-        await supabase.from('banners').upsert({
+        const desktopImg = b.desktopImage || b.mobileImage || '/hero-bg.png';
+        const mobileImg = b.mobileImage || b.desktopImage || '/hero-mobile-1.png';
+        const isLive = b.status === 'ON';
+        const resolvedMode = (desktopImg || mobileImg) && b.mode === 'solid-color' ? 'image-only' : (b.mode || 'image-only');
+
+        const payload: any = {
           id: b.id,
           name: b.name || b.title,
           group_name: b.groupName,
@@ -296,12 +318,12 @@ export const ottApi = {
           secondary_button_text: b.secondaryCtaText,
           secondary_button_url: b.secondaryCtaLink,
           buttons: b.buttons || [],
-          image_url: b.desktopImage,
-          desktop_image_url: b.desktopImage,
-          mobile_image_url: b.mobileImage,
-          mode: b.mode,
-          solid_color: b.solidColor,
-          text_position: b.textPosition,
+          image_url: desktopImg,
+          desktop_image_url: desktopImg,
+          mobile_image_url: mobileImg,
+          mode: resolvedMode,
+          solid_color: b.solidColor || '#070d1e',
+          text_position: b.textPosition || 'left',
           content_placement: b.contentPlacement || 'center',
           button_placement: b.buttonPlacement || b.textPosition || 'left',
           btn_bg_color: b.btnBgColor || '#0284c7',
@@ -309,15 +331,15 @@ export const ottApi = {
           btn_border_color: b.btnBorderColor || 'transparent',
           overlay_color: b.overlayColor || '#000000',
           overlay_opacity: b.overlayOpacity ?? 0.4,
-          sort_order: b.displayOrder,
-          display_order: b.displayOrder,
+          sort_order: b.displayOrder || 1,
+          display_order: b.displayOrder || 1,
           page: b.page || 'home',
           slot: b.slot || '01',
           style: b.style || 'auto-slide',
           autoplay: b.autoplay ?? true,
           interval: b.interval || 5,
-          status: b.status || 'ON',
-          is_active: b.status !== 'OFF',
+          status: isLive ? 'ON' : 'OFF',
+          is_active: isLive,
           badge_text: b.badgeText,
           title_color: b.titleColor,
           subtitle_color: b.subtitleColor,
@@ -325,7 +347,19 @@ export const ottApi = {
           description_color: b.descriptionColor,
           show_text: b.showText ?? true,
           updated_at: new Date().toISOString()
-        });
+        };
+
+        await supabase.from('banners').upsert(payload, { onConflict: 'id' });
+        // Direct update to ensure existing row is updated
+        await supabase.from('banners').update({
+          status: isLive ? 'ON' : 'OFF',
+          is_active: isLive,
+          mode: resolvedMode,
+          image_url: desktopImg,
+          desktop_image_url: desktopImg,
+          mobile_image_url: mobileImg,
+          updated_at: new Date().toISOString()
+        }).eq('id', b.id);
       }
     } catch (e) {
       console.error('Failed to sync banners to Supabase:', e);
@@ -492,6 +526,17 @@ export const ottApi = {
         is_active: section.isActive ?? true,
         updated_at: new Date().toISOString()
       }, { onConflict: 'section_key' });
+
+      await supabase.from('homepage_sections').update({
+        is_active: section.isActive ?? true,
+        display_order: section.displayOrder || 1,
+        title: section.title,
+        subtitle: section.subtitle,
+        description: section.description,
+        image_url: section.imageUrl,
+        settings: section.settings || {},
+        updated_at: new Date().toISOString()
+      }).eq('section_key', section.sectionKey);
     } catch (e) {
       console.warn('Supabase homepage_sections sync notice:', e);
     }
@@ -516,7 +561,15 @@ export const ottApi = {
           is_active: s.isActive ?? true,
           updated_at: new Date().toISOString()
         }, { onConflict: 'section_key' });
-      } catch {}
+
+        await supabase.from('homepage_sections').update({
+          is_active: s.isActive ?? true,
+          display_order: s.displayOrder || 1,
+          updated_at: new Date().toISOString()
+        }).eq('section_key', s.sectionKey);
+      } catch (e) {
+        console.warn('Supabase homepage_sections bulk sync error:', e);
+      }
     }
   },
 
@@ -594,7 +647,7 @@ export const ottApi = {
   },
 
   async saveCategory(cat: Category): Promise<void> {
-    const all = this.getCachedCategoriesAdmin();
+    const all = await this.getAllCategoriesAdmin();
     const existingIndex = all.findIndex(c => c.id === cat.id || c.slug.toLowerCase() === cat.slug.toLowerCase());
     const categoryToSave: Category = {
       ...cat,
@@ -632,7 +685,7 @@ export const ottApi = {
         bg_gradient: categoryToSave.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
         titles_count: categoryToSave.titlesCount || '10+ Plans',
         status: categoryToSave.status,
-        is_active: categoryToSave.status !== 'OFF',
+        is_active: categoryToSave.status === 'ON',
         sort_order: categoryToSave.displayOrder || 0,
         placements: categoryToSave.placements,
         provider_id: categoryToSave.providerId,
@@ -642,6 +695,13 @@ export const ottApi = {
       if (categoryToSave.id) payload.id = categoryToSave.id;
 
       await supabase.from('categories').upsert(payload, { onConflict: 'slug' });
+      if (categoryToSave.id) {
+        await supabase.from('categories').update({
+          status: categoryToSave.status,
+          is_active: categoryToSave.status === 'ON',
+          updated_at: new Date().toISOString()
+        }).eq('id', categoryToSave.id);
+      }
     } catch (e) {
       console.warn('Failed to sync category to Supabase:', e);
     }
@@ -736,7 +796,7 @@ export const ottApi = {
   },
 
   async saveProvider(provider: Provider): Promise<void> {
-    const all = this.getCachedProvidersAdmin();
+    const all = await this.getAllProvidersAdmin();
     const idx = all.findIndex(p => p.id === provider.id || p.slug.toLowerCase() === provider.slug.toLowerCase());
     const providerToSave: Provider = {
       ...provider,
@@ -768,6 +828,14 @@ export const ottApi = {
         description: providerToSave.description,
         updated_at: new Date().toISOString()
       }, { onConflict: 'slug' });
+
+      if (providerToSave.id) {
+        await supabase.from('sub_categories').update({
+          is_active: providerToSave.isActive,
+          sort_order: providerToSave.displayOrder || 0,
+          updated_at: new Date().toISOString()
+        }).eq('id', providerToSave.id);
+      }
     } catch (e) {
       console.warn('Failed to sync provider to Supabase:', e);
     }
@@ -991,7 +1059,7 @@ export const ottApi = {
     broadcastDataUpdate('products');
 
     try {
-      await supabase.from('products').upsert({
+      const payload: any = {
         id: productToSave.id,
         name: productToSave.name,
         slug: productToSave.slug,
@@ -1033,7 +1101,19 @@ export const ottApi = {
         badge: productToSave.badge,
         sort_order: productToSave.displayOrder || 0,
         updated_at: new Date().toISOString()
-      });
+      };
+
+      await supabase.from('products').upsert(payload, { onConflict: 'id' });
+      if (productToSave.id) {
+        await supabase.from('products').update({
+          status: productToSave.status || 'ON',
+          in_stock: productToSave.inStock,
+          is_featured: productToSave.isFeatured ?? false,
+          is_trending: productToSave.isTrending ?? false,
+          sort_order: productToSave.displayOrder || 0,
+          updated_at: new Date().toISOString()
+        }).eq('id', productToSave.id);
+      }
     } catch (e) {
       console.error('Failed to sync product to Supabase:', e);
     }

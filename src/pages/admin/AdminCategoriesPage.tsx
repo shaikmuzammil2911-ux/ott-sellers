@@ -173,6 +173,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const handleToggleStatus = async (c: Category) => {
     const newStatus: 'ON' | 'OFF' = c.status === 'ON' ? 'OFF' : 'ON';
     const updated = { ...c, status: newStatus, updatedAt: Date.now() };
+    setCategories(prev => prev.map(item => item.id === c.id ? updated : item));
     await ottApi.saveCategory(updated);
     showToast(`Category "${c.name}" visibility set to ${newStatus === 'ON' ? 'ACTIVE (Live)' : 'INACTIVE (Hidden)'}.`);
     await loadData();

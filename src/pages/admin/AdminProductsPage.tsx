@@ -292,7 +292,8 @@ export const AdminProductsPage: React.FC = () => {
 
   const handleToggleStatus = async (p: Product) => {
     const newStatus = p.status === 'ON' ? 'OFF' : 'ON';
-    const updated: Product = { ...p, status: newStatus, updatedAt: Date.now() };
+    const updated: Product = { ...p, status: newStatus, inStock: newStatus === 'ON', updatedAt: Date.now() };
+    setProducts(prev => prev.map(item => item.id === p.id ? updated : item));
     await ottApi.saveProduct(updated);
     showToast(`Product "${p.name}" is now ${newStatus === 'ON' ? 'Active' : 'Inactive'}.`);
     await loadData();
@@ -301,6 +302,7 @@ export const AdminProductsPage: React.FC = () => {
   const handleToggleStock = async (p: Product) => {
     const newStock = !p.inStock;
     const updated: Product = { ...p, inStock: newStock, updatedAt: Date.now() };
+    setProducts(prev => prev.map(item => item.id === p.id ? updated : item));
     await ottApi.saveProduct(updated);
     showToast(`Product "${p.name}" marked as ${newStock ? 'In Stock' : 'Out of Stock'}.`);
     await loadData();

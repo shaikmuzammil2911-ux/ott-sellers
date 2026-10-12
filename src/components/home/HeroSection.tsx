@@ -30,9 +30,8 @@ export const HeroSection: React.FC = () => {
   const loadBanners = useCallback(async () => {
     try {
       const data = await ottApi.getBanners();
-      if (data && data.length > 0) {
-        setBanners(data);
-      }
+      setBanners(data || []);
+      setCurrentIndex(0);
     } catch (err) {
       console.error('Error fetching banners:', err);
     }
@@ -124,9 +123,9 @@ export const HeroSection: React.FC = () => {
   const currentBanner = banners[currentIndex] || banners[0];
   const activeBg = isMobile 
     ? (currentBanner.mobileImage || currentBanner.desktopImage) 
-    : currentBanner.desktopImage;
+    : (currentBanner.desktopImage || currentBanner.mobileImage);
 
-  const bgUrl = getCleanImageUrl(activeBg, currentBanner.updatedAt);
+  const bgUrl = getCleanImageUrl(activeBg || '/hero-bg.png', currentBanner.updatedAt);
 
   return (
     <section 
@@ -148,25 +147,28 @@ export const HeroSection: React.FC = () => {
           }}
         >
           {/* Background Image Layer */}
-          {currentBanner.mode !== 'solid-color' && (
+          {(currentBanner.mode !== 'solid-color' || activeBg) && (
             <div 
               className={`hero-bg-media-layer ${currentBanner.mode === 'image-blur' ? 'is-blurred' : 'is-sharp'}`}
               style={{
-                backgroundImage: `url(${bgUrl})`
+                backgroundImage: `url(${bgUrl || '/hero-bg.png'})`
               }}
             >
               {/* Responsive <img> tag for optimal SEO and browser decoding */}
               <img 
-                src={bgUrl} 
+                src={bgUrl || '/hero-bg.png'} 
                 alt={currentBanner.title || 'OTT Sellers Banner'} 
                 className="hero-media-preload"
                 loading="eager"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/hero-bg.png';
+                }}
               />
             </div>
           )}
 
           {/* Readability treatment only when text is enabled */}
-          {currentBanner.showText !== false && currentBanner.mode !== 'solid-color' && (
+          {currentBanner.showText !== false && (
             <div className={`hero-readability-scrim align-${currentBanner.textPosition || 'left'}`}></div>
           )}
 

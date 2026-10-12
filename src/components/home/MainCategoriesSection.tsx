@@ -16,9 +16,7 @@ export const MainCategoriesSection: React.FC = () => {
   const loadCategories = useCallback(async () => {
     try {
       const data = await ottApi.getCategories();
-      if (data && data.length > 0) {
-        setCategories(data);
-      }
+      setCategories(data || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
     } finally {

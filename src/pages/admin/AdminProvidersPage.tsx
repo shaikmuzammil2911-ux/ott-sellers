@@ -181,6 +181,7 @@ export const AdminProvidersPage: React.FC = () => {
 
   const handleToggleStatus = async (p: Provider) => {
     const updated: Provider = { ...p, isActive: !p.isActive, updatedAt: Date.now() };
+    setProviders(prev => prev.map(item => item.id === p.id ? updated : item));
     await ottApi.saveProvider(updated);
     showToast(`Provider "${p.name}" is now ${updated.isActive ? 'Active (Visible in Quick Select)' : 'Inactive'}.`);
     await loadData();

@@ -13,7 +13,7 @@ export const FeaturedSection: React.FC = () => {
   const loadFeatured = useCallback(async () => {
     try {
       const data = await ottApi.getFeaturedProducts();
-      setFeaturedItems(data.slice(0, 5));
+      setFeaturedItems((data || []).slice(0, 5));
     } catch (err) {
       console.error('Error loading featured items:', err);
     } finally {

@@ -15,7 +15,7 @@ export const CoursesSection: React.FC = () => {
   const loadCourses = useCallback(async () => {
     try {
       const data = await ottApi.getCourses();
-      setCourses(data.filter(c => c.status === 'published'));
+      setCourses((data || []).filter(c => c.status === 'published'));
     } catch (err) {
       console.error('Error fetching courses:', err);
     } finally {
