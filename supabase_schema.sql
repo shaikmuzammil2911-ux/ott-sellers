@@ -575,6 +575,9 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
     "categoriesHeading": "Explore Categories",
     "itemsListingHeading": "All Available Plans"
   }'::jsonb,
+  banner_groups JSONB DEFAULT '[]'::jsonb,
+  logo_url TEXT DEFAULT '/logo.png',
+  favicon_url TEXT DEFAULT '/favicon.ico',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -1072,5 +1075,33 @@ ON CONFLICT (id) DO UPDATE SET
   price = EXCLUDED.price,
   compare_price = EXCLUDED.compare_price,
   status = EXCLUDED.status;
+
+-- ====================================================================
+-- 11. STORAGE BUCKET INITIALIZATION ('ott-images')
+-- ====================================================================
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public)
+  VALUES ('ott-images', 'ott-images', true)
+  ON CONFLICT (id) DO UPDATE SET public = true;
+
+  DROP POLICY IF EXISTS "Public Access ott-images" ON storage.objects;
+  CREATE POLICY "Public Access ott-images" ON storage.objects 
+    FOR SELECT USING (bucket_id = 'ott-images');
+
+  DROP POLICY IF EXISTS "Public Upload ott-images" ON storage.objects;
+  CREATE POLICY "Public Upload ott-images" ON storage.objects 
+    FOR INSERT WITH CHECK (bucket_id = 'ott-images');
+
+  DROP POLICY IF EXISTS "Public Update ott-images" ON storage.objects;
+  CREATE POLICY "Public Update ott-images" ON storage.objects 
+    FOR UPDATE USING (bucket_id = 'ott-images');
+
+  DROP POLICY IF EXISTS "Public Delete ott-images" ON storage.objects;
+  CREATE POLICY "Public Delete ott-images" ON storage.objects 
+    FOR DELETE USING (bucket_id = 'ott-images');
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 
 
