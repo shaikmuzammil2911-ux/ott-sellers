@@ -90,6 +90,7 @@ ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS popular_product_slug 
 ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#0284c7';
 ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.sub_categories ADD COLUMN IF NOT EXISTS associated_product_ids TEXT[] DEFAULT '{}'::TEXT[];
 
 -- ====================================================================
 -- 4. PRODUCTS TABLE
@@ -236,6 +237,8 @@ ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS group_name TEXT;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
@@ -428,6 +431,11 @@ ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS message TEXT;
 ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 1;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS start_date TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS start_time TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS expiry_time TEXT;
+ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'purchase';
 ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.site_notifications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
@@ -579,6 +587,7 @@ ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS referral_settings JSO
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS items_page_cms JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS admin_password_hash TEXT;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS random_notifications_active BOOLEAN DEFAULT true;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS banner_groups JSONB DEFAULT '[]'::jsonb;
 
 -- Update products with provider columns
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_id TEXT;

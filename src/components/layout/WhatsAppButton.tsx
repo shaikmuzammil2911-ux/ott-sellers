@@ -57,7 +57,7 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ customMessage })
       const orderId = path.split('/').pop();
       return `Hi OTT Sellers, I need help with Order ${orderId}.`;
     }
-    return 'Hi OTT Sellers! I have an enquiry regarding subscription plans and instant delivery.';
+    return settings?.generalMessage || 'Hi OTT Sellers! I have an enquiry regarding subscription plans and instant delivery.';
   };
 
   const phone = (settings?.number || '919441323332').replace(/[^0-9]/g, '');

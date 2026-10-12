@@ -438,11 +438,11 @@ export const AdminSettingsPage: React.FC = () => {
       {/* TAB 1: General & Logo Branding */}
       {activeTab === 'general' && (
         <form onSubmit={handleSaveGeneralAndWhatsApp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Website Logo & Branding</h2>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Website Logo & Branding</h2>
 
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ background: '#0b132b', padding: '10px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <img src={logoUrl} alt="Logo Preview" style={{ maxHeight: '50px', objectFit: 'contain' }} />
               </div>
 
@@ -460,8 +460,8 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Site Info & Top Announcement</h2>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Site Info & Top Announcement</h2>
 
             <div className="admin-form-row-2">
               <div className="admin-form-group">
@@ -503,8 +503,8 @@ export const AdminSettingsPage: React.FC = () => {
       {/* TAB 2: WhatsApp CMS (Module 9.1 & 9.2) */}
       {activeTab === 'whatsapp' && (
         <form onSubmit={handleSaveGeneralAndWhatsApp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MessageSquare size={18} color="#22c55e" />
               <span>WhatsApp Helpline & Floating Click-to-Chat</span>
             </h2>
@@ -528,21 +528,21 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* Module 9: WhatsApp Message Templates CMS */}
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#38bdf8', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={18} color="#38bdf8" />
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0284c7', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={18} color="#0284c7" />
               <span>Editable WhatsApp Message Templates (Click-to-Chat & Pre-filled Texts)</span>
             </h2>
-            <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: 0 }}>
+            <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
               Customize the automated prefilled messages opened when customers click WhatsApp buttons on various pages. Dynamic tags like <code>{'{productName}'}</code>, <code>{'{duration}'}</code>, <code>{'{price}'}</code>, and <code>{'{orderId}'}</code> will be auto-replaced.
             </p>
 
             {/* Template 1: General Message */}
-            <div style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-              <label className="admin-form-label" style={{ fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 1. General WhatsApp Chat Message
               </label>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>
                 Triggered when customer clicks the floating bottom-right WhatsApp widget or global helpline.
               </span>
               <textarea
@@ -555,11 +555,11 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* Template 2: Customer Enquiry Message */}
-            <div style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-              <label className="admin-form-label" style={{ fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 2. Customer Product Enquiry Message
               </label>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>
                 Triggered on product enquiry actions. Supported tags: <code>{'{productName}'}</code>
               </span>
               <textarea
@@ -572,11 +572,11 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* Template 3: Item Enquiry Message */}
-            <div style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-              <label className="admin-form-label" style={{ fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 3. Item / Subscription Plan Enquiry Message
               </label>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>
                 Triggered when customer clicks WhatsApp button on product details. Supported tags: <code>{'{productName}'}</code>, <code>{'{duration}'}</code>, <code>{'{price}'}</code>
               </span>
               <textarea
@@ -589,11 +589,11 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* Template 4: Order Delivery Template */}
-            <div style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-              <label className="admin-form-label" style={{ fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 4. Order Message & Delivery Template
               </label>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>
                 Used when sending credentials or order receipts on WhatsApp. Supported tags: <code>{'{orderId}'}</code>, <code>{'{customerName}'}</code>, <code>{'{items}'}</code>, <code>{'{total}'}</code>
               </span>
               <textarea
@@ -605,11 +605,11 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* Template 5: Contact Page Message */}
-            <div style={{ background: '#0b132b', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-              <label className="admin-form-label" style={{ fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 5. Contact Us Page Message
               </label>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>
                 Prefilled when reaching out via Contact Us page.
               </span>
               <textarea
@@ -621,9 +621,9 @@ export const AdminSettingsPage: React.FC = () => {
               />
             </div>
 
-            <div style={{ background: '#0b132b', padding: '14px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-              <span style={{ fontSize: '0.8rem', color: '#22c55e', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Live WhatsApp URL Preview:</span>
-              <code style={{ fontSize: '0.78rem', color: '#cbd5e1', wordBreak: 'break-all' }}>{previewWhatsAppUrl}</code>
+            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Live WhatsApp URL Preview:</span>
+              <code style={{ fontSize: '0.78rem', color: '#334155', wordBreak: 'break-all' }}>{previewWhatsAppUrl}</code>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
@@ -639,8 +639,8 @@ export const AdminSettingsPage: React.FC = () => {
       {/* TAB 3: Footer Links */}
       {activeTab === 'footer' && (
         <form onSubmit={handleSaveFooter} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Add New Footer Link</h2>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Add New Footer Link</h2>
 
             <div className="admin-form-row-3">
               <div className="admin-form-group">
@@ -669,26 +669,26 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', marginBottom: '12px' }}>Current Footer Links List</h2>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '14px' }}>Current Footer Links List</h2>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div style={{ background: '#0b132b', padding: '14px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-                <h4 style={{ margin: '0 0 10px', color: '#38bdf8', fontSize: '0.86rem' }}>Quick Links Column ({quickLinks.length})</h4>
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 10px', color: '#0284c7', fontSize: '0.86rem', fontWeight: 800 }}>Quick Links Column ({quickLinks.length})</h4>
                 {quickLinks.map((l, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #1e293b' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#fff' }}>{l.label} ({l.url})</span>
-                    <button type="button" onClick={() => handleRemoveFooterLink('quick', i)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={13} /></button>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#0f172a' }}><strong>{l.label}</strong> <span style={{ color: '#64748b', fontSize: '0.76rem' }}>({l.url})</span></span>
+                    <button type="button" onClick={() => handleRemoveFooterLink('quick', i)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }} title="Remove link"><Trash2 size={13} /></button>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: '#0b132b', padding: '14px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-                <h4 style={{ margin: '0 0 10px', color: '#38bdf8', fontSize: '0.86rem' }}>Customer Support Column ({customerSupportLinks.length})</h4>
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 10px', color: '#0284c7', fontSize: '0.86rem', fontWeight: 800 }}>Customer Support Column ({customerSupportLinks.length})</h4>
                 {customerSupportLinks.map((l, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #1e293b' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#fff' }}>{l.label} ({l.url})</span>
-                    <button type="button" onClick={() => handleRemoveFooterLink('support', i)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={13} /></button>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#0f172a' }}><strong>{l.label}</strong> <span style={{ color: '#64748b', fontSize: '0.76rem' }}>({l.url})</span></span>
+                    <button type="button" onClick={() => handleRemoveFooterLink('support', i)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }} title="Remove link"><Trash2 size={13} /></button>
                   </div>
                 ))}
               </div>
@@ -707,14 +707,14 @@ export const AdminSettingsPage: React.FC = () => {
       {/* TAB 4: Items Page Headings & CMS */}
       {activeTab === 'items_cms' && (
         <form onSubmit={handleSaveItemsCMS} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '720px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '720px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Sparkles size={18} color="#38bdf8" />
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={18} color="#0284c7" />
                   <span>Items & Subscriptions Page Headings</span>
                 </h2>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
                   Customize the customer-facing headings, subtitles, and section titles on the /items catalog page.
                 </p>
               </div>
@@ -811,13 +811,13 @@ export const AdminSettingsPage: React.FC = () => {
       {/* TAB 5: Admin Security — Change Password (Module 10) */}
       {activeTab === 'security' && (
         <form onSubmit={handleSaveSecurity} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '600px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '600px' }}>
             <div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Lock size={18} color="#38bdf8" />
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Lock size={18} color="#0284c7" />
                 <span>Change Administrator Password</span>
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
                 Securely update the password for authorized admin account <strong>{ADMIN_CONFIG.EMAIL}</strong>.
               </p>
             </div>
@@ -837,7 +837,7 @@ export const AdminSettingsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowExistingPass(!showExistingPass)}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
                 >
                   {showExistingPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -859,7 +859,7 @@ export const AdminSettingsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewPass(!showNewPass)}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
                 >
                   {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -881,7 +881,7 @@ export const AdminSettingsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPass(!showConfirmPass)}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
                 >
                   {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>

@@ -27,6 +27,7 @@ export interface Provider {
   displayOrder?: number;
   isActive: boolean;
   description?: string;
+  associatedProductIds?: string[];
   updatedAt?: number;
 }
 
@@ -73,7 +74,7 @@ export interface Product {
   updatedAt?: number;
 }
 
-export type BannerImageMode = 'solid-color' | 'image-blur' | 'image-only';
+export type BannerImageMode = 'solid-color' | 'image-blur' | 'image-only' | 'image-with-text' | 'split';
 export type BannerTextPosition = 'left' | 'center' | 'right';
 export type BannerVerticalPlacement = 'top' | 'center' | 'bottom';
 export type BannerDisplayStyle = 'auto-slide' | 'fixed' | 'manual-slide' | 'single';

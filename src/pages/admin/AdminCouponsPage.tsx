@@ -726,9 +726,9 @@ export const AdminCouponsPage: React.FC = () => {
                 </div>
 
                 {/* Module 7.4: Custom Customer Message & Heading */}
-                <div style={{ background: '#070d1e', border: '1px solid #1e293b', borderRadius: '10px', padding: '14px' }}>
-                  <h4 style={{ margin: '0 0 10px', fontSize: '0.86rem', color: '#f59e0b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <MessageSquare size={14} />
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+                  <h4 style={{ margin: '0 0 10px', fontSize: '0.86rem', color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MessageSquare size={14} color="#0284c7" />
                     <span>Customer Facing Heading & Custom Messages</span>
                   </h4>
 

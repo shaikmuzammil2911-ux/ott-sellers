@@ -375,118 +375,145 @@ export const AdminNotificationsPage: React.FC = () => {
       {/* Edit / Add Modal */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box compact" style={{ maxWidth: '480px' }}>
+          <div className="admin-modal-box" style={{ maxWidth: '540px', width: '92vw', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="admin-modal-header">
-              <h3 className="modal-title">
-                {editingNotif ? 'Edit Notification' : 'Create Random Popup Notification'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="btn-modal-close">
+              <h2 className="admin-modal-title">
+                {editingNotif ? 'Edit Popup Notification' : 'Create Random Popup Notification'}
+              </h2>
+              <button 
+                type="button" 
+                onClick={() => setIsModalOpen(false)} 
+                className="admin-modal-close-btn"
+                aria-label="Close modal"
+              >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveNotification} className="admin-modal-body">
-              <div className="form-group-compact">
-                <label>Product Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formProductName}
-                  onChange={(e) => setFormProductName(e.target.value)}
-                  placeholder="e.g. Netflix Premium 4K UHD"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Buyer Name</label>
+            <form onSubmit={handleSaveNotification}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px' }}>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Product Name *</label>
                   <input
                     type="text"
-                    value={formBuyerName}
-                    onChange={(e) => setFormBuyerName(e.target.value)}
-                    placeholder="e.g. Rahul V."
+                    required
+                    className="admin-form-input"
+                    value={formProductName}
+                    onChange={(e) => setFormProductName(e.target.value)}
+                    placeholder="e.g. Netflix Premium 4K UHD"
                   />
                 </div>
-                <div className="form-group-compact">
-                  <label>Location</label>
+
+                <div className="admin-form-row-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Buyer Name</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      value={formBuyerName}
+                      onChange={(e) => setFormBuyerName(e.target.value)}
+                      placeholder="e.g. Rahul V."
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Location</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      value={formLocation}
+                      onChange={(e) => setFormLocation(e.target.value)}
+                      placeholder="e.g. Mumbai, India"
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-row-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Plan Duration</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      value={formPlan}
+                      onChange={(e) => setFormPlan(e.target.value)}
+                      placeholder="e.g. 3 Months / 1 Year"
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Time Text</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      value={formTimeText}
+                      onChange={(e) => setFormTimeText(e.target.value)}
+                      placeholder="e.g. 2 mins ago / Just now"
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Thumbnail Image URL</label>
                   <input
                     type="text"
-                    value={formLocation}
-                    onChange={(e) => setFormLocation(e.target.value)}
-                    placeholder="e.g. Mumbai"
+                    className="admin-form-input"
+                    value={formImageUrl}
+                    onChange={(e) => setFormImageUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/... or /hero-bg.png"
                   />
+                  {formImageUrl && (
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <img 
+                        src={formImageUrl} 
+                        alt="Preview" 
+                        style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Thumbnail Image Preview</span>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Plan Duration</label>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Custom Message (Optional)</label>
                   <input
                     type="text"
-                    value={formPlan}
-                    onChange={(e) => setFormPlan(e.target.value)}
-                    placeholder="e.g. 3 Months"
+                    className="admin-form-input"
+                    value={formMessage}
+                    onChange={(e) => setFormMessage(e.target.value)}
+                    placeholder="e.g. Someone just purchased an annual subscription"
                   />
                 </div>
-                <div className="form-group-compact">
-                  <label>Time Text</label>
-                  <input
-                    type="text"
-                    value={formTimeText}
-                    onChange={(e) => setFormTimeText(e.target.value)}
-                    placeholder="e.g. 2 mins ago / Just now"
-                  />
-                </div>
-              </div>
 
-              <div className="form-group-compact">
-                <label>Thumbnail Image URL</label>
-                <input
-                  type="text"
-                  value={formImageUrl}
-                  onChange={(e) => setFormImageUrl(e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div className="form-group-compact">
-                <label>Custom Message (Optional)</label>
-                <input
-                  type="text"
-                  value={formMessage}
-                  onChange={(e) => setFormMessage(e.target.value)}
-                  placeholder="e.g. Someone just purchased an annual subscription"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group-compact">
-                  <label>Display Order</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formDisplayOrder}
-                    onChange={(e) => setFormDisplayOrder(e.target.value)}
-                  />
-                </div>
-                <div className="form-group-compact">
-                  <label>Status</label>
-                  <select
-                    value={formIsActive ? 'active' : 'inactive'}
-                    onChange={(e) => setFormIsActive(e.target.value === 'active')}
-                  >
-                    <option value="active">Active (Show)</option>
-                    <option value="inactive">Inactive (Hide)</option>
-                  </select>
+                <div className="admin-form-row-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Display Order (#)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="admin-form-input"
+                      value={formDisplayOrder}
+                      onChange={(e) => setFormDisplayOrder(e.target.value)}
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Notification Status</label>
+                    <select
+                      className="admin-form-select"
+                      value={formIsActive ? 'active' : 'inactive'}
+                      onChange={(e) => setFormIsActive(e.target.value === 'active')}
+                    >
+                      <option value="active">Active (Eligible to display)</option>
+                      <option value="inactive">Inactive (Suppressed)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div className="admin-modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-modal-cancel">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-modal-secondary">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="btn-modal-save">
-                  {saving ? 'Saving...' : 'Save Notification'}
+                <button type="submit" disabled={saving} className="btn-modal-primary">
+                  {saving ? 'Saving...' : (editingNotif ? 'Save Changes' : 'Create Notification')}
                 </button>
               </div>
             </form>

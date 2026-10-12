@@ -16,7 +16,7 @@ export const HomeCatalogPreview: React.FC = () => {
     try {
       const [allProds, allCats] = await Promise.all([
         ottApi.getProducts(),
-        ottApi.getCategories()
+        ottApi.getCategories('home')
       ]);
       setProducts(allProds);
       setCategories(allCats);

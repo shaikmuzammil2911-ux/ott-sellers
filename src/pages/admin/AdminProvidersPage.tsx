@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
-import { Provider, Category } from '../../types';
+import { Provider, Category, Product } from '../../types';
 
 const PRESET_BRAND_COLORS = [
   { name: 'Amazon Cyan', hex: '#00A8E1' },
@@ -22,6 +22,7 @@ const PRESET_BRAND_COLORS = [
 export const AdminProvidersPage: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>(() => ottApi.getCachedProvidersAdmin());
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,8 @@ export const AdminProvidersPage: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
   const [formCategorySlug, setFormCategorySlug] = useState('movies-series');
+  const [formAssociatedProductIds, setFormAssociatedProductIds] = useState<string[]>([]);
+  const [itemSearchFilter, setItemSearchFilter] = useState('');
   const [formLogo, setFormLogo] = useState('');
   const [formBrandColor, setFormBrandColor] = useState('#0284c7');
   const [formDescription, setFormDescription] = useState('');
@@ -48,12 +51,14 @@ export const AdminProvidersPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [provs, cats] = await Promise.all([
+      const [provs, cats, prods] = await Promise.all([
         ottApi.getAllProvidersAdmin(),
-        ottApi.getAllCategoriesAdmin()
+        ottApi.getAllCategoriesAdmin(),
+        ottApi.getAllProductsAdmin()
       ]);
       setProviders(provs.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
       setCategories(cats);
+      setProducts(prods);
     } catch (e) {
       console.error(e);
     } finally {
@@ -83,6 +88,8 @@ export const AdminProvidersPage: React.FC = () => {
     setFormName('');
     setFormSlug('');
     setFormCategorySlug(categories[0]?.slug || 'movies-series');
+    setFormAssociatedProductIds([]);
+    setItemSearchFilter('');
     setFormLogo('');
     setFormBrandColor('#0284c7');
     setFormDescription('');
@@ -97,6 +104,15 @@ export const AdminProvidersPage: React.FC = () => {
     setFormName(p.name);
     setFormSlug(p.slug);
     setFormCategorySlug(p.categorySlug || 'movies-series');
+    
+    // Resolve existing item associations
+    const directMatches = products
+      .filter(pr => pr.providerSlug === p.slug || pr.providerId === p.id)
+      .map(pr => pr.id);
+    const initialProductIds = Array.from(new Set([...(p.associatedProductIds || []), ...directMatches]));
+    setFormAssociatedProductIds(initialProductIds);
+    setItemSearchFilter('');
+    
     setFormLogo(p.logo || '');
     setFormBrandColor(p.brandColor || '#0284c7');
     setFormDescription(p.description || '');
@@ -104,6 +120,20 @@ export const AdminProvidersPage: React.FC = () => {
     setFormIsActive(p.isActive);
     setUploadError(null);
     setIsModalOpen(true);
+  };
+
+  const handleToggleProductAssociation = (productId: string) => {
+    setFormAssociatedProductIds(prev => 
+      prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const handleSelectAllFiltered = (filteredIds: string[]) => {
+    setFormAssociatedProductIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+  };
+
+  const handleClearAllSelected = () => {
+    setFormAssociatedProductIds([]);
   };
 
   const handleNameChange = (name: string) => {
@@ -151,6 +181,7 @@ export const AdminProvidersPage: React.FC = () => {
       name: formName.trim(),
       slug,
       categorySlug: formCategorySlug,
+      associatedProductIds: formAssociatedProductIds,
       logo: formLogo.trim(),
       brandColor: formBrandColor,
       description: formDescription.trim(),
@@ -162,10 +193,11 @@ export const AdminProvidersPage: React.FC = () => {
     await ottApi.saveProvider(providerData);
     await ottApi.logAudit(editingProvider ? 'UPDATE_PROVIDER' : 'CREATE_PROVIDER', 'providers', providerData.id, { 
       name: providerData.name, 
-      slug: providerData.slug 
+      slug: providerData.slug,
+      associatedCount: formAssociatedProductIds.length
     });
 
-    showToast(`Provider "${providerData.name}" saved & Quick Select updated on live store!`);
+    showToast(`Provider "${providerData.name}" and ${formAssociatedProductIds.length} associated items saved!`);
     setIsModalOpen(false);
     await loadData();
   };
@@ -431,7 +463,7 @@ export const AdminProvidersPage: React.FC = () => {
 
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Associated Category</label>
+                    <label className="admin-form-label">Primary Associated Category</label>
                     <select
                       className="admin-form-select"
                       value={formCategorySlug}
@@ -452,6 +484,180 @@ export const AdminProvidersPage: React.FC = () => {
                       value={formDisplayOrder}
                       onChange={(e) => setFormDisplayOrder(e.target.value)}
                     />
+                  </div>
+                </div>
+
+                {/* Searchable Multi-Select Associated Subscription Items (Requirement 6) */}
+                <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <label className="admin-form-label" style={{ fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                        Associated Subscription Items & Products
+                      </label>
+                      <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        Select the exact catalog subscriptions that belong to this provider
+                      </span>
+                    </div>
+                    <span style={{ 
+                      background: formAssociatedProductIds.length > 0 ? '#0284c7' : '#94a3b8', 
+                      color: '#ffffff', 
+                      padding: '3px 10px', 
+                      borderRadius: '12px', 
+                      fontSize: '0.74rem', 
+                      fontWeight: 700 
+                    }}>
+                      {formAssociatedProductIds.length} Selected
+                    </span>
+                  </div>
+
+                  {/* Selected Items Chips Summary */}
+                  {formAssociatedProductIds.length > 0 && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxHeight: '72px', overflowY: 'auto', padding: '6px', background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      {formAssociatedProductIds.map(id => {
+                        const prod = products.find(p => p.id === id);
+                        return (
+                          <span 
+                            key={id}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'rgba(2, 132, 199, 0.1)',
+                              color: '#0284c7',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            <span>{prod ? prod.name : id}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProductAssociation(id)}
+                              style={{ border: 'none', background: 'none', color: '#0284c7', cursor: 'pointer', padding: 0, display: 'flex' }}
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Search Bar & Batch Controls */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div className="admin-search-wrap" style={{ flex: 1, margin: 0 }}>
+                      <Search size={14} className="search-icon" />
+                      <input
+                        type="text"
+                        placeholder="Search items by name, category, or tag..."
+                        value={itemSearchFilter}
+                        onChange={(e) => setItemSearchFilter(e.target.value)}
+                        style={{ fontSize: '0.8rem', padding: '6px 8px 6px 30px' }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const matches = products.filter(p => {
+                          if (!itemSearchFilter) return true;
+                          const q = itemSearchFilter.toLowerCase();
+                          return p.name.toLowerCase().includes(q) || (p.categoryName || '').toLowerCase().includes(q);
+                        }).map(p => p.id);
+                        handleSelectAllFiltered(matches);
+                      }}
+                      className="btn-refresh-action"
+                      style={{ fontSize: '0.75rem', padding: '6px 10px', whiteSpace: 'nowrap' }}
+                    >
+                      Select All
+                    </button>
+                    {formAssociatedProductIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearAllSelected}
+                        className="btn-refresh-action"
+                        style={{ fontSize: '0.75rem', padding: '6px 10px', color: '#dc2626', whiteSpace: 'nowrap' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Product List Multi-Select */}
+                  <div style={{ 
+                    maxHeight: '190px', 
+                    overflowY: 'auto', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '4px', 
+                    background: '#ffffff', 
+                    border: '1px solid #cbd5e1', 
+                    borderRadius: '8px', 
+                    padding: '6px' 
+                  }}>
+                    {products
+                      .filter(p => {
+                        if (!itemSearchFilter) return true;
+                        const q = itemSearchFilter.toLowerCase();
+                        return p.name.toLowerCase().includes(q) || (p.categoryName || '').toLowerCase().includes(q);
+                      })
+                      .map(p => {
+                        const isSelected = formAssociatedProductIds.includes(p.id);
+                        const isLive = p.status !== 'OFF';
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => handleToggleProductAssociation(p.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              background: isSelected ? 'rgba(2, 132, 199, 0.08)' : 'transparent',
+                              border: isSelected ? '1px solid #0284c7' : '1px solid transparent',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}} // handled by parent onClick
+                                style={{ cursor: 'pointer' }}
+                              />
+                              {p.image && (
+                                <img
+                                  src={getCleanImageUrl(p.image)}
+                                  alt={p.name}
+                                  style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }}
+                                  onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {p.name}
+                                </span>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                  {p.categoryName || p.categorySlug} • ₹{p.price}
+                                </span>
+                              </div>
+                            </div>
+
+                            <span style={{ 
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '2px 6px', 
+                              borderRadius: '4px',
+                              background: isLive ? '#dcfce7' : '#f1f5f9',
+                              color: isLive ? '#15803d' : '#64748b'
+                            }}>
+                              {isLive ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
 

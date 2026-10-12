@@ -18,6 +18,7 @@ export const ProductDetailPage: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<PlanDuration>('1 Month');
+  const [whatsAppSettings, setWhatsAppSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,12 +26,18 @@ export const ProductDetailPage: React.FC = () => {
     const loadProduct = async () => {
       if (!slug) return;
       setLoading(true);
-      const prod = await ottApi.getProductBySlug(slug);
+      const [prod, ws] = await Promise.all([
+        ottApi.getProductBySlug(slug),
+        ottApi.getWhatsAppSettings()
+      ]);
       if (prod) {
         setProduct(prod);
         setSelectedDuration(prod.defaultPlan || '1 Month');
         const related = await ottApi.getProductsByCategory(prod.categorySlug);
         setRelatedProducts(related.filter(r => r.id !== prod.id).slice(0, 5));
+      }
+      if (ws) {
+        setWhatsAppSettings(ws);
       }
       setLoading(false);
     };
@@ -87,8 +94,15 @@ export const ProductDetailPage: React.FC = () => {
     navigate('/cart');
   };
 
-  const whatsappMessage = `Hi OTT Sellers, I am interested in ${product.name} - ${selectedDuration} (₹${effectivePrice}). Can you assist with activation?`;
-  const whatsappUrl = `https://wa.me/919441323332?text=${encodeURIComponent(whatsappMessage)}`;
+  const targetPhone = (whatsAppSettings?.number || '919441323332').replace(/[^0-9]/g, '');
+  const enquiryTemplate = whatsAppSettings?.itemEnquiryTemplate || 'Hi OTT Sellers! Is {productName} ({duration}) available for instant activation at ₹{price}?';
+  const whatsappMessage = ottApi.formatWhatsAppEnquiryMessage(enquiryTemplate, {
+    productName: product.name,
+    duration: selectedDuration,
+    price: effectivePrice,
+    category: product.categoryName || product.categorySlug
+  });
+  const whatsappUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <div className="product-detail-page">

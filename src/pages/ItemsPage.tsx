@@ -44,7 +44,7 @@ export const ItemsPage: React.FC = () => {
     try {
       const [allProds, allCats, allSubs, allProvs, cms] = await Promise.all([
         ottApi.getProducts(),
-        ottApi.getCategories(),
+        ottApi.getCategories('items'),
         ottApi.getSubcategories(),
         ottApi.getProviders(),
         ottApi.getItemsPageCMS()

@@ -89,6 +89,9 @@ export const AdminBannersPage: React.FC = () => {
   const [newBtnBgColor, setNewBtnBgColor] = useState('#0284c7');
   const [newBtnTextColor, setNewBtnTextColor] = useState('#ffffff');
   const [newBtnBorderColor, setNewBtnBorderColor] = useState('#0284c7');
+  const [editingBtnId, setEditingBtnId] = useState<string | null>(null);
+  const [editingBtnLabel, setEditingBtnLabel] = useState('');
+  const [editingBtnLink, setEditingBtnLink] = useState('');
 
   // Images
   const [formDesktopImage, setFormDesktopImage] = useState('');
@@ -246,7 +249,8 @@ export const AdminBannersPage: React.FC = () => {
     setFormSubtitle(b.subtitle || '');
     setFormDescription(b.description || '');
     setFormBadgeText(b.badgeText || 'SPECIAL OFFER');
-    const resolvedMode = (b.desktopImage || b.mobileImage) ? 'image-only' : (b.mode || 'image-only');
+    // Preserve saved presentation mode directly
+    const resolvedMode = b.mode || ((b.desktopImage || b.mobileImage) ? 'image-only' : 'solid-color');
     setFormMode(resolvedMode);
     setFormSolidColor(b.solidColor || '#0b132b');
     setFormTitleColor(b.titleColor || '#ffffff');
@@ -276,6 +280,9 @@ export const AdminBannersPage: React.FC = () => {
     setFormDisplayOrder(String(b.displayOrder || 1));
     setFormStatus(b.status || 'ON');
     setFormShowText(b.showText ?? true);
+    setEditingBtnId(null);
+    setEditingBtnLabel('');
+    setEditingBtnLink('');
     setUploadError(null);
     setIsModalOpen(true);
   };
@@ -302,8 +309,38 @@ export const AdminBannersPage: React.FC = () => {
     setNewBtnLink('');
   };
 
+  const handleStartEditButton = (btn: BannerButton) => {
+    setEditingBtnId(btn.id);
+    setEditingBtnLabel(btn.label);
+    setEditingBtnLink(btn.link);
+  };
+
+  const handleSaveEditedButton = () => {
+    if (!editingBtnId || !editingBtnLabel.trim() || !editingBtnLink.trim()) {
+      alert('Button label and link are required.');
+      return;
+    }
+    setFormButtons(prev => prev.map(btn => btn.id === editingBtnId ? {
+      ...btn,
+      label: editingBtnLabel.trim(),
+      link: editingBtnLink.trim()
+    } : btn));
+    setEditingBtnId(null);
+    setEditingBtnLabel('');
+    setEditingBtnLink('');
+  };
+
+  const handleCancelEditButton = () => {
+    setEditingBtnId(null);
+    setEditingBtnLabel('');
+    setEditingBtnLink('');
+  };
+
   const handleRemoveCustomButton = (id: string) => {
     setFormButtons(formButtons.filter(b => b.id !== id));
+    if (editingBtnId === id) {
+      setEditingBtnId(null);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'desktop' | 'mobile') => {
@@ -322,7 +359,6 @@ export const AdminBannersPage: React.FC = () => {
         } else {
           setFormMobileImage(res.url);
         }
-        setFormMode('image-only');
       } else {
         setUploadError(res.error || 'Image upload failed.');
       }
@@ -341,12 +377,7 @@ export const AdminBannersPage: React.FC = () => {
       return;
     }
 
-    let modeToSave = formMode;
-    if (formDesktopImage.trim() || formMobileImage.trim()) {
-      if (modeToSave === 'solid-color') {
-        modeToSave = 'image-only';
-      }
-    }
+    const modeToSave = formMode || 'image-only';
 
     const bannerData: HeroBanner = {
       id: editingBanner?.id || 'banner-' + Date.now(),
@@ -1057,62 +1088,122 @@ export const AdminBannersPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Add Multiple Extra Custom Buttons */}
-                  <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
-                    <label className="admin-form-label" style={{ fontWeight: 700 }}>
-                      Additional Custom Buttons ({formButtons.length})
-                    </label>
+                    {/* Add Multiple Extra Custom Buttons */}
+                    <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
+                      <label className="admin-form-label" style={{ fontWeight: 700 }}>
+                        Additional Custom Buttons ({formButtons.length})
+                      </label>
 
-                    {formButtons.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                        {formButtons.map(btn => (
-                          <div 
-                            key={btn.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '8px 12px',
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '8px'
-                            }}
-                          >
-                            <div>
-                              <strong style={{ fontSize: '0.84rem', color: '#0f172a' }}>{btn.label}</strong>
-                              <span style={{ fontSize: '0.76rem', color: '#64748b', marginLeft: '8px' }}>({btn.link})</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCustomButton(btn.id)}
-                              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+                      {formButtons.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                          {formButtons.map(btn => (
+                            <div 
+                              key={btn.id}
+                              style={{
+                                padding: '10px 12px',
+                                background: '#ffffff',
+                                border: editingBtnId === btn.id ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                              }}
                             >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                              {editingBtnId === btn.id ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <div className="admin-form-group">
+                                      <label className="admin-form-label" style={{ fontSize: '0.72rem' }}>Button Text</label>
+                                      <input
+                                        type="text"
+                                        className="admin-form-input"
+                                        value={editingBtnLabel}
+                                        onChange={(e) => setEditingBtnLabel(e.target.value)}
+                                        placeholder="Button label"
+                                      />
+                                    </div>
+                                    <div className="admin-form-group">
+                                      <label className="admin-form-label" style={{ fontSize: '0.72rem' }}>Link Destination</label>
+                                      <input
+                                        type="text"
+                                        className="admin-form-input"
+                                        value={editingBtnLink}
+                                        onChange={(e) => setEditingBtnLink(e.target.value)}
+                                        placeholder="Link / URL"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelEditButton}
+                                      className="btn-refresh-action"
+                                      style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleSaveEditedButton}
+                                      className="btn-primary-action"
+                                      style={{ fontSize: '0.75rem', padding: '4px 12px' }}
+                                    >
+                                      Save Button
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div>
+                                    <strong style={{ fontSize: '0.84rem', color: '#0f172a' }}>{btn.label}</strong>
+                                    <span style={{ fontSize: '0.76rem', color: '#64748b', marginLeft: '8px' }}>({btn.link})</span>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEditButton(btn)}
+                                      className="btn-refresh-action"
+                                      style={{ fontSize: '0.75rem', padding: '4px 8px', color: '#0284c7' }}
+                                      title="Edit button"
+                                    >
+                                      <Edit2 size={12} /> Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveCustomButton(btn.id)}
+                                      className="btn-refresh-action"
+                                      style={{ color: '#dc2626', fontSize: '0.75rem', padding: '4px 8px' }}
+                                      title="Remove button"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', alignItems: 'flex-end' }}>
-                      <div className="admin-form-group">
-                        <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Button Text</label>
-                        <input type="text" className="admin-form-input" placeholder="e.g. WhatsApp" value={newBtnLabel} onChange={(e) => setNewBtnLabel(e.target.value)} />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', alignItems: 'flex-end' }}>
+                        <div className="admin-form-group">
+                          <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>New Button Text</label>
+                          <input type="text" className="admin-form-input" placeholder="e.g. WhatsApp" value={newBtnLabel} onChange={(e) => setNewBtnLabel(e.target.value)} />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Link URL</label>
+                          <input type="text" className="admin-form-input" placeholder="e.g. /items" value={newBtnLink} onChange={(e) => setNewBtnLink(e.target.value)} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddCustomButton}
+                          className="btn-primary-action"
+                          style={{ padding: '8px 14px', fontSize: '0.78rem' }}
+                        >
+                          <Plus size={13} /> Add Button
+                        </button>
                       </div>
-                      <div className="admin-form-group">
-                        <label className="admin-form-label" style={{ fontSize: '0.74rem' }}>Link URL</label>
-                        <input type="text" className="admin-form-input" placeholder="e.g. /items" value={newBtnLink} onChange={(e) => setNewBtnLink(e.target.value)} />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddCustomButton}
-                        className="btn-primary-action"
-                        style={{ padding: '8px 14px', fontSize: '0.78rem' }}
-                      >
-                        <Plus size={13} /> Add Button
-                      </button>
                     </div>
-                  </div>
                 </div>
 
                 {/* 4. Desktop & Mobile Image Uploads (Requirement 1.3) */}

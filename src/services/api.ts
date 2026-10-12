@@ -203,8 +203,9 @@ export const ottApi = {
         localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
         return banners
           .filter(b => b.status === 'ON')
-          .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase())
-          .filter(b => !slot || b.slot === slot);
+          .filter(b => !targetPage || b.page === 'all' || b.page.toLowerCase() === targetPage.toLowerCase())
+          .filter(b => slot ? b.slot === slot : (targetPage === 'home' ? (b.slot === '01' || !b.slot) : true))
+          .sort((a, b) => a.displayOrder - b.displayOrder);
       }
     } catch (e) {
       console.warn('Supabase getBanners fallback:', e);
@@ -217,8 +218,8 @@ export const ottApi = {
         const parsed: HeroBanner[] = JSON.parse(stored);
         return parsed
           .filter(b => b.status === 'ON')
-          .filter(b => !targetPage || b.page === 'all' || b.page === targetPage.toLowerCase())
-          .filter(b => !slot || b.slot === slot)
+          .filter(b => !targetPage || b.page === 'all' || b.page.toLowerCase() === targetPage.toLowerCase())
+          .filter(b => slot ? b.slot === slot : (targetPage === 'home' ? (b.slot === '01' || !b.slot) : true))
           .sort((a, b) => a.displayOrder - b.displayOrder);
       }
     } catch {}
@@ -240,7 +241,7 @@ export const ottApi = {
           const isLive = b.status ? b.status.toUpperCase() === 'ON' : (b.is_active ?? true);
           const desktopImg = b.desktop_image_url || b.image_url || '/hero-bg.png';
           const mobileImg = b.mobile_image_url || b.desktop_image_url || b.image_url || '/hero-mobile-1.png';
-          const resolvedMode = (desktopImg || mobileImg) && b.mode === 'solid-color' ? 'image-only' : (b.mode || 'image-only');
+          const resolvedMode = b.mode || 'image-only';
           return {
             id: b.id,
             name: b.name || b.title,
@@ -274,7 +275,7 @@ export const ottApi = {
             status: isLive ? 'ON' : 'OFF',
             badgeText: b.badge_text,
             titleColor: b.title_color,
-            subtitleColor: b.subtitle_color,
+            subtitleColor: b.subtitleColor || b.subtitle_color,
             badgeColor: b.badge_color,
             descriptionColor: b.description_color,
             showText: b.show_text ?? true,
@@ -304,7 +305,7 @@ export const ottApi = {
         const desktopImg = b.desktopImage || b.mobileImage || '/hero-bg.png';
         const mobileImg = b.mobileImage || b.desktopImage || '/hero-mobile-1.png';
         const isLive = b.status === 'ON';
-        const resolvedMode = (desktopImg || mobileImg) && b.mode === 'solid-color' ? 'image-only' : (b.mode || 'image-only');
+        const resolvedMode = b.mode || 'image-only';
 
         const payload: any = {
           id: b.id,
@@ -349,17 +350,25 @@ export const ottApi = {
           updated_at: new Date().toISOString()
         };
 
-        await supabase.from('banners').upsert(payload, { onConflict: 'id' });
-        // Direct update to ensure existing row is updated
-        await supabase.from('banners').update({
-          status: isLive ? 'ON' : 'OFF',
-          is_active: isLive,
-          mode: resolvedMode,
-          image_url: desktopImg,
-          desktop_image_url: desktopImg,
-          mobile_image_url: mobileImg,
-          updated_at: new Date().toISOString()
-        }).eq('id', b.id);
+        try {
+          const { error } = await supabase.from('banners').upsert(payload, { onConflict: 'id' });
+          if (error) {
+            delete payload.buttons;
+            delete payload.group_name;
+            await supabase.from('banners').upsert(payload, { onConflict: 'id' });
+          }
+          await supabase.from('banners').update({
+            status: isLive ? 'ON' : 'OFF',
+            is_active: isLive,
+            mode: resolvedMode,
+            image_url: desktopImg,
+            desktop_image_url: desktopImg,
+            mobile_image_url: mobileImg,
+            updated_at: new Date().toISOString()
+          }).eq('id', b.id);
+        } catch (syncErr) {
+          console.warn('Banner sync notice:', syncErr);
+        }
       }
     } catch (e) {
       console.error('Failed to sync banners to Supabase:', e);
@@ -408,6 +417,7 @@ export const ottApi = {
       bannerCount: 0
     });
 
+    // Populate from active banners
     banners.forEach(b => {
       const slot = b.slot || '01';
       const existing = groupMap.get(slot);
@@ -430,6 +440,33 @@ export const ottApi = {
       }
     });
 
+    // Merge Supabase persisted banner_groups from admin_settings
+    try {
+      const { data } = await supabase
+        .from('admin_settings')
+        .select('banner_groups')
+        .eq('id', 'global')
+        .maybeSingle();
+
+      if (data?.banner_groups && Array.isArray(data.banner_groups)) {
+        data.banner_groups.forEach((g: BannerGroup) => {
+          if (!groupMap.has(g.slot)) {
+            groupMap.set(g.slot, { ...g, bannerCount: banners.filter(b => b.slot === g.slot).length });
+          } else {
+            const cur = groupMap.get(g.slot)!;
+            groupMap.set(g.slot, { 
+              ...cur, 
+              name: g.name || cur.name, 
+              style: g.style || cur.style, 
+              page: g.page || cur.page,
+              status: g.status || cur.status
+            });
+          }
+        });
+      }
+    } catch {}
+
+    // Merge local storage fallback
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.BANNER_GROUPS);
       if (stored) {
@@ -457,6 +494,36 @@ export const ottApi = {
     }
     localStorage.setItem(STORAGE_KEYS.BANNER_GROUPS, JSON.stringify(updated));
     broadcastDataUpdate('banners');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        banner_groups: updated,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Failed to sync banner groups to Supabase:', e);
+    }
+  },
+
+  async deleteBannerGroup(slot: string): Promise<void> {
+    if (slot === '01') return;
+    const groups = await this.getBannerGroups();
+    const updated = groups.filter(g => g.slot !== slot);
+    localStorage.setItem(STORAGE_KEYS.BANNER_GROUPS, JSON.stringify(updated));
+    broadcastDataUpdate('banners');
+
+    const banners = await this.getAllBannersAdmin();
+    const remapped = banners.map(b => b.slot === slot ? { ...b, slot: '01', groupName: 'Hero Main Slideshow' } : b);
+    await this.saveBanners(remapped);
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        banner_groups: updated,
+        updated_at: new Date().toISOString()
+      });
+    } catch {}
   },
 
   // ====================================================================
@@ -589,8 +656,11 @@ export const ottApi = {
     const all = await this.getAllCategoriesAdmin();
     return all.filter(c => {
       if (c.status === 'OFF') return false;
-      if (placement && c.placements && c.placements.length > 0 && !c.placements.includes(placement) && !c.placements.includes('all')) {
-        return false;
+      if (placement) {
+        if (!c.placements || !Array.isArray(c.placements) || c.placements.length === 0) return false;
+        if (!c.placements.includes(placement) && !c.placements.includes('all')) {
+          return false;
+        }
       }
       if (providerSlug && c.providerSlug && c.providerSlug !== providerSlug) {
         return false;
@@ -620,7 +690,7 @@ export const ottApi = {
           titlesCount: c.titles_count || '10+ Plans',
           status: c.status || (c.is_active ? 'ON' : 'OFF'),
           displayOrder: c.sort_order || 0,
-          placements: Array.isArray(c.placements) ? c.placements : ['home', 'items'],
+          placements: Array.isArray(c.placements) ? c.placements : ['home', 'items', 'categories'],
           providerId: c.provider_id,
           providerSlug: c.provider_slug,
           updatedAt: new Date(c.updated_at || Date.now()).getTime()
@@ -653,7 +723,7 @@ export const ottApi = {
       ...cat,
       description: cat.description || '',
       shortDescription: cat.shortDescription || cat.description || '',
-      placements: cat.placements && cat.placements.length > 0 ? cat.placements : ['home', 'items'],
+      placements: Array.isArray(cat.placements) ? cat.placements : ['home', 'items', 'categories'],
       bgGradient: cat.bgGradient || 'linear-gradient(135deg, #070d1e 0%, #0b132b 100%)',
       badgeColor: cat.badgeColor || '#0284c7',
       iconName: cat.iconName || 'Compass',
@@ -774,8 +844,23 @@ export const ottApi = {
           displayOrder: p.sort_order || 0,
           isActive: p.is_active ?? true,
           description: p.description,
+          associatedProductIds: Array.isArray(p.associated_product_ids) ? p.associated_product_ids : [],
           updatedAt: new Date(p.updated_at || Date.now()).getTime()
         }));
+
+        // Backfill associatedProductIds from products if empty
+        const allProducts = this.getCachedProductsAdmin();
+        providers.forEach(p => {
+          if (!p.associatedProductIds || p.associatedProductIds.length === 0) {
+            p.associatedProductIds = allProducts
+              .filter((prod: Product) => 
+                (prod.providerSlug && prod.providerSlug.toLowerCase() === p.slug.toLowerCase()) ||
+                (prod.subcategorySlug && prod.subcategorySlug.toLowerCase() === p.slug.toLowerCase()) ||
+                prod.providerId === p.id
+              )
+              .map((prod: Product) => prod.id);
+          }
+        });
 
         localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(providers));
         return providers;
@@ -800,6 +885,7 @@ export const ottApi = {
     const idx = all.findIndex(p => p.id === provider.id || p.slug.toLowerCase() === provider.slug.toLowerCase());
     const providerToSave: Provider = {
       ...provider,
+      associatedProductIds: provider.associatedProductIds || [],
       updatedAt: Date.now()
     };
 
@@ -814,8 +900,70 @@ export const ottApi = {
     localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
     broadcastDataUpdate('providers');
 
+    // Update associated products two-way sync
+    if (Array.isArray(providerToSave.associatedProductIds)) {
+      try {
+        const allProducts = await this.getAllProductsAdmin();
+        let productsModified = false;
+        const updatedProducts = allProducts.map(prod => {
+          const isAssociated = providerToSave.associatedProductIds!.includes(prod.id);
+          const wasAssociated = 
+            (prod.providerSlug && prod.providerSlug.toLowerCase() === providerToSave.slug.toLowerCase()) ||
+            prod.providerId === providerToSave.id;
+
+          if (isAssociated && !wasAssociated) {
+            productsModified = true;
+            return {
+              ...prod,
+              providerId: providerToSave.id,
+              providerSlug: providerToSave.slug,
+              providerName: providerToSave.name
+            };
+          } else if (!isAssociated && wasAssociated) {
+            productsModified = true;
+            return {
+              ...prod,
+              providerId: '',
+              providerSlug: '',
+              providerName: ''
+            };
+          }
+          return prod;
+        });
+
+        if (productsModified) {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedProducts));
+          broadcastDataUpdate('products');
+
+          for (const prod of updatedProducts) {
+            const isAssociated = providerToSave.associatedProductIds!.includes(prod.id);
+            const wasAssociated = 
+              (prod.providerSlug && prod.providerSlug.toLowerCase() === providerToSave.slug.toLowerCase()) ||
+              prod.providerId === providerToSave.id;
+            if (isAssociated) {
+              await supabase.from('products').update({
+                provider_id: providerToSave.id,
+                provider_slug: providerToSave.slug,
+                provider_name: providerToSave.name,
+                updated_at: new Date().toISOString()
+              }).eq('id', prod.id);
+            } else if (!isAssociated && wasAssociated) {
+              await supabase.from('products').update({
+                provider_id: null,
+                provider_slug: null,
+                provider_name: null,
+                updated_at: new Date().toISOString()
+              }).eq('id', prod.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Product association sync warning:', err);
+      }
+    }
+
     try {
-      await supabase.from('sub_categories').upsert({
+      const payload: any = {
         id: providerToSave.id,
         name: providerToSave.name,
         slug: providerToSave.slug,
@@ -826,8 +974,16 @@ export const ottApi = {
         is_active: providerToSave.isActive,
         sort_order: providerToSave.displayOrder || 0,
         description: providerToSave.description,
+        associated_product_ids: providerToSave.associatedProductIds || [],
         updated_at: new Date().toISOString()
-      }, { onConflict: 'slug' });
+      };
+
+      try {
+        await supabase.from('sub_categories').upsert(payload, { onConflict: 'slug' });
+      } catch {
+        delete payload.associated_product_ids;
+        await supabase.from('sub_categories').upsert(payload, { onConflict: 'slug' });
+      }
 
       if (providerToSave.id) {
         await supabase.from('sub_categories').update({
@@ -1897,7 +2053,7 @@ export const ottApi = {
     broadcastDataUpdate('notifications');
 
     try {
-      await supabase.from('site_notifications').upsert({
+      const payload: any = {
         id: notif.id,
         buyer_name: notif.buyerName,
         location: notif.location,
@@ -1915,7 +2071,26 @@ export const ottApi = {
         expiry_time: notif.expiryTime,
         type: notif.type || 'purchase',
         updated_at: new Date().toISOString()
-      });
+      };
+
+      const { error } = await supabase.from('site_notifications').upsert(payload, { onConflict: 'id' });
+      if (error) {
+        const corePayload = {
+          id: notif.id,
+          buyer_name: notif.buyerName,
+          location: notif.location,
+          product_name: notif.productName,
+          slug: notif.slug,
+          plan: notif.plan,
+          time_text: notif.timeText,
+          image_url: notif.imageUrl,
+          message: notif.message,
+          is_active: notif.isActive ?? true,
+          display_order: notif.displayOrder || 1,
+          updated_at: new Date().toISOString()
+        };
+        await supabase.from('site_notifications').upsert(corePayload, { onConflict: 'id' });
+      }
     } catch (e) {
       console.warn('Supabase site_notifications sync notice:', e);
     }
@@ -2085,42 +2260,64 @@ export const ottApi = {
 
   async saveCoupon(coupon: Coupon): Promise<void> {
     const all = await this.getCoupons();
-    const idx = all.findIndex(c => c.id === coupon.id || c.code.toUpperCase() === coupon.code.toUpperCase());
+    const cleanCode = coupon.code.trim().toUpperCase();
+    const idx = all.findIndex(c => c.id === coupon.id || c.code.toUpperCase() === cleanCode);
+    const couponToSave: Coupon = {
+      ...coupon,
+      code: cleanCode
+    };
     let updated: Coupon[];
     if (idx >= 0) {
       updated = [...all];
-      updated[idx] = coupon;
+      updated[idx] = couponToSave;
     } else {
-      updated = [coupon, ...all];
+      updated = [couponToSave, ...all];
     }
     localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(updated));
     broadcastDataUpdate('coupons');
 
     try {
-      await supabase.from('coupons').upsert({
-        id: coupon.id,
-        code: coupon.code.toUpperCase(),
-        discount_type: coupon.discountType,
-        discount_value: coupon.discountValue,
-        min_order_amount: coupon.minOrderAmount,
-        max_discount: coupon.maxDiscount,
-        description: coupon.description,
-        is_active: coupon.isActive,
-        start_date: coupon.startDate,
-        start_time: coupon.startTime,
-        expires_at: coupon.expiresAt,
-        expiry_time: coupon.expiryTime,
-        message_heading: coupon.messageHeading,
-        customer_message: coupon.customerMessage,
-        expired_message: coupon.expiredMessage,
-        invalid_message: coupon.invalidMessage,
-        not_started_message: coupon.notStartedMessage,
-        success_message: coupon.successMessage,
-        applicability: coupon.applicability || 'all',
-        applicable_category_slugs: coupon.applicableCategorySlugs || [],
-        applicable_product_ids: coupon.applicableProductIds || [],
+      const payload: any = {
+        id: couponToSave.id,
+        code: cleanCode,
+        discount_type: couponToSave.discountType,
+        discount_value: couponToSave.discountValue,
+        min_order_amount: couponToSave.minOrderAmount,
+        max_discount: couponToSave.maxDiscount,
+        description: couponToSave.description,
+        is_active: couponToSave.isActive,
+        start_date: couponToSave.startDate,
+        start_time: couponToSave.startTime,
+        expires_at: couponToSave.expiresAt,
+        expiry_time: couponToSave.expiryTime,
+        message_heading: couponToSave.messageHeading,
+        customer_message: couponToSave.customerMessage,
+        expired_message: couponToSave.expiredMessage,
+        invalid_message: couponToSave.invalidMessage,
+        not_started_message: couponToSave.notStartedMessage,
+        success_message: couponToSave.successMessage,
+        applicability: couponToSave.applicability || 'all',
+        applicable_category_slugs: couponToSave.applicableCategorySlugs || [],
+        applicable_product_ids: couponToSave.applicableProductIds || [],
         updated_at: new Date().toISOString()
-      });
+      };
+
+      const { error } = await supabase.from('coupons').upsert(payload, { onConflict: 'code' });
+      if (error) {
+        const corePayload = {
+          id: couponToSave.id,
+          code: cleanCode,
+          discount_type: couponToSave.discountType,
+          discount_value: couponToSave.discountValue,
+          min_order_amount: couponToSave.minOrderAmount,
+          max_discount: couponToSave.maxDiscount,
+          description: couponToSave.description,
+          is_active: couponToSave.isActive,
+          applicability: couponToSave.applicability || 'all',
+          updated_at: new Date().toISOString()
+        };
+        await supabase.from('coupons').upsert(corePayload, { onConflict: 'code' });
+      }
     } catch (e) {
       console.warn('Supabase coupons sync notice:', e);
     }
@@ -2231,6 +2428,17 @@ export const ottApi = {
     }
   },
 
+  formatWhatsAppTemplate(template: string, vars: Record<string, any>): string {
+    if (!template) return '';
+    let msg = template;
+    for (const [key, val] of Object.entries(vars)) {
+      const safeVal = val !== undefined && val !== null ? String(val) : '';
+      const regex = new RegExp(`\\{\\{?\\s*${key}\\s*\\}\\}?`, 'gi');
+      msg = msg.replace(regex, safeVal);
+    }
+    return msg;
+  },
+
   formatWhatsAppOrderMessage(template: string, orderData: {
     order_id: string;
     customer_name: string;
@@ -2242,31 +2450,45 @@ export const ottApi = {
     final_amount: number | string;
     payment_status?: string;
   }): string {
-    let msg = template || DEFAULT_WHATSAPP_SETTINGS.orderMessageTemplate;
-    msg = msg.replace(/{{order_id}}/g, String(orderData.order_id || ''));
-    msg = msg.replace(/{{customer_name}}/g, String(orderData.customer_name || ''));
-    msg = msg.replace(/{{customer_phone}}/g, String(orderData.customer_phone || ''));
-    msg = msg.replace(/{{items}}/g, String(orderData.items || ''));
-    msg = msg.replace(/{{subtotal}}/g, String(orderData.subtotal || '0'));
-    msg = msg.replace(/{{coupon_code}}/g, String(orderData.coupon_code || 'None'));
-    msg = msg.replace(/{{discount}}/g, String(orderData.discount || '0'));
-    msg = msg.replace(/{{final_amount}}/g, String(orderData.final_amount || '0'));
-    msg = msg.replace(/{{payment_status}}/g, String(orderData.payment_status || 'Pending Verification'));
-    return msg;
+    const defaultTemplate = DEFAULT_WHATSAPP_SETTINGS.orderMessageTemplate;
+    const base = template || defaultTemplate;
+    return this.formatWhatsAppTemplate(base, {
+      order_id: orderData.order_id,
+      orderId: orderData.order_id,
+      customer_name: orderData.customer_name,
+      customerName: orderData.customer_name,
+      customer_phone: orderData.customer_phone,
+      customerPhone: orderData.customer_phone,
+      items: orderData.items,
+      subtotal: orderData.subtotal || '0',
+      coupon_code: orderData.coupon_code || 'None',
+      discount: orderData.discount || '0',
+      final_amount: orderData.final_amount || '0',
+      total: orderData.final_amount || '0',
+      payment_status: orderData.payment_status || 'Pending Verification'
+    });
   },
 
   formatWhatsAppEnquiryMessage(template: string, itemData: {
-    item_name: string;
+    productName?: string;
+    item_name?: string;
+    duration?: string;
     plan?: string;
     price?: number | string;
     category?: string;
   }): string {
-    let msg = template || DEFAULT_WHATSAPP_SETTINGS.itemEnquiryTemplate || 'Hi OTT Sellers, I am interested in "{{item_name}}" ({{plan}}).';
-    msg = msg.replace(/{{item_name}}/g, itemData.item_name || 'OTT Subscription');
-    msg = msg.replace(/{{plan}}/g, itemData.plan || '1 Month');
-    msg = msg.replace(/{{price}}/g, String(itemData.price || ''));
-    msg = msg.replace(/{{category}}/g, itemData.category || 'General');
-    return msg;
+    const defaultTemplate = DEFAULT_WHATSAPP_SETTINGS.itemEnquiryTemplate || 'Hi OTT Sellers! Is {productName} ({duration}) available for instant activation at ₹{price}?';
+    const base = template || defaultTemplate;
+    const prodName = itemData.productName || itemData.item_name || 'Subscription Plan';
+    const planDuration = itemData.duration || itemData.plan || '1 Month';
+    return this.formatWhatsAppTemplate(base, {
+      productName: prodName,
+      item_name: prodName,
+      duration: planDuration,
+      plan: planDuration,
+      price: itemData.price !== undefined ? itemData.price : '',
+      category: itemData.category || ''
+    });
   },
 
   // ====================================================================

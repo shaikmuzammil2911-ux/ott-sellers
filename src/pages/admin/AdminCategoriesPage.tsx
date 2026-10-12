@@ -89,7 +89,7 @@ export const AdminCategoriesPage: React.FC = () => {
     setFormShortDescription(c.shortDescription || c.description || '');
     setFormDisplayOrder(String(c.displayOrder || 1));
     setFormStatus(c.status || 'ON');
-    setFormPlacements(c.placements && c.placements.length > 0 ? c.placements : ['home', 'items']);
+    setFormPlacements(Array.isArray(c.placements) ? [...c.placements] : ['home', 'items']);
     setFormProviderSlug(c.providerSlug || '');
     setFormIconName(c.iconName || 'Compass');
     setFormBadgeColor(c.badgeColor || '#0284c7');
@@ -141,7 +141,7 @@ export const AdminCategoriesPage: React.FC = () => {
       shortDescription: formShortDescription.trim() || formDescription.trim(),
       displayOrder: Number(formDisplayOrder) || 1,
       status: formStatus,
-      placements: formPlacements.length > 0 ? formPlacements : ['home', 'items'],
+      placements: formPlacements, // respects exact choices made by admin
       providerSlug: formProviderSlug || undefined,
       iconName: formIconName,
       badgeColor: formBadgeColor,
@@ -468,13 +468,14 @@ export const AdminCategoriesPage: React.FC = () => {
                 {/* Where should this category appear? (Requirement 2.1) */}
                 <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   <label className="admin-form-label" style={{ fontWeight: 800, marginBottom: '8px' }}>
-                    Where Should This Category Appear?
+                    Where Should This Category Appear? (Placements)
                   </label>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     {[
-                      { key: 'home', label: 'Homepage Strip' },
-                      { key: 'items', label: 'All Subscriptions Page' },
-                      { key: 'offers', label: 'Special Offers Strip' }
+                      { key: 'home', label: 'Home (Homepage Strip)' },
+                      { key: 'items', label: 'Items / All Subscriptions' },
+                      { key: 'categories', label: 'Categories (Grid & Navigation)' },
+                      { key: 'offers', label: 'Offers (Special Offers Strip)' }
                     ].map(loc => (
                       <button
                         type="button"

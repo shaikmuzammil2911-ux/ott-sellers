@@ -167,8 +167,8 @@ export const HeroSection: React.FC = () => {
             </div>
           )}
 
-          {/* Readability treatment only when text is enabled */}
-          {currentBanner.showText !== false && (
+          {/* Readability treatment only when text overlay is enabled */}
+          {currentBanner.showText !== false && currentBanner.mode !== 'image-only' && (
             <div className={`hero-readability-scrim align-${currentBanner.textPosition || 'left'}`}></div>
           )}
 
@@ -180,116 +180,135 @@ export const HeroSection: React.FC = () => {
           <div className="hero-ambient-orb orb-blue" aria-hidden="true"></div>
           <div className="hero-ambient-orb orb-gold" aria-hidden="true"></div>
 
-          {/* Slide Main Content */}
-          <div className={`hero-slide-wrapper text-${currentBanner.textPosition || 'left'}`}>
-            {currentBanner.showText !== false && (
-              <div className="hero-content-box">
-                {currentBanner.badgeText && (
-                  <div 
-                    className="hero-pill-badge animated-badge"
-                    style={currentBanner.badgeColor ? { color: currentBanner.badgeColor, borderColor: currentBanner.badgeColor } : undefined}
+          {/* When image-only, whole card is a clean clickable banner */}
+          {currentBanner.mode === 'image-only' ? (
+            <Link 
+              to={currentBanner.ctaLink || '/items'} 
+              className="hero-image-only-link" 
+              title={currentBanner.title || currentBanner.name || 'View details'}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 5,
+                display: 'block',
+                cursor: 'pointer'
+              }}
+            >
+              <span className="sr-only">{currentBanner.title || 'Explore Promotion'}</span>
+            </Link>
+          ) : (
+            /* Slide Main Content for text overlay, split and blurred modes */
+            currentBanner.showText !== false ? (
+              <div className={`hero-slide-wrapper text-${currentBanner.textPosition || 'left'}`}>
+                <div className="hero-content-box">
+                  {currentBanner.badgeText && (
+                    <div 
+                      className="hero-pill-badge animated-badge"
+                      style={currentBanner.badgeColor ? { color: currentBanner.badgeColor, borderColor: currentBanner.badgeColor } : undefined}
+                    >
+                      <Sparkles size={14} className="hero-sparkle-icon" />
+                      <span>{currentBanner.badgeText}</span>
+                      <span className="live-pulse-dot" style={currentBanner.badgeColor ? { backgroundColor: currentBanner.badgeColor } : undefined}></span>
+                    </div>
+                  )}
+
+                  <h1 
+                    className="hero-title"
+                    style={currentBanner.titleColor ? { color: currentBanner.titleColor } : undefined}
                   >
-                    <Sparkles size={14} className="hero-sparkle-icon" />
-                    <span>{currentBanner.badgeText}</span>
-                    <span className="live-pulse-dot" style={currentBanner.badgeColor ? { backgroundColor: currentBanner.badgeColor } : undefined}></span>
-                  </div>
-                )}
+                    {currentBanner.title}
+                  </h1>
 
-                <h1 
-                  className="hero-title"
-                  style={currentBanner.titleColor ? { color: currentBanner.titleColor } : undefined}
-                >
-                  {currentBanner.title}
-                </h1>
+                  {currentBanner.subtitle && (
+                    <p 
+                      className="hero-subtitle"
+                      style={currentBanner.subtitleColor ? { color: currentBanner.subtitleColor } : undefined}
+                    >
+                      {currentBanner.subtitle}
+                    </p>
+                  )}
 
-                {currentBanner.subtitle && (
-                  <p 
-                    className="hero-subtitle"
-                    style={currentBanner.subtitleColor ? { color: currentBanner.subtitleColor } : undefined}
-                  >
-                    {currentBanner.subtitle}
-                  </p>
-                )}
+                  {currentBanner.description && (
+                    <p 
+                      className="hero-description-note"
+                      style={{
+                        margin: '4px 0 10px',
+                        fontSize: '0.82rem',
+                        color: currentBanner.descriptionColor || '#94a3b8'
+                      }}
+                    >
+                      {currentBanner.description}
+                    </p>
+                  )}
 
-                {currentBanner.description && (
-                  <p 
-                    className="hero-description-note"
-                    style={{
-                      margin: '4px 0 10px',
-                      fontSize: '0.82rem',
-                      color: currentBanner.descriptionColor || '#94a3b8'
-                    }}
-                  >
-                    {currentBanner.description}
-                  </p>
-                )}
+                  {/* Action CTA Buttons: Primary + Secondary + Additional Custom Buttons */}
+                  <div className="hero-ctas-row" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                    {/* Primary Button */}
+                    {currentBanner.ctaText && (
+                      <Link 
+                        to={currentBanner.ctaLink || '/items'} 
+                        className="btn-hero-primary animated-cta"
+                        style={{
+                          backgroundColor: currentBanner.btnBgColor || '#0284c7',
+                          color: currentBanner.btnTextColor || '#ffffff',
+                          borderColor: currentBanner.btnBorderColor || 'transparent'
+                        }}
+                      >
+                        <span>{currentBanner.ctaText}</span>
+                        <ArrowRight size={15} className="cta-arrow" />
+                      </Link>
+                    )}
 
-                {/* Action CTA Buttons */}
-                <div className="hero-ctas-row" style={{ flexWrap: 'wrap', gap: '10px' }}>
-                  {/* If custom buttons array configured */}
-                  {currentBanner.buttons && currentBanner.buttons.length > 0 ? (
-                    currentBanner.buttons.map(btn => {
-                      const isExternal = btn.link.startsWith('http');
-                      const customStyle = {
-                        backgroundColor: btn.bgColor || currentBanner.btnBgColor || '#0284c7',
-                        color: btn.textColor || currentBanner.btnTextColor || '#ffffff',
-                        borderColor: btn.borderColor || currentBanner.btnBorderColor || 'transparent'
-                      };
-                      if (isExternal) {
+                    {/* Secondary Button */}
+                    {currentBanner.secondaryCtaText && (
+                      <a 
+                        href={currentBanner.secondaryCtaLink || '#categories'} 
+                        className="btn-hero-secondary"
+                      >
+                        <Play size={13} className="play-icon" />
+                        <span>{currentBanner.secondaryCtaText}</span>
+                      </a>
+                    )}
+
+                    {/* Additional Custom Buttons */}
+                    {currentBanner.buttons && currentBanner.buttons.length > 0 && (
+                      currentBanner.buttons.map(btn => {
+                        const isExternal = btn.link.startsWith('http') || btn.link.startsWith('wa.me');
+                        const targetUrl = btn.link.startsWith('wa.me') ? `https://${btn.link}` : btn.link;
+                        const customStyle = {
+                          backgroundColor: btn.bgColor || currentBanner.btnBgColor || '#0284c7',
+                          color: btn.textColor || currentBanner.btnTextColor || '#ffffff',
+                          borderColor: btn.borderColor || currentBanner.btnBorderColor || 'transparent'
+                        };
+                        if (isExternal) {
+                          return (
+                            <a
+                              key={btn.id}
+                              href={targetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-hero-primary animated-cta"
+                              style={customStyle}
+                            >
+                              <span>{btn.label}</span>
+                              <ArrowRight size={15} className="cta-arrow" />
+                            </a>
+                          );
+                        }
                         return (
-                          <a
+                          <Link
                             key={btn.id}
-                            href={btn.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            to={btn.link}
                             className="btn-hero-primary animated-cta"
                             style={customStyle}
                           >
                             <span>{btn.label}</span>
                             <ArrowRight size={15} className="cta-arrow" />
-                          </a>
+                          </Link>
                         );
-                      }
-                      return (
-                        <Link
-                          key={btn.id}
-                          to={btn.link}
-                          className="btn-hero-primary animated-cta"
-                          style={customStyle}
-                        >
-                          <span>{btn.label}</span>
-                          <ArrowRight size={15} className="cta-arrow" />
-                        </Link>
-                      );
-                    })
-                  ) : (
-                    <>
-                      {currentBanner.ctaText && (
-                        <Link 
-                          to={currentBanner.ctaLink || '/items'} 
-                          className="btn-hero-primary animated-cta"
-                          style={{
-                            backgroundColor: currentBanner.btnBgColor || '#0284c7',
-                            color: currentBanner.btnTextColor || '#ffffff',
-                            borderColor: currentBanner.btnBorderColor || 'transparent'
-                          }}
-                        >
-                          <span>{currentBanner.ctaText}</span>
-                          <ArrowRight size={15} className="cta-arrow" />
-                        </Link>
-                      )}
-
-                      {currentBanner.secondaryCtaText && (
-                        <a 
-                          href={currentBanner.secondaryCtaLink || '#categories'} 
-                          className="btn-hero-secondary"
-                        >
-                          <Play size={13} className="play-icon" />
-                          <span>{currentBanner.secondaryCtaText}</span>
-                        </a>
-                      )}
-                    </>
-                  )}
+                      })
+                    )}
+                  </div>
 
                   {/* Instant Trust Micro-points */}
                   <div className="hero-trust-bullets">
@@ -304,8 +323,8 @@ export const HeroSection: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            ) : null
+          )}
 
           {/* Desktop Navigation Arrows */}
           {banners.length > 1 && (

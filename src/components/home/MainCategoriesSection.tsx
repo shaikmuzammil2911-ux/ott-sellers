@@ -9,13 +9,13 @@ import './MainCategoriesSection.css';
 
 export const MainCategoriesSection: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => 
-    ottApi.getCachedCategoriesAdmin().filter(c => c.status !== 'OFF')
+    ottApi.getCachedCategoriesAdmin().filter(c => c.status !== 'OFF' && (!c.placements || c.placements.includes('home')))
   );
   const [isLoading, setIsLoading] = useState(false);
 
   const loadCategories = useCallback(async () => {
     try {
-      const data = await ottApi.getCategories();
+      const data = await ottApi.getCategories('home');
       setCategories(data || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -29,7 +29,7 @@ export const MainCategoriesSection: React.FC = () => {
 
     const handleUpdate = (e: any) => {
       if (!e?.detail || e.detail.entityType === 'categories') {
-        setCategories(ottApi.getCachedCategoriesAdmin().filter(c => c.status !== 'OFF'));
+        setCategories(ottApi.getCachedCategoriesAdmin().filter(c => c.status !== 'OFF' && (!c.placements || c.placements.includes('home'))));
         loadCategories();
       }
     };
