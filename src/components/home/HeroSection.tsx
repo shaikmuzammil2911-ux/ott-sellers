@@ -21,7 +21,10 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ groupId, bannerId, displayMode }) => {
-  const [banners, setBanners] = useState<HeroBanner[]>([]);
+  const [banners, setBanners] = useState<HeroBanner[]>(() => {
+    if (bannerId || groupId) return [];
+    return ottApi.getCachedBannersAdmin().filter(b => b.status === 'ON');
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(

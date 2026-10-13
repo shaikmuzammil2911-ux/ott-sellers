@@ -21,8 +21,8 @@
   overflow: hidden;
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #ffffff;
-  min-height: 260px;
-  height: 275px;
+  min-height: 380px;
+  height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -31,15 +31,15 @@
 
 @media (min-width: 1440px) {
   .hero-banner-card {
-    min-height: 270px;
-    height: 285px;
+    min-height: 420px;
+    height: 460px;
   }
 }
 
 /* Skeleton Loading State */
 .hero-skeleton-card {
-  height: 275px;
-  min-height: 260px;
+  height: 420px;
+  min-height: 380px;
   background: linear-gradient(90deg, #0b1329 0%, #162447 50%, #0b1329 100%);
   background-size: 200% 100%;
   animation: heroSkeletonShimmer 1.8s infinite;
@@ -533,7 +533,7 @@
 
   .hero-banner-card {
     height: auto;
-    min-height: 215px;
+    min-height: 250px;
     border-radius: var(--radius-md);
   }
 
