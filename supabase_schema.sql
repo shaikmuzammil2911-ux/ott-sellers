@@ -159,6 +159,7 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::js
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS warranty_period TEXT DEFAULT 'Full Duration Replacement Warranty';
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge TEXT;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS display_pages TEXT[] DEFAULT ARRAY['home', 'items']::TEXT[];
 
 -- ====================================================================
 -- 5. BANNERS & SLOTS CMS TABLE
@@ -239,8 +240,38 @@ ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT tr
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS group_name TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS group_id TEXT;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS display_mode TEXT DEFAULT 'slider';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- ====================================================================
+-- 5.5. BANNER GROUPS TABLE
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.banner_groups (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  name TEXT NOT NULL,
+  slot TEXT UNIQUE NOT NULL,
+  page TEXT DEFAULT 'home',
+  display_mode TEXT DEFAULT 'slider',
+  autoplay BOOLEAN DEFAULT true,
+  interval INT DEFAULT 5,
+  description TEXT,
+  status TEXT DEFAULT 'ON',
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS slot TEXT;
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS page TEXT DEFAULT 'home';
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS display_mode TEXT DEFAULT 'slider';
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS autoplay BOOLEAN DEFAULT true;
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS interval INT DEFAULT 5;
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ON';
+ALTER TABLE public.banner_groups ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
 
 -- ====================================================================
 -- 6. HOMEPAGE SECTIONS CMS TABLE
@@ -253,13 +284,21 @@ CREATE TABLE IF NOT EXISTS public.homepage_sections (
   subtitle TEXT,
   description TEXT,
   image_url TEXT,
+  type TEXT DEFAULT 'standard',
+  group_id TEXT,
+  banner_id TEXT,
+  display_mode TEXT DEFAULT 'slider',
   settings JSONB DEFAULT '{}'::jsonb,
   is_active BOOLEAN DEFAULT true,
   sort_order INT DEFAULT 0,
   display_order INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'standard';
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS group_id TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS banner_id TEXT;
+ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS display_mode TEXT DEFAULT 'slider';
 
 ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS title TEXT;
@@ -591,6 +630,8 @@ ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS items_page_cms JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS admin_password_hash TEXT;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS random_notifications_active BOOLEAN DEFAULT true;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS banner_groups JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS promo_modal_settings JSONB;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS offers_page_cms JSONB;
 
 -- Update products with provider columns
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_id TEXT;
@@ -620,6 +661,7 @@ ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sub_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.banner_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homepage_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
@@ -643,6 +685,9 @@ CREATE POLICY "Public products read" ON public.products FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public banners read" ON public.banners;
 CREATE POLICY "Public banners read" ON public.banners FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public banner_groups read" ON public.banner_groups;
+CREATE POLICY "Public banner_groups read" ON public.banner_groups FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public homepage_sections read" ON public.homepage_sections;
 CREATE POLICY "Public homepage_sections read" ON public.homepage_sections FOR SELECT USING (true);
@@ -687,6 +732,9 @@ CREATE POLICY "Full access products" ON public.products FOR ALL USING (true) WIT
 
 DROP POLICY IF EXISTS "Full access banners" ON public.banners;
 CREATE POLICY "Full access banners" ON public.banners FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Full access banner_groups" ON public.banner_groups;
+CREATE POLICY "Full access banner_groups" ON public.banner_groups FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Full access homepage_sections" ON public.homepage_sections;
 CREATE POLICY "Full access homepage_sections" ON public.homepage_sections FOR ALL USING (true) WITH CHECK (true);
@@ -841,6 +889,18 @@ ON CONFLICT (id) DO UPDATE SET
   mode = EXCLUDED.mode,
   desktop_image_url = EXCLUDED.desktop_image_url,
   image_url = EXCLUDED.image_url,
+  status = EXCLUDED.status;
+
+-- 4.5. Banner Groups Seed
+INSERT INTO public.banner_groups (id, name, slot, page, display_mode, status, sort_order)
+VALUES
+  ('bg-home-1', 'Home Page Group 1', '01', 'home', 'slider', 'ON', 1),
+  ('bg-home-2', 'Home Page Group 2', '02', 'home', 'slider', 'ON', 2),
+  ('bg-offers-1', 'Offers Group 1', 'offers_1', 'offers', 'fixed', 'ON', 3)
+ON CONFLICT (slot) DO UPDATE SET
+  name = EXCLUDED.name,
+  page = EXCLUDED.page,
+  display_mode = EXCLUDED.display_mode,
   status = EXCLUDED.status;
 
 -- 5. Products (Sample OTT Subscriptions)
