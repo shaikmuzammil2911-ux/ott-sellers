@@ -41,6 +41,26 @@ export const HomePage: React.FC = () => {
   const renderSection = (sec: HomepageSectionCMS) => {
     if (!sec.isActive) return null;
 
+    // Check if section is a custom banner group or standalone banner section
+    if (sec.type === 'banner_group' || sec.settings?.groupId || sec.sectionKey.startsWith('banner_group_')) {
+      const gId = sec.settings?.groupId || sec.sectionKey.replace('banner_group_', '');
+      const mode = (sec.settings?.displayMode as 'slider' | 'fixed') || undefined;
+      return (
+        <div key={sec.id || sec.sectionKey} className="reveal-on-scroll">
+          <HeroSection groupId={gId} displayMode={mode} />
+        </div>
+      );
+    }
+
+    if (sec.type === 'banner_single' || sec.settings?.bannerId || sec.sectionKey.startsWith('banner_single_')) {
+      const bId = sec.settings?.bannerId || sec.sectionKey.replace('banner_single_', '');
+      return (
+        <div key={sec.id || sec.sectionKey} className="reveal-on-scroll">
+          <HeroSection bannerId={bId} displayMode="fixed" />
+        </div>
+      );
+    }
+
     switch (sec.sectionKey) {
       case 'hero':
         return <HeroSection key={sec.id || 'hero'} />;

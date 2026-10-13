@@ -146,27 +146,49 @@ export const AccountPage: React.FC = () => {
                   </div>
 
                   <div className="recent-orders-list">
-                    {orders.slice(0, 2).map(order => (
-                      <Link
-                        key={order.id}
-                        to={`/account/orders/${order.id}`}
-                        className="recent-order-row-card"
-                      >
-                        <div className="recent-order-main">
-                          <span className="order-id-badge">{order.id}</span>
-                          <span className="order-date-text">{order.date}</span>
-                          <p className="order-items-summary">
-                            {order.items.map(i => i.name).join(', ')}
-                          </p>
-                        </div>
+                    {orders.length === 0 ? (
+                      <p style={{ color: '#94a3b8', fontSize: '0.9rem', padding: '12px 0' }}>No recent orders found.</p>
+                    ) : (
+                      orders.slice(0, 3).map(order => (
+                        <Link
+                          key={order.id}
+                          to={`/account/orders/${order.id}`}
+                          className="recent-order-card-pro"
+                        >
+                          <div className="recent-order-card-top">
+                            <div className="order-id-date-meta">
+                              <span className="order-id-badge-pro">{order.id}</span>
+                              <span className="order-date-text-pro">{order.date}</span>
+                            </div>
+                            <div className="order-status-wrapper">
+                              {getStatusBadge(order.orderStatus)}
+                            </div>
+                          </div>
 
-                        <div className="recent-order-right">
-                          <span className="order-price-bold">₹ {order.total}</span>
-                          {getStatusBadge(order.orderStatus)}
-                          <ChevronRight size={18} className="arrow-icon" />
-                        </div>
-                      </Link>
-                    ))}
+                          <div className="recent-order-card-body">
+                            <div className="order-items-pro-list">
+                              {order.items.map((item, idx) => (
+                                <div key={idx} className="order-item-pro-line">
+                                  <span className="item-name">{item.name}</span>
+                                  {item.quantity > 1 && <span className="item-qty">×{item.quantity}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="recent-order-card-bottom">
+                            <div className="order-amount-block">
+                              <span className="amount-label">Total Amount:</span>
+                              <span className="amount-val">₹{order.total}</span>
+                            </div>
+                            <span className="btn-order-view-cta">
+                              <span>Credentials</span>
+                              <ChevronRight size={14} />
+                            </span>
+                          </div>
+                        </Link>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

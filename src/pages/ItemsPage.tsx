@@ -194,75 +194,25 @@ export const ItemsPage: React.FC = () => {
   return (
     <div className="items-page">
       <div className="container">
-        {/* Page Header (Editable Headings via CMS) */}
-        <div className="items-page-header-block">
-          <div className="items-header-text">
-            <h1 className="items-main-title">
-              {formatHeading(cmsHeadings.mainHeading, DEFAULT_ITEMS_PAGE_CMS.mainHeading)}
-            </h1>
-            <p className="items-main-subtitle">
-              {formatHeading(cmsHeadings.mainSubtitle, DEFAULT_ITEMS_PAGE_CMS.mainSubtitle)}
-            </p>
-          </div>
-        </div>
-
-        {/* 1. Quick Search (Provider-Based Filtering) */}
-        <div className="items-quick-search-section">
-          <div className="quick-search-header-row">
-            <div className="quick-search-badge-title">
-              <Zap size={15} className="quick-search-icon" />
-              <span>{formatHeading(cmsHeadings.quickSearchHeading, 'Quick Search')}</span>
+        {/* Page Header (Editable Headings via CMS - completely hidden if empty) */}
+        {(cmsHeadings.mainHeading?.trim() || cmsHeadings.mainSubtitle?.trim()) ? (
+          <div className="items-page-header-block">
+            <div className="items-header-text">
+              {cmsHeadings.mainHeading?.trim() && (
+                <h1 className="items-main-title">
+                  {formatHeading(cmsHeadings.mainHeading, '')}
+                </h1>
+              )}
+              {cmsHeadings.mainSubtitle?.trim() && (
+                <p className="items-main-subtitle">
+                  {formatHeading(cmsHeadings.mainSubtitle, '')}
+                </p>
+              )}
             </div>
-            {selectedProvider !== 'all' && (
-              <button
-                type="button"
-                className="btn-clear-provider"
-                onClick={() => handleProviderSelect('all')}
-              >
-                Show All Providers
-              </button>
-            )}
           </div>
+        ) : null}
 
-          <div className="quick-search-providers-list">
-            <button
-              type="button"
-              className={`provider-chip-btn ${selectedProvider === 'all' ? 'active' : ''}`}
-              onClick={() => handleProviderSelect('all')}
-            >
-              <span>All Providers</span>
-              <span className="chip-count">{products.length}</span>
-            </button>
-            {providers.map((prov) => {
-              const isActive = selectedProvider.toLowerCase() === prov.slug.toLowerCase();
-              const count = products.filter(p => 
-                p.providerSlug?.toLowerCase() === prov.slug.toLowerCase() || 
-                p.subcategorySlug?.toLowerCase() === prov.slug.toLowerCase()
-              ).length;
-
-              return (
-                <button
-                  key={prov.id || prov.slug}
-                  type="button"
-                  className={`provider-chip-btn ${isActive ? 'active' : ''}`}
-                  onClick={() => handleProviderSelect(prov.slug)}
-                  style={{
-                    backgroundColor: isActive ? (prov.brandColor || '#0284c7') : undefined,
-                    borderColor: isActive ? (prov.brandColor || '#0284c7') : undefined
-                  }}
-                >
-                  {prov.logo && (
-                    <img src={prov.logo} alt="" className="provider-chip-logo" />
-                  )}
-                  <span>{prov.name}</span>
-                  <span className="chip-count">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 2. Categories Side-by-Side Responsive Grid (No horizontal scrolling) */}
+        {/* 1. Categories Section (On Top) */}
         <div className="items-categories-grid-section">
           <div className="categories-section-header">
             <div className="categories-header-left">
@@ -335,6 +285,62 @@ export const ItemsPage: React.FC = () => {
                     <span className="category-card-name">{formatHeading(cat.name)}</span>
                     <span className="category-card-count">{count} {count === 1 ? 'Subscription' : 'Subscriptions'}</span>
                   </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. Quick Search (Provider-Based Horizontal 2-Row Dragging) */}
+        <div className="items-quick-search-section">
+          <div className="quick-search-header-row">
+            <div className="quick-search-badge-title">
+              <Zap size={15} className="quick-search-icon" />
+              <span>{formatHeading(cmsHeadings.quickSearchHeading, 'Quick Search')}</span>
+            </div>
+            {selectedProvider !== 'all' && (
+              <button
+                type="button"
+                className="btn-clear-provider"
+                onClick={() => handleProviderSelect('all')}
+              >
+                Show All Providers
+              </button>
+            )}
+          </div>
+
+          <div className="quick-search-providers-list">
+            <button
+              type="button"
+              className={`provider-chip-btn ${selectedProvider === 'all' ? 'active' : ''}`}
+              onClick={() => handleProviderSelect('all')}
+            >
+              <span>All Providers</span>
+              <span className="chip-count">{products.length}</span>
+            </button>
+            {providers.map((prov) => {
+              const isActive = selectedProvider.toLowerCase() === prov.slug.toLowerCase();
+              const count = products.filter(p => 
+                p.providerSlug?.toLowerCase() === prov.slug.toLowerCase() || 
+                p.subcategorySlug?.toLowerCase() === prov.slug.toLowerCase()
+              ).length;
+
+              return (
+                <button
+                  key={prov.id || prov.slug}
+                  type="button"
+                  className={`provider-chip-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => handleProviderSelect(prov.slug)}
+                  style={{
+                    backgroundColor: isActive ? (prov.brandColor || '#0284c7') : undefined,
+                    borderColor: isActive ? (prov.brandColor || '#0284c7') : undefined
+                  }}
+                >
+                  {prov.logo && (
+                    <img src={prov.logo} alt="" className="provider-chip-logo" />
+                  )}
+                  <span>{prov.name}</span>
+                  <span className="chip-count">{count}</span>
                 </button>
               );
             })}

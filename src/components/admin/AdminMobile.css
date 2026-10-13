@@ -432,3 +432,20 @@
     max-width: 100px;
   }
 }
+
+/* --- Responsive Cards View for Mobile vs Desktop Table --- */
+.admin-mobile-cards-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-only-table {
+    display: none !important;
+  }
+  .admin-mobile-cards-view {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+}

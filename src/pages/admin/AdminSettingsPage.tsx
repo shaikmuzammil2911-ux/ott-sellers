@@ -6,17 +6,19 @@ import {
 } from 'lucide-react';
 import { 
   ottApi, ADMIN_CONFIG, DEFAULT_FOOTER_SETTINGS, 
-  DEFAULT_WHATSAPP_SETTINGS, DEFAULT_REFERRAL_SETTINGS, DEFAULT_ITEMS_PAGE_CMS, getCleanImageUrl 
+  DEFAULT_WHATSAPP_SETTINGS, DEFAULT_REFERRAL_SETTINGS, DEFAULT_ITEMS_PAGE_CMS, 
+  DEFAULT_PROMO_MODAL_SETTINGS, DEFAULT_OFFERS_PAGE_CMS, getCleanImageUrl 
 } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { 
-  AdminSettings, FooterSettings, WhatsAppSettings, ReferralSettings, FooterQuickLink, ItemsPageCMS 
+  AdminSettings, FooterSettings, WhatsAppSettings, ReferralSettings, FooterQuickLink, ItemsPageCMS,
+  PromoOfferModalSettings, OffersPageCMS
 } from '../../types';
 
 export const AdminSettingsPage: React.FC = () => {
   const { changePassword } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'footer' | 'items_cms' | 'security'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'footer' | 'items_cms' | 'promo_modal' | 'offers_cms' | 'security'>('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -39,6 +41,27 @@ export const AdminSettingsPage: React.FC = () => {
   const [itemsQuickSearchHeading, setItemsQuickSearchHeading] = useState(DEFAULT_ITEMS_PAGE_CMS.quickSearchHeading);
   const [itemsCategoriesHeading, setItemsCategoriesHeading] = useState(DEFAULT_ITEMS_PAGE_CMS.categoriesHeading);
   const [itemsListingHeading, setItemsListingHeading] = useState(DEFAULT_ITEMS_PAGE_CMS.itemsListingHeading);
+
+  // Promo Modal CMS State (Image Copy 32)
+  const [promoIsEnabled, setPromoIsEnabled] = useState(DEFAULT_PROMO_MODAL_SETTINGS.isActive ?? true);
+  const [promoBadgeText, setPromoBadgeText] = useState(DEFAULT_PROMO_MODAL_SETTINGS.badgeText || '');
+  const [promoTitle, setPromoTitle] = useState(DEFAULT_PROMO_MODAL_SETTINGS.heading || DEFAULT_PROMO_MODAL_SETTINGS.title || '');
+  const [promoDescription, setPromoDescription] = useState(DEFAULT_PROMO_MODAL_SETTINGS.description || '');
+  const [promoCouponCode, setPromoCouponCode] = useState(DEFAULT_PROMO_MODAL_SETTINGS.couponCode || '');
+  const [promoButtonText, setPromoButtonText] = useState(DEFAULT_PROMO_MODAL_SETTINGS.buttonText || '');
+  const [promoButtonLink, setPromoButtonLink] = useState(DEFAULT_PROMO_MODAL_SETTINGS.buttonLink || '');
+  const [promoFeaturesText, setPromoFeaturesText] = useState(
+    (DEFAULT_PROMO_MODAL_SETTINGS.features || [DEFAULT_PROMO_MODAL_SETTINGS.feature1, DEFAULT_PROMO_MODAL_SETTINGS.feature2]).filter(Boolean).join('\n')
+  );
+  const [promoDelaySeconds, setPromoDelaySeconds] = useState(DEFAULT_PROMO_MODAL_SETTINGS.delaySeconds || 5);
+
+  // Offers Page CMS State (Image Copy 37, 38)
+  const [offersHeading, setOffersHeading] = useState(DEFAULT_OFFERS_PAGE_CMS.heading || '');
+  const [offersSubtitle, setOffersSubtitle] = useState(DEFAULT_OFFERS_PAGE_CMS.subtitle || DEFAULT_OFFERS_PAGE_CMS.subheading || '');
+  const [offersBannerImage, setOffersBannerImage] = useState(DEFAULT_OFFERS_PAGE_CMS.bannerImageUrl || '/hero-bg.png');
+  const [offersBannerLink, setOffersBannerLink] = useState(DEFAULT_OFFERS_PAGE_CMS.bannerLink || '/items');
+  const [offersBannerActive, setOffersBannerActive] = useState(DEFAULT_OFFERS_PAGE_CMS.bannerActive ?? true);
+  const [isUploadingOffersBanner, setIsUploadingOffersBanner] = useState(false);
 
   // Logo Uploading
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -84,11 +107,13 @@ export const AdminSettingsPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [s, footer, ws, itemsCms] = await Promise.all([
+      const [s, footer, ws, itemsCms, promoCms, offersCms] = await Promise.all([
         ottApi.getAdminSettings(),
         ottApi.getFooterSettings(),
         ottApi.getWhatsAppSettings(),
-        ottApi.getItemsPageCMS()
+        ottApi.getItemsPageCMS(),
+        ottApi.getPromoModalSettings(),
+        ottApi.getOffersPageCMS()
       ]);
 
       setSiteName(s.siteName || 'OTT SELLERS');
@@ -103,11 +128,33 @@ export const AdminSettingsPage: React.FC = () => {
 
       // Items Page CMS
       if (itemsCms) {
-        setItemsMainHeading(itemsCms.mainHeading || DEFAULT_ITEMS_PAGE_CMS.mainHeading);
-        setItemsMainSubtitle(itemsCms.mainSubtitle || DEFAULT_ITEMS_PAGE_CMS.mainSubtitle);
-        setItemsQuickSearchHeading(itemsCms.quickSearchHeading || DEFAULT_ITEMS_PAGE_CMS.quickSearchHeading);
-        setItemsCategoriesHeading(itemsCms.categoriesHeading || DEFAULT_ITEMS_PAGE_CMS.categoriesHeading);
-        setItemsListingHeading(itemsCms.itemsListingHeading || DEFAULT_ITEMS_PAGE_CMS.itemsListingHeading);
+        setItemsMainHeading(itemsCms.mainHeading || '');
+        setItemsMainSubtitle(itemsCms.mainSubtitle || '');
+        setItemsQuickSearchHeading(itemsCms.quickSearchHeading || 'Quick Search');
+        setItemsCategoriesHeading(itemsCms.categoriesHeading || 'Explore Categories');
+        setItemsListingHeading(itemsCms.itemsListingHeading || 'All Available Plans');
+      }
+
+      // Promo Offer Modal CMS
+      if (promoCms) {
+        setPromoIsEnabled(promoCms.isActive !== false && promoCms.isEnabled !== false);
+        setPromoBadgeText(promoCms.badgeText || 'LIMITED TIME PROMO');
+        setPromoTitle(promoCms.heading || promoCms.title || 'Unlock Extra 20% OFF Your First Subscription!');
+        setPromoDescription(promoCms.description || '');
+        setPromoCouponCode(promoCms.couponCode || 'OTT20');
+        setPromoButtonText(promoCms.buttonText || 'Claim Deal & Browse Plans');
+        setPromoButtonLink(promoCms.buttonLink || '/items');
+        setPromoFeaturesText((promoCms.features || [promoCms.feature1, promoCms.feature2]).filter(Boolean).join('\n'));
+        setPromoDelaySeconds(promoCms.delaySeconds || 5);
+      }
+
+      // Offers Page CMS
+      if (offersCms) {
+        setOffersHeading(offersCms.heading || 'Exclusive OTT Offers & Special Deals');
+        setOffersSubtitle(offersCms.subtitle || 'Hand-picked premium subscriptions with special festival pricing and instant WhatsApp activation.');
+        setOffersBannerImage(offersCms.bannerImageUrl || '/hero-bg.png');
+        setOffersBannerLink(offersCms.bannerLink || '/items');
+        setOffersBannerActive(offersCms.bannerActive ?? true);
       }
 
       // WhatsApp
@@ -288,11 +335,11 @@ export const AdminSettingsPage: React.FC = () => {
     setSaving(true);
     try {
       const updatedCMS: ItemsPageCMS = {
-        mainHeading: itemsMainHeading.trim() || DEFAULT_ITEMS_PAGE_CMS.mainHeading,
-        mainSubtitle: itemsMainSubtitle.trim() || DEFAULT_ITEMS_PAGE_CMS.mainSubtitle,
-        quickSearchHeading: itemsQuickSearchHeading.trim() || DEFAULT_ITEMS_PAGE_CMS.quickSearchHeading,
-        categoriesHeading: itemsCategoriesHeading.trim() || DEFAULT_ITEMS_PAGE_CMS.categoriesHeading,
-        itemsListingHeading: itemsListingHeading.trim() || DEFAULT_ITEMS_PAGE_CMS.itemsListingHeading,
+        mainHeading: itemsMainHeading.trim(),
+        mainSubtitle: itemsMainSubtitle.trim(),
+        quickSearchHeading: itemsQuickSearchHeading.trim() || 'Quick Search',
+        categoriesHeading: itemsCategoriesHeading.trim() || 'Explore Categories',
+        itemsListingHeading: itemsListingHeading.trim() || 'All Available Plans',
         updatedAt: Date.now()
       };
 
@@ -307,12 +354,76 @@ export const AdminSettingsPage: React.FC = () => {
   };
 
   const handleResetItemsCMS = () => {
-    setItemsMainHeading(DEFAULT_ITEMS_PAGE_CMS.mainHeading);
-    setItemsMainSubtitle(DEFAULT_ITEMS_PAGE_CMS.mainSubtitle);
-    setItemsQuickSearchHeading(DEFAULT_ITEMS_PAGE_CMS.quickSearchHeading);
-    setItemsCategoriesHeading(DEFAULT_ITEMS_PAGE_CMS.categoriesHeading);
-    setItemsListingHeading(DEFAULT_ITEMS_PAGE_CMS.itemsListingHeading);
+    setItemsMainHeading('');
+    setItemsMainSubtitle('');
+    setItemsQuickSearchHeading('Quick Search');
+    setItemsCategoriesHeading('Explore Categories');
+    setItemsListingHeading('All Available Plans');
     showToast('Reset headings to standard defaults. Click "Save Changes" to publish.');
+  };
+
+  const handleSavePromoModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const featArr = promoFeaturesText.split('\n').map((s: string) => s.trim()).filter(Boolean);
+      const updated: PromoOfferModalSettings = {
+        isActive: promoIsEnabled,
+        isEnabled: promoIsEnabled,
+        badgeText: promoBadgeText.trim(),
+        heading: promoTitle.trim(),
+        title: promoTitle.trim(),
+        description: promoDescription.trim(),
+        couponCode: promoCouponCode.trim(),
+        buttonText: promoButtonText.trim(),
+        buttonLink: promoButtonLink.trim(),
+        feature1: featArr[0] || '⚡ 5-Min WhatsApp Delivery',
+        feature2: featArr[1] || '🔒 100% Replacement Warranty',
+        features: featArr,
+        delaySeconds: Number(promoDelaySeconds) || 5
+      };
+      await ottApi.savePromoModalSettings(updated);
+      showToast('Promo Coupon Modal settings saved! Live storefront updated.');
+    } catch (err: any) {
+      showError(err?.message || 'Failed to save Promo Modal settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveOffersCMS = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const updated: OffersPageCMS = {
+        heading: (offersHeading || '').trim(),
+        subtitle: (offersSubtitle || '').trim(),
+        subheading: (offersSubtitle || '').trim(),
+        bannerImageUrl: (offersBannerImage || '').trim(),
+        bannerLink: (offersBannerLink || '').trim(),
+        bannerActive: offersBannerActive
+      };
+      await ottApi.saveOffersPageCMS(updated);
+      showToast('Offers Page settings saved! Live storefront updated.');
+    } catch (err: any) {
+      showError(err?.message || 'Failed to save Offers Page settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUploadOffersBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingOffersBanner(true);
+    const res = await uploadService.uploadImage(file, 'banners');
+    setIsUploadingOffersBanner(false);
+    if (res.success && res.url) {
+      setOffersBannerImage(res.url);
+      showToast('Offers banner uploaded successfully!');
+    } else {
+      showError(res.error || 'Failed to upload offers banner.');
+    }
   };
 
   const handleSaveSecurity = async (e: React.FormEvent) => {
@@ -424,6 +535,22 @@ export const AdminSettingsPage: React.FC = () => {
         >
           <Sparkles size={14} style={{ marginRight: '6px' }} />
           <span>Items Page Headings</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === 'promo_modal' ? 'active' : ''}`}
+          onClick={() => setActiveTab('promo_modal')}
+        >
+          <Bell size={14} style={{ marginRight: '6px' }} />
+          <span>Promo Coupon Popup</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === 'offers_cms' ? 'active' : ''}`}
+          onClick={() => setActiveTab('offers_cms')}
+        >
+          <Gift size={14} style={{ marginRight: '6px' }} />
+          <span>Offers Page CMS</span>
         </button>
         <button
           type="button"
@@ -729,23 +856,22 @@ export const AdminSettingsPage: React.FC = () => {
               </button>
             </div>
 
-            {/* 1. Main Page Title */}
+            {/* 1. Main Page Title (Optional - can be empty to hide) */}
             <div className="admin-form-group">
-              <label className="admin-form-label">1. Main Items Page Heading *</label>
+              <label className="admin-form-label">1. Main Items Page Heading (Leave empty to hide completely)</label>
               <input
                 type="text"
                 className="admin-form-input"
-                placeholder="e.g. All Subscriptions & Premium Accounts"
+                placeholder="e.g. All Subscriptions & Premium Accounts (or leave empty to hide)"
                 value={itemsMainHeading}
                 onChange={(e) => setItemsMainHeading(e.target.value)}
-                required
               />
-              <span className="admin-form-hint">Displayed as the primary H1 heading at top of the items catalog page.</span>
+              <span className="admin-form-hint">Displayed as the primary H1 heading at top of the items catalog page. Leave blank to hide the header block completely.</span>
             </div>
 
             {/* 2. Main Page Subtitle */}
             <div className="admin-form-group">
-              <label className="admin-form-label">2. Main Page Subtitle / Tagline</label>
+              <label className="admin-form-label">2. Main Page Subtitle / Tagline (Optional)</label>
               <input
                 type="text"
                 className="admin-form-input"
@@ -758,42 +884,39 @@ export const AdminSettingsPage: React.FC = () => {
 
             {/* 3. Quick Search Heading */}
             <div className="admin-form-group">
-              <label className="admin-form-label">3. Quick Search Section Heading *</label>
+              <label className="admin-form-label">3. Quick Search Section Heading</label>
               <input
                 type="text"
                 className="admin-form-input"
                 placeholder="e.g. Quick Search"
                 value={itemsQuickSearchHeading}
                 onChange={(e) => setItemsQuickSearchHeading(e.target.value)}
-                required
               />
               <span className="admin-form-hint">Label for the provider filter chip bar (e.g. Quick Search or ⚡ Quick Search).</span>
             </div>
 
             {/* 4. Categories Section Heading */}
             <div className="admin-form-group">
-              <label className="admin-form-label">4. Categories Grid Heading *</label>
+              <label className="admin-form-label">4. Categories Grid Heading</label>
               <input
                 type="text"
                 className="admin-form-input"
                 placeholder="e.g. Explore Categories"
                 value={itemsCategoriesHeading}
                 onChange={(e) => setItemsCategoriesHeading(e.target.value)}
-                required
               />
               <span className="admin-form-hint">Heading for the side-by-side category selector cards.</span>
             </div>
 
             {/* 5. Items Listing Heading */}
             <div className="admin-form-group">
-              <label className="admin-form-label">5. Items Results / Listing Heading *</label>
+              <label className="admin-form-label">5. Items Results / Listing Heading</label>
               <input
                 type="text"
                 className="admin-form-input"
                 placeholder="e.g. All Available Plans"
                 value={itemsListingHeading}
                 onChange={(e) => setItemsListingHeading(e.target.value)}
-                required
               />
               <span className="admin-form-hint">Header above the product cards grid and sort dropdown.</span>
             </div>
@@ -802,6 +925,247 @@ export const AdminSettingsPage: React.FC = () => {
               <button type="submit" disabled={saving} className="btn-primary-action" style={{ padding: '10px 24px' }}>
                 <Save size={16} />
                 <span>{saving ? 'Saving Headings...' : 'Save & Publish Headings'}</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* TAB: Promo Coupon Notification Modal CMS (Image Copy 32) */}
+      {activeTab === 'promo_modal' && (
+        <form onSubmit={handleSavePromoModal} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Bell size={18} color="#0284c7" />
+                  <span>Promotional Coupon Popup Notification</span>
+                </h2>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+                  Customer-facing automatic discount popup notification with master ON/OFF switch.
+                </p>
+              </div>
+
+              {/* Master ON/OFF Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: promoIsEnabled ? '#22c55e' : '#ef4444' }}>
+                  {promoIsEnabled ? '● Active (ON)' : '○ Disabled (OFF)'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPromoIsEnabled(!promoIsEnabled)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${promoIsEnabled ? '#22c55e' : '#ef4444'}`,
+                    background: promoIsEnabled ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    color: promoIsEnabled ? '#22c55e' : '#ef4444',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {promoIsEnabled ? 'Turn OFF' : 'Turn ON'}
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Top Badge Text</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. LIMITED TIME PROMO"
+                value={promoBadgeText}
+                onChange={(e) => setPromoBadgeText(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Main Heading / Title</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Unlock Extra 20% OFF Your First Subscription!"
+                value={promoTitle}
+                onChange={(e) => setPromoTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Description / Subtitle</label>
+              <textarea
+                rows={2}
+                className="admin-form-input"
+                placeholder="Brief explanatory discount text..."
+                value={promoDescription}
+                onChange={(e) => setPromoDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-form-row-2">
+              <div className="admin-form-group">
+                <label className="admin-form-label">Coupon Code to Copy</label>
+                <input
+                  type="text"
+                  className="admin-form-input"
+                  placeholder="e.g. OTT20"
+                  value={promoCouponCode}
+                  onChange={(e) => setPromoCouponCode(e.target.value)}
+                  style={{ fontFamily: 'monospace', fontWeight: 700 }}
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label className="admin-form-label">Popup Delay (in seconds)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  className="admin-form-input"
+                  value={promoDelaySeconds}
+                  onChange={(e) => setPromoDelaySeconds(parseInt(e.target.value) || 5)}
+                />
+              </div>
+            </div>
+
+            <div className="admin-form-row-2">
+              <div className="admin-form-group">
+                <label className="admin-form-label">Call-to-Action Button Text</label>
+                <input
+                  type="text"
+                  className="admin-form-input"
+                  placeholder="e.g. Claim Deal & Browse Plans"
+                  value={promoButtonText}
+                  onChange={(e) => setPromoButtonText(e.target.value)}
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label className="admin-form-label">Button Destination URL</label>
+                <input
+                  type="text"
+                  className="admin-form-input"
+                  placeholder="e.g. /items or /catalogs"
+                  value={promoButtonLink}
+                  onChange={(e) => setPromoButtonLink(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Trust Bullet Points (One per line)</label>
+              <textarea
+                rows={3}
+                className="admin-form-input"
+                placeholder="⚡ 5-Min WhatsApp Delivery&#10;🔒 100% Replacement Warranty"
+                value={promoFeaturesText}
+                onChange={(e) => setPromoFeaturesText(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <button type="submit" disabled={saving} className="btn-primary-action" style={{ padding: '10px 24px' }}>
+                <Save size={16} />
+                <span>{saving ? 'Saving...' : 'Save Promo Modal Settings'}</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* TAB: Offers Page CMS (Image Copy 37, 38) */}
+      {activeTab === 'offers_cms' && (
+        <form onSubmit={handleSaveOffersCMS} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Gift size={18} color="#0284c7" />
+                <span>Offers Page Headings & Top Banner</span>
+              </h2>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+                Configure the top promotional banner graphic and customer-facing headings for the /offers page.
+              </p>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Offers Page Main Heading</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Exclusive OTT Offers & Special Deals"
+                value={offersHeading}
+                onChange={(e) => setOffersHeading(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Offers Page Subtitle</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Hand-picked premium subscriptions with special festival pricing..."
+                value={offersSubtitle}
+                onChange={(e) => setOffersSubtitle(e.target.value)}
+              />
+            </div>
+
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <label className="admin-form-label" style={{ fontWeight: 700, margin: 0 }}>
+                  Offers Page Top Banner
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#0f172a', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={offersBannerActive}
+                    onChange={(e) => setOffersBannerActive(e.target.checked)}
+                  />
+                  <span>Show Top Banner on Offers Page</span>
+                </label>
+              </div>
+
+              {offersBannerImage && (
+                <div style={{ marginBottom: '12px', borderRadius: '10px', overflow: 'hidden', maxHeight: '160px', border: '1px solid #e2e8f0' }}>
+                  <img src={getCleanImageUrl(offersBannerImage)} alt="Offers Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+
+              <div className="admin-form-row-2">
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Banner Image URL</label>
+                  <input
+                    type="text"
+                    className="admin-form-input"
+                    value={offersBannerImage}
+                    onChange={(e) => setOffersBannerImage(e.target.value)}
+                  />
+                  <div style={{ marginTop: '8px' }}>
+                    <input type="file" id="offers-banner-file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadOffersBanner} />
+                    <label htmlFor="offers-banner-file" className="btn-refresh-action" style={{ cursor: 'pointer', display: 'inline-flex', gap: '6px', fontSize: '0.78rem' }}>
+                      <Upload size={14} />
+                      <span>{isUploadingOffersBanner ? 'Uploading...' : 'Upload Replacement Banner'}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Banner Click Destination URL</label>
+                  <input
+                    type="text"
+                    className="admin-form-input"
+                    placeholder="e.g. /items"
+                    value={offersBannerLink}
+                    onChange={(e) => setOffersBannerLink(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <button type="submit" disabled={saving} className="btn-primary-action" style={{ padding: '10px 24px' }}>
+                <Save size={16} />
+                <span>{saving ? 'Saving...' : 'Save Offers Page CMS'}</span>
               </button>
             </div>
           </div>

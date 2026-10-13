@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Flame, SlidersHorizontal, ArrowRight, Zap } from 'lucide-react';
-import { Product } from '../types';
-import { ottApi, getCleanImageUrl } from '../services/api';
+import { Product, OffersPageCMS } from '../types';
+import { ottApi, getCleanImageUrl, DEFAULT_OFFERS_PAGE_CMS } from '../services/api';
 import { ProductCard } from '../components/common/ProductCard';
 import { Link } from 'react-router-dom';
 import './ItemsPage.css';
 
 export const OffersPage: React.FC = () => {
   const [offerProducts, setOfferProducts] = useState<Product[]>([]);
+  const [cms, setCms] = useState<OffersPageCMS>(DEFAULT_OFFERS_PAGE_CMS);
   const [loading, setLoading] = useState(true);
 
   const loadOffers = useCallback(async () => {
     try {
-      const data = await ottApi.getOfferProducts();
+      const [data, cmsData] = await Promise.all([
+        ottApi.getOfferProducts(),
+        ottApi.getOffersPageCMS()
+      ]);
       setOfferProducts(data);
+      if (cmsData) {
+        setCms(cmsData);
+      }
     } catch (err) {
       console.error('Error fetching offers:', err);
     } finally {
@@ -35,21 +42,52 @@ export const OffersPage: React.FC = () => {
     };
   }, [loadOffers]);
 
+  const headingText = cms?.heading?.trim() || '';
+  const subheadingText = (cms?.subheading || cms?.subtitle || '').trim();
+  const showBanner = cms?.bannerActive !== false && !!cms?.bannerImageUrl?.trim();
+
   return (
     <div className="items-page">
       <div className="container">
-        {/* Header Title */}
-        <div className="items-header-row" style={{ marginBottom: '14px' }}>
-          <div>
-            <h1 className="items-page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.35rem' }}>
-              <Flame size={24} color="#e50914" fill="#e50914" />
-              <span>Special Promotional Offers & Binge Deals</span>
-            </h1>
-            <p className="items-page-subtitle" style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-              Exclusive discounted subscriptions • Instant WhatsApp credentials delivery • 100% Genuine Profiles
-            </p>
+        {/* Optional Top Promotional Banner */}
+        {showBanner && (
+          <div style={{ marginBottom: '18px', width: '100%', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {cms.bannerLink ? (
+              <Link to={cms.bannerLink} style={{ display: 'block', width: '100%' }}>
+                <img 
+                  src={getCleanImageUrl(cms.bannerImageUrl!)} 
+                  alt={headingText || "Special Offers"} 
+                  style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', display: 'block' }}
+                />
+              </Link>
+            ) : (
+              <img 
+                src={getCleanImageUrl(cms.bannerImageUrl!)} 
+                alt={headingText || "Special Offers"} 
+                style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', display: 'block' }}
+              />
+            )}
           </div>
-        </div>
+        )}
+
+        {/* Header Title & Subtitle (only if at least one is provided) */}
+        {(headingText || subheadingText) && (
+          <div className="items-header-row" style={{ marginBottom: '16px' }}>
+            <div>
+              {headingText && (
+                <h1 className="items-page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.35rem', margin: '0 0 6px 0' }}>
+                  <Flame size={24} color="#e50914" fill="#e50914" />
+                  <span>{headingText}</span>
+                </h1>
+              )}
+              {subheadingText && (
+                <p className="items-page-subtitle" style={{ fontSize: '0.82rem', color: '#94a3b8', margin: 0 }}>
+                  {subheadingText}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Product Cards Grid: Consistent Compact 5-column / 2-column Grid */}
         {loading ? (

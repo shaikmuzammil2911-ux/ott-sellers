@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Check, X, Upload, 
   Image as ImageIcon, RefreshCw, AlertCircle, Eye, EyeOff, 
-  Package, Crop, Star, Sparkles, Tag, DollarSign, Info, Layers, CheckSquare, Square
+  Package, Crop, Star, Sparkles, Tag, DollarSign, Info, Layers, CheckSquare, Square,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import { uploadService } from '../../services/uploadService';
@@ -36,6 +37,7 @@ export const AdminProductsPage: React.FC = () => {
   const [formOriginalPrice, setFormOriginalPrice] = useState('499');
   const [formOfferPrice, setFormOfferPrice] = useState('');
   const [formInOffers, setFormInOffers] = useState(false);
+  const [formDisplayPages, setFormDisplayPages] = useState<string[]>(['items']);
 
   // Form Fields - Group 3: Images & Media
   const [formImageUrl, setFormImageUrl] = useState('');
@@ -108,6 +110,7 @@ export const AdminProductsPage: React.FC = () => {
     setFormOriginalPrice('499');
     setFormOfferPrice('');
     setFormInOffers(false);
+    setFormDisplayPages(['items']);
     setFormImageUrl('');
     setFormStatus('ON');
     setFormInStock(true);
@@ -133,6 +136,7 @@ export const AdminProductsPage: React.FC = () => {
     setFormOriginalPrice(String(p.plans?.[0]?.originalPrice || p.comparePrice || 499));
     setFormOfferPrice(p.offerPrice ? String(p.offerPrice) : '');
     setFormInOffers(p.inOffers ?? false);
+    setFormDisplayPages(p.displayPages && p.displayPages.length > 0 ? p.displayPages : (p.inOffers ? ['items', 'offers'] : ['items']));
     setFormImageUrl(p.image);
     setFormStatus(p.status || 'ON');
     setFormInStock(p.inStock);
@@ -253,7 +257,8 @@ export const AdminProductsPage: React.FC = () => {
         { question: 'How quickly will I receive my subscription?', answer: 'Credentials are dispatched in 5-15 minutes on WhatsApp.' }
       ],
       displayOrder: Number(formDisplayOrder) || 1,
-      inOffers: formInOffers,
+      displayPages: formDisplayPages,
+      inOffers: formDisplayPages.includes('offers') || formInOffers,
       offerPrice: formOfferPrice ? Number(formOfferPrice) : undefined,
       offerOriginalPrice: formOfferPrice ? origPriceNum : undefined,
       offerDiscountPercentage: formOfferPrice && origPriceNum > Number(formOfferPrice)
@@ -278,6 +283,12 @@ export const AdminProductsPage: React.FC = () => {
 
     showToast(`Product "${updatedProduct.name}" saved & live on storefront!`);
     setIsModalOpen(false);
+    await loadData();
+  };
+
+  const handleReorder = async (productId: string, direction: 'up' | 'down') => {
+    await ottApi.reorderProduct(productId, direction);
+    showToast(`Product order updated.`);
     await loadData();
   };
 
@@ -406,11 +417,12 @@ export const AdminProductsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Products Table */}
-      <div className="admin-table-container">
+      {/* Products Table (Desktop View) */}
+      <div className="admin-table-container desktop-only-table">
         <table className="admin-table">
           <thead>
             <tr>
+              <th>Order</th>
               <th>Image</th>
               <th>Item Name</th>
               <th>Category / Provider</th>
@@ -423,13 +435,35 @@ export const AdminProductsPage: React.FC = () => {
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--admin-text-muted)' }}>
                   No items found. Click <strong>+ Add New Item</strong> to create one.
                 </td>
               </tr>
             ) : (
-              filteredProducts.map((p) => (
+              filteredProducts.map((p, idx) => (
                 <tr key={p.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleReorder(p.id, 'up')}
+                        disabled={idx === 0}
+                        style={{ background: '#1e293b', border: '1px solid #334155', color: idx === 0 ? '#475569' : '#cbd5e1', borderRadius: '4px', padding: '2px 4px', cursor: idx === 0 ? 'not-allowed' : 'pointer' }}
+                        title="Move Up"
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReorder(p.id, 'down')}
+                        disabled={idx === filteredProducts.length - 1}
+                        style={{ background: '#1e293b', border: '1px solid #334155', color: idx === filteredProducts.length - 1 ? '#475569' : '#cbd5e1', borderRadius: '4px', padding: '2px 4px', cursor: idx === filteredProducts.length - 1 ? 'not-allowed' : 'pointer' }}
+                        title="Move Down"
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                    </div>
+                  </td>
                   <td>
                     <img
                       src={getCleanImageUrl(p.image, p.updatedAt)}
@@ -490,6 +524,124 @@ export const AdminProductsPage: React.FC = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View (No Horizontal Dragging Needed!) */}
+      <div className="admin-mobile-cards-view">
+        {filteredProducts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8', background: '#0b132b', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            No items found. Click <strong>+ Add New Item</strong> to create one.
+          </div>
+        ) : (
+          filteredProducts.map((p, idx) => (
+            <div
+              key={p.id}
+              style={{
+                background: '#0b132b',
+                border: '1px solid #1e293b',
+                borderRadius: '12px',
+                padding: '12px',
+                marginBottom: '10px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)'
+              }}
+            >
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <img
+                  src={getCleanImageUrl(p.image, p.updatedAt)}
+                  alt={p.name}
+                  style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #1e293b', flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                    </h4>
+                    {/* Up & Down Order Controls */}
+                    <div style={{ display: 'flex', gap: '3px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleReorder(p.id, 'up')}
+                        disabled={idx === 0}
+                        style={{
+                          background: '#1e293b',
+                          border: '1px solid #334155',
+                          color: idx === 0 ? '#475569' : '#cbd5e1',
+                          borderRadius: '5px',
+                          padding: '3px 6px',
+                          cursor: idx === 0 ? 'not-allowed' : 'pointer'
+                        }}
+                        title="Move Up"
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReorder(p.id, 'down')}
+                        disabled={idx === filteredProducts.length - 1}
+                        style={{
+                          background: '#1e293b',
+                          border: '1px solid #334155',
+                          color: idx === filteredProducts.length - 1 ? '#475569' : '#cbd5e1',
+                          borderRadius: '5px',
+                          padding: '3px 6px',
+                          cursor: idx === filteredProducts.length - 1 ? 'not-allowed' : 'pointer'
+                        }}
+                        title="Move Down"
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '2px 0 6px', fontSize: '0.72rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.tagline}
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <strong style={{ color: '#22c55e', fontSize: '0.86rem' }}>₹{p.price || p.plans?.[0]?.price}</strong>
+                    {p.comparePrice && <span style={{ textDecoration: 'line-through', fontSize: '0.72rem', color: '#94a3b8' }}>₹{p.comparePrice}</span>}
+                    <span style={{ fontSize: '0.7rem', background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {p.categoryName}
+                    </span>
+                    {p.providerName && (
+                      <span style={{ fontSize: '0.7rem', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        {p.providerName}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action row at bottom of card */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #1e293b', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button type="button" onClick={() => handleToggleStatus(p)} className={`admin-badge ${p.status === 'ON' ? 'active' : 'inactive'}`} style={{ cursor: 'pointer', border: 'none', padding: '3px 8px', fontSize: '0.72rem' }}>
+                    {p.status === 'ON' ? <Eye size={11} /> : <EyeOff size={11} />}
+                    <span>{p.status === 'ON' ? 'Active' : 'Inactive'}</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleToggleStock(p)}
+                    className={`admin-badge ${p.inStock ? 'active' : 'inactive'}`}
+                    style={{ cursor: 'pointer', border: 'none', background: p.inStock ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: p.inStock ? '#22c55e' : '#ef4444', padding: '3px 8px', fontSize: '0.72rem' }}
+                  >
+                    {p.inStock ? <Check size={11} /> : <X size={11} />}
+                    <span>{p.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button type="button" onClick={() => handleOpenEditModal(p)} className="btn-primary-action" style={{ padding: '4px 10px', fontSize: '0.74rem' }}>
+                    <Edit2 size={12} /> Edit
+                  </button>
+                  <button type="button" onClick={() => handleDeleteProduct(p.id, p.name)} className="btn-refresh-action" style={{ color: 'var(--admin-danger)', padding: '4px 8px' }}>
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* SIMPLIFIED LOGICALLY GROUPED ADDING / EDITING FORM MODAL */}
@@ -656,6 +808,35 @@ export const AdminProductsPage: React.FC = () => {
                       <input type="checkbox" checked={formIsTrending} onChange={(e) => setFormIsTrending(e.target.checked)} />
                       <span>Trending Badge</span>
                     </label>
+                  </div>
+
+                  {/* Display Page Selection (Home, Items, Offers) */}
+                  <div className="admin-form-group" style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #1e293b' }}>
+                    <label className="admin-form-label" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                      Display Pages (Choose where this item should appear):
+                    </label>
+                    <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {[
+                        { key: 'home', label: 'Home Page' },
+                        { key: 'items', label: 'Items Page' },
+                        { key: 'offers', label: 'Offers Page' }
+                      ].map(pItem => (
+                        <label key={pItem.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#ffffff', fontSize: '0.85rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={formDisplayPages.includes(pItem.key)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormDisplayPages([...formDisplayPages, pItem.key]);
+                              } else {
+                                setFormDisplayPages(formDisplayPages.filter(x => x !== pItem.key));
+                              }
+                            }}
+                          />
+                          <span>{pItem.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

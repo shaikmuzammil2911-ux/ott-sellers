@@ -71,6 +71,7 @@ export interface Product {
   stockCount?: number;
   warrantyPeriod: string;
   badge?: string;
+  displayPages?: ('home' | 'items' | 'offers' | string)[];
   updatedAt?: number;
 }
 
@@ -129,6 +130,7 @@ export interface HeroBanner {
   subtitleColor?: string;
   badgeColor?: string;
   descriptionColor?: string;
+  displayMode?: 'slider' | 'fixed';
   updatedAt?: number;
 }
 
@@ -138,11 +140,13 @@ export interface BannerGroup {
   slot: string;
   page: BannerTargetPage;
   style: BannerDisplayStyle;
+  displayMode?: 'slider' | 'fixed';
   autoplay: boolean;
   interval: number;
   status: 'ON' | 'OFF';
   description?: string;
   bannerCount?: number;
+  displayOrder?: number;
 }
 
 export interface Category {
@@ -297,6 +301,7 @@ export interface Course {
 export interface HomepageSectionCMS {
   id: string;
   sectionKey: string;
+  type?: 'standard' | 'banner_group' | 'banner_single';
   name?: string;
   title?: string;
   subtitle?: string;
@@ -432,6 +437,39 @@ export interface ItemsPageCMS {
   quickSearchHeading: string;
   categoriesHeading: string;
   itemsListingHeading: string;
+  updatedAt?: number;
+}
+
+export interface PromoOfferModalSettings {
+  isActive: boolean;
+  isEnabled?: boolean;
+  badgeText?: string;
+  badge?: string;
+  heading?: string;
+  title?: string;
+  description?: string;
+  couponCode?: string;
+  features?: string[];
+  feature1?: string;
+  feature2?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  delaySeconds?: number;
+  updatedAt?: number;
+}
+
+export interface OffersPageCMS {
+  heading: string;
+  subheading?: string;
+  subtitle?: string;
+  bannerMode?: 'banner' | 'card' | 'none';
+  bannerActive?: boolean;
+  bannerBadge?: string;
+  bannerTitle?: string;
+  bannerSubtitle?: string;
+  bannerImageUrl?: string;
+  bannerLink?: string;
+  bannerGroupSlot?: string;
   updatedAt?: number;
 }
 

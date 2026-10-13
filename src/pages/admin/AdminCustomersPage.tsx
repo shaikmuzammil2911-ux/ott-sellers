@@ -122,8 +122,8 @@ export const AdminCustomersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Scrollable Responsive Table */}
-      <div className="admin-table-container">
+      {/* Scrollable Responsive Table (Desktop View) */}
+      <div className="admin-table-container desktop-only-table">
         <div className="admin-table-scroll">
           <table className="admin-data-table">
             <thead>
@@ -241,6 +241,105 @@ export const AdminCustomersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Customers Mobile Card View */}
+      <div className="admin-mobile-cards-view">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '30px 16px', color: '#94a3b8' }}>
+            <RefreshCw className="animate-spin" size={20} style={{ margin: '0 auto 8px', color: '#0284c7' }} />
+            Loading customers...
+          </div>
+        ) : filteredCustomers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8', background: '#0b132b', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            No customers found.
+          </div>
+        ) : (
+          filteredCustomers.map((c, idx) => (
+            <div
+              key={idx}
+              style={{
+                background: '#0b132b',
+                border: '1px solid #1e293b',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                <div className="admin-avatar-initial" style={{ width: '38px', height: '38px', fontSize: '1rem', flexShrink: 0 }}>
+                  {c.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#ffffff', fontWeight: 700 }}>
+                    {c.name}
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
+                    {c.email}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600 }}>
+                    {c.phone || '+91 9441323332'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '8px 10px', background: '#070d1e', borderRadius: '8px', fontSize: '0.78rem', marginBottom: '10px' }}>
+                <div>
+                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>Orders</span>
+                  <strong style={{ color: '#38bdf8' }}>{c.totalOrders} order(s)</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>Total Spent</span>
+                  <strong style={{ color: '#34d399' }}>₹{c.totalSpent}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #1e293b', gap: '8px' }}>
+                {c.phone ? (
+                  <a
+                    href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${c.name}, greetings from OTT SELLERS!`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 12px',
+                      background: '#22c55e',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    <MessageSquare size={13} /> WhatsApp
+                  </a>
+                ) : <div />}
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedCustomer(c)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    background: '#0f172a',
+                    border: '1px solid #1e293b',
+                    borderRadius: '8px',
+                    color: '#cbd5e1',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Eye size={13} /> View Profile
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Customer Orders History Modal */}

@@ -155,8 +155,8 @@ export const AdminOrdersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="admin-table-container">
+      {/* Orders Table (Desktop View) */}
+      <div className="admin-table-container desktop-only-table">
         <div className="admin-table-scroll">
           <table className="admin-data-table" style={{ minWidth: '780px' }}>
             <thead>
@@ -236,6 +236,90 @@ export const AdminOrdersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Orders Mobile Card View */}
+      <div className="admin-mobile-cards-view">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '30px 16px', color: '#94a3b8' }}>
+            <RefreshCw className="animate-spin" size={20} style={{ margin: '0 auto 8px', color: '#0284c7' }} />
+            Loading orders...
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8', background: '#0b132b', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            No orders found.
+          </div>
+        ) : (
+          filteredOrders.map((o) => (
+            <div
+              key={o.id}
+              style={{
+                background: '#0b132b',
+                border: '1px solid #1e293b',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#38bdf8', fontSize: '0.88rem' }}>
+                  {o.id}
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                  {o.date}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#ffffff', fontWeight: 700 }}>
+                    {o.customerName}
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
+                    {o.customerEmail}
+                  </p>
+                  {o.customerMobile && (
+                    <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: '#38bdf8' }}>
+                      {o.customerMobile}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 900, color: '#34d399', fontSize: '1.05rem' }}>₹{o.total}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{o.items.length} item(s)</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #1e293b', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {getPaymentBadge(o.paymentStatus)}
+                  {getStatusBadge(o.orderStatus)}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrder(o)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '5px 12px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '8px',
+                    color: '#38bdf8',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Eye size={13} /> View Details
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Order Details Modal */}

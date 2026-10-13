@@ -26,13 +26,6 @@ export const MobileBottomNav: React.FC = () => {
         <span className="bottom-nav-label">Items</span>
       </NavLink>
 
-      <NavLink 
-        to="/category/movies-series" 
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-      >
-        <Layers size={20} className="bottom-nav-icon" />
-        <span className="bottom-nav-label">Categories</span>
-      </NavLink>
 
       <NavLink 
         to="/offers" 

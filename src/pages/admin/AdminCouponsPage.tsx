@@ -332,8 +332,8 @@ export const AdminCouponsPage: React.FC = () => {
         </select>
       </div>
 
-      {/* Coupons Table */}
-      <div className="admin-table-container">
+      {/* Coupons Table (Desktop View) */}
+      <div className="admin-table-container desktop-only-table">
         <table className="admin-table">
           <thead>
             <tr>
@@ -431,6 +431,97 @@ export const AdminCouponsPage: React.FC = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Coupons Mobile Cards View */}
+      <div className="admin-mobile-cards-view">
+        {filteredCoupons.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8', background: '#0b132b', borderRadius: '12px', border: '1px solid #1e293b' }}>
+            No coupons found. Click <strong>+ Create New Coupon</strong> to create one.
+          </div>
+        ) : (
+          filteredCoupons.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                background: '#0b132b',
+                border: '1px solid #1e293b',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ 
+                  fontFamily: 'monospace', 
+                  fontSize: '0.96rem', 
+                  fontWeight: 800, 
+                  background: '#070d1e',
+                  border: '1px solid #38bdf8', 
+                  padding: '3px 8px', 
+                  borderRadius: '6px',
+                  color: '#38bdf8'
+                }}>
+                  {c.code}
+                </span>
+
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#22c55e' }}>
+                  {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.76rem', color: '#cbd5e1', marginBottom: '10px' }}>
+                <div>
+                  <span style={{ color: '#94a3b8' }}>Min Order: </span>
+                  <strong>{c.minOrderAmount ? `₹${c.minOrderAmount}` : 'None'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8' }}>Max Cap: </span>
+                  <strong>{c.maxDiscount ? `₹${c.maxDiscount}` : 'Uncapped'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8' }}>Applies to: </span>
+                  <strong style={{ textTransform: 'capitalize' }}>{c.applicability || 'All items'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8' }}>Valid till: </span>
+                  <strong>{c.expiresAt ? c.expiresAt.split('T')[0] : 'No Expiry'}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus(c)}
+                  className={`admin-badge ${c.isActive ? 'active' : 'inactive'}`}
+                  style={{ cursor: 'pointer', border: 'none', padding: '3px 8px', fontSize: '0.72rem' }}
+                >
+                  {c.isActive ? <Eye size={11} /> : <EyeOff size={11} />}
+                  <span>{c.isActive ? 'Active' : 'Inactive'}</span>
+                </button>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(c)}
+                    className="btn-primary-action"
+                    style={{ padding: '4px 10px', fontSize: '0.74rem' }}
+                  >
+                    <Edit2 size={12} /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCoupon(c.id, c.code)}
+                    className="btn-refresh-action"
+                    style={{ color: 'var(--admin-danger)', padding: '4px 8px' }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* CREATE / EDIT MODAL */}

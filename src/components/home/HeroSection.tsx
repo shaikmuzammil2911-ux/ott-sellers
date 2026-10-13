@@ -14,7 +14,13 @@ import { HeroBanner } from '../../types';
 import { ottApi, getCleanImageUrl } from '../../services/api';
 import './HeroSection.css';
 
-export const HeroSection: React.FC = () => {
+interface HeroSectionProps {
+  groupId?: string;
+  bannerId?: string;
+  displayMode?: 'slider' | 'fixed';
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({ groupId, bannerId, displayMode }) => {
   const [banners, setBanners] = useState<HeroBanner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -29,13 +35,38 @@ export const HeroSection: React.FC = () => {
   // Load banners dynamically from API / storage
   const loadBanners = useCallback(async () => {
     try {
+      if (bannerId) {
+        const all = await ottApi.getAllBannersAdmin();
+        const found = all.find(b => b.id === bannerId);
+        if (found && found.status === 'ON') {
+          setBanners([found]);
+        } else {
+          setBanners([]);
+        }
+        setCurrentIndex(0);
+        return;
+      }
+
+      if (groupId) {
+        const allBanners = await ottApi.getAllBannersAdmin();
+        const groupBanners = allBanners.filter((b: HeroBanner) => 
+          b.slot === groupId || 
+          b.slot === `group_${groupId}` || 
+          (b as any).groupId === groupId
+        );
+        setBanners(groupBanners.filter((b: HeroBanner) => b.status === 'ON'));
+        setCurrentIndex(0);
+        return;
+      }
+
+      // Default main hero banners
       const data = await ottApi.getBanners();
       setBanners(data || []);
       setCurrentIndex(0);
     } catch (err) {
       console.error('Error fetching banners:', err);
     }
-  }, []);
+  }, [groupId, bannerId]);
 
   useEffect(() => {
     loadBanners();
@@ -57,20 +88,23 @@ export const HeroSection: React.FC = () => {
     };
   }, [loadBanners]);
 
+  const effectiveDisplayMode = displayMode || banners[0]?.displayMode || 'slider';
+  const isSlider = effectiveDisplayMode === 'slider' && banners.length > 1;
+
   // Next / Prev slide handlers
   const handleNext = useCallback(() => {
-    if (banners.length <= 1) return;
+    if (!isSlider || banners.length <= 1) return;
     setCurrentIndex(prev => (prev + 1) % banners.length);
-  }, [banners.length]);
+  }, [isSlider, banners.length]);
 
   const handlePrev = useCallback(() => {
-    if (banners.length <= 1) return;
+    if (!isSlider || banners.length <= 1) return;
     setCurrentIndex(prev => (prev - 1 + banners.length) % banners.length);
-  }, [banners.length]);
+  }, [isSlider, banners.length]);
 
   // Auto-scrolling logic with loop & pause-on-hover
   useEffect(() => {
-    if (banners.length <= 1 || isPaused) {
+    if (!isSlider || isPaused) {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
       return;
     }
@@ -82,19 +116,21 @@ export const HeroSection: React.FC = () => {
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
-  }, [banners.length, isPaused, handleNext]);
+  }, [isSlider, isPaused, handleNext]);
 
   // Touch Swipe Handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isSlider) return;
     touchStartXRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSlider) return;
     touchEndXRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchEnd = () => {
-    if (!touchStartXRef.current || !touchEndXRef.current) return;
+    if (!isSlider || !touchStartXRef.current || !touchEndXRef.current) return;
     const diff = touchStartXRef.current - touchEndXRef.current;
     const minSwipeDistance = 45;
 
@@ -109,15 +145,7 @@ export const HeroSection: React.FC = () => {
   };
 
   if (!banners || banners.length === 0) {
-    return (
-      <section className="hero-section">
-        <div className="container">
-          <div className="hero-banner-card hero-skeleton-card">
-            <div className="hero-skeleton-loader"></div>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   const currentBanner = banners[currentIndex] || banners[0];
@@ -126,6 +154,22 @@ export const HeroSection: React.FC = () => {
     : (currentBanner.desktopImage || currentBanner.mobileImage);
 
   const bgUrl = getCleanImageUrl(activeBg || '/hero-bg.png', currentBanner.updatedAt);
+
+  // Check if text content exists (heading, subtitle, description, badge)
+  const hasTextContent = Boolean(
+    (currentBanner.title && currentBanner.title.trim()) ||
+    (currentBanner.subtitle && currentBanner.subtitle.trim()) ||
+    (currentBanner.description && currentBanner.description.trim()) ||
+    (currentBanner.badgeText && currentBanner.badgeText.trim())
+  );
+
+  const hasButtons = Boolean(
+    (currentBanner.ctaText && currentBanner.ctaText.trim()) ||
+    (currentBanner.secondaryCtaText && currentBanner.secondaryCtaText.trim()) ||
+    (currentBanner.buttons && currentBanner.buttons.length > 0)
+  );
+
+  const showOverlay = currentBanner.showText !== false && currentBanner.mode !== 'image-only' && hasTextContent;
 
   return (
     <section 
@@ -154,7 +198,6 @@ export const HeroSection: React.FC = () => {
                 backgroundImage: `url(${bgUrl || '/hero-bg.png'})`
               }}
             >
-              {/* Responsive <img> tag for optimal SEO and browser decoding */}
               <img 
                 src={bgUrl || '/hero-bg.png'} 
                 alt={currentBanner.title || 'OTT Sellers Banner'} 
@@ -167,8 +210,8 @@ export const HeroSection: React.FC = () => {
             </div>
           )}
 
-          {/* Readability treatment only when text overlay is enabled */}
-          {currentBanner.showText !== false && currentBanner.mode !== 'image-only' && (
+          {/* Readability treatment only when text overlay is actually present */}
+          {showOverlay && (
             <div className={`hero-readability-scrim align-${currentBanner.textPosition || 'left'}`}></div>
           )}
 
@@ -180,8 +223,8 @@ export const HeroSection: React.FC = () => {
           <div className="hero-ambient-orb orb-blue" aria-hidden="true"></div>
           <div className="hero-ambient-orb orb-gold" aria-hidden="true"></div>
 
-          {/* When image-only, whole card is a clean clickable banner */}
-          {currentBanner.mode === 'image-only' ? (
+          {/* When image has no text overlay and no buttons, make entire card clickable */}
+          {!showOverlay && !hasButtons ? (
             <Link 
               to={currentBanner.ctaLink || '/items'} 
               className="hero-image-only-link" 
@@ -196,121 +239,188 @@ export const HeroSection: React.FC = () => {
             >
               <span className="sr-only">{currentBanner.title || 'Explore Promotion'}</span>
             </Link>
-          ) : (
-            /* Slide Main Content for text overlay, split and blurred modes */
-            currentBanner.showText !== false ? (
-              <div className={`hero-slide-wrapper text-${currentBanner.textPosition || 'left'}`}>
-                <div className="hero-content-box">
-                  {currentBanner.badgeText && (
-                    <div 
-                      className="hero-pill-badge animated-badge"
-                      style={currentBanner.badgeColor ? { color: currentBanner.badgeColor, borderColor: currentBanner.badgeColor } : undefined}
+          ) : !showOverlay && hasButtons ? (
+            /* Image has artwork with buttons overlayed neatly without empty text headers */
+            <div className={`hero-slide-wrapper text-${currentBanner.textPosition || 'left'}`}>
+              <div className="hero-content-box" style={{ marginTop: 'auto' }}>
+                <div className="hero-ctas-row" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                  {currentBanner.ctaText && (
+                    <Link 
+                      to={currentBanner.ctaLink || '/items'} 
+                      className="btn-hero-primary animated-cta"
+                      style={{
+                        backgroundColor: currentBanner.btnBgColor || '#0284c7',
+                        color: currentBanner.btnTextColor || '#ffffff',
+                        borderColor: currentBanner.btnBorderColor || 'transparent'
+                      }}
                     >
-                      <Sparkles size={14} className="hero-sparkle-icon" />
-                      <span>{currentBanner.badgeText}</span>
-                      <span className="live-pulse-dot" style={currentBanner.badgeColor ? { backgroundColor: currentBanner.badgeColor } : undefined}></span>
-                    </div>
+                      <span>{currentBanner.ctaText}</span>
+                      <ArrowRight size={15} className="cta-arrow" />
+                    </Link>
                   )}
+                  {currentBanner.secondaryCtaText && (
+                    <a 
+                      href={currentBanner.secondaryCtaLink || '#categories'} 
+                      className="btn-hero-secondary"
+                    >
+                      <Play size={13} className="play-icon" />
+                      <span>{currentBanner.secondaryCtaText}</span>
+                    </a>
+                  )}
+                  {currentBanner.buttons && currentBanner.buttons.length > 0 && (
+                    currentBanner.buttons.map(btn => {
+                      const isExternal = btn.link.startsWith('http') || btn.link.startsWith('wa.me');
+                      const targetUrl = btn.link.startsWith('wa.me') ? `https://${btn.link}` : btn.link;
+                      const customStyle = {
+                        backgroundColor: btn.bgColor || currentBanner.btnBgColor || '#0284c7',
+                        color: btn.textColor || currentBanner.btnTextColor || '#ffffff',
+                        borderColor: btn.borderColor || currentBanner.btnBorderColor || 'transparent'
+                      };
+                      if (isExternal) {
+                        return (
+                          <a
+                            key={btn.id}
+                            href={targetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-hero-primary animated-cta"
+                            style={customStyle}
+                          >
+                            <span>{btn.label}</span>
+                            <ArrowRight size={15} className="cta-arrow" />
+                          </a>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={btn.id}
+                          to={btn.link}
+                          className="btn-hero-primary animated-cta"
+                          style={customStyle}
+                        >
+                          <span>{btn.label}</span>
+                          <ArrowRight size={15} className="cta-arrow" />
+                        </Link>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Full text overlay layout when headings/descriptions are provided */
+            <div className={`hero-slide-wrapper text-${currentBanner.textPosition || 'left'}`}>
+              <div className="hero-content-box">
+                {currentBanner.badgeText && (
+                  <div 
+                    className="hero-pill-badge animated-badge"
+                    style={currentBanner.badgeColor ? { color: currentBanner.badgeColor, borderColor: currentBanner.badgeColor } : undefined}
+                  >
+                    <Sparkles size={14} className="hero-sparkle-icon" />
+                    <span>{currentBanner.badgeText}</span>
+                    <span className="live-pulse-dot" style={currentBanner.badgeColor ? { backgroundColor: currentBanner.badgeColor } : undefined}></span>
+                  </div>
+                )}
 
+                {currentBanner.title && (
                   <h1 
                     className="hero-title"
                     style={currentBanner.titleColor ? { color: currentBanner.titleColor } : undefined}
                   >
                     {currentBanner.title}
                   </h1>
+                )}
 
-                  {currentBanner.subtitle && (
-                    <p 
-                      className="hero-subtitle"
-                      style={currentBanner.subtitleColor ? { color: currentBanner.subtitleColor } : undefined}
-                    >
-                      {currentBanner.subtitle}
-                    </p>
-                  )}
+                {currentBanner.subtitle && (
+                  <p 
+                    className="hero-subtitle"
+                    style={currentBanner.subtitleColor ? { color: currentBanner.subtitleColor } : undefined}
+                  >
+                    {currentBanner.subtitle}
+                  </p>
+                )}
 
-                  {currentBanner.description && (
-                    <p 
-                      className="hero-description-note"
+                {currentBanner.description && (
+                  <p 
+                    className="hero-description-note"
+                    style={{
+                      margin: '4px 0 10px',
+                      fontSize: '0.82rem',
+                      color: currentBanner.descriptionColor || '#94a3b8'
+                    }}
+                  >
+                    {currentBanner.description}
+                  </p>
+                )}
+
+                {/* Action CTA Buttons */}
+                <div className="hero-ctas-row" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                  {currentBanner.ctaText && (
+                    <Link 
+                      to={currentBanner.ctaLink || '/items'} 
+                      className="btn-hero-primary animated-cta"
                       style={{
-                        margin: '4px 0 10px',
-                        fontSize: '0.82rem',
-                        color: currentBanner.descriptionColor || '#94a3b8'
+                        backgroundColor: currentBanner.btnBgColor || '#0284c7',
+                        color: currentBanner.btnTextColor || '#ffffff',
+                        borderColor: currentBanner.btnBorderColor || 'transparent'
                       }}
                     >
-                      {currentBanner.description}
-                    </p>
+                      <span>{currentBanner.ctaText}</span>
+                      <ArrowRight size={15} className="cta-arrow" />
+                    </Link>
                   )}
 
-                  {/* Action CTA Buttons: Primary + Secondary + Additional Custom Buttons */}
-                  <div className="hero-ctas-row" style={{ flexWrap: 'wrap', gap: '10px' }}>
-                    {/* Primary Button */}
-                    {currentBanner.ctaText && (
-                      <Link 
-                        to={currentBanner.ctaLink || '/items'} 
-                        className="btn-hero-primary animated-cta"
-                        style={{
-                          backgroundColor: currentBanner.btnBgColor || '#0284c7',
-                          color: currentBanner.btnTextColor || '#ffffff',
-                          borderColor: currentBanner.btnBorderColor || 'transparent'
-                        }}
-                      >
-                        <span>{currentBanner.ctaText}</span>
-                        <ArrowRight size={15} className="cta-arrow" />
-                      </Link>
-                    )}
+                  {currentBanner.secondaryCtaText && (
+                    <a 
+                      href={currentBanner.secondaryCtaLink || '#categories'} 
+                      className="btn-hero-secondary"
+                    >
+                      <Play size={13} className="play-icon" />
+                      <span>{currentBanner.secondaryCtaText}</span>
+                    </a>
+                  )}
 
-                    {/* Secondary Button */}
-                    {currentBanner.secondaryCtaText && (
-                      <a 
-                        href={currentBanner.secondaryCtaLink || '#categories'} 
-                        className="btn-hero-secondary"
-                      >
-                        <Play size={13} className="play-icon" />
-                        <span>{currentBanner.secondaryCtaText}</span>
-                      </a>
-                    )}
-
-                    {/* Additional Custom Buttons */}
-                    {currentBanner.buttons && currentBanner.buttons.length > 0 && (
-                      currentBanner.buttons.map(btn => {
-                        const isExternal = btn.link.startsWith('http') || btn.link.startsWith('wa.me');
-                        const targetUrl = btn.link.startsWith('wa.me') ? `https://${btn.link}` : btn.link;
-                        const customStyle = {
-                          backgroundColor: btn.bgColor || currentBanner.btnBgColor || '#0284c7',
-                          color: btn.textColor || currentBanner.btnTextColor || '#ffffff',
-                          borderColor: btn.borderColor || currentBanner.btnBorderColor || 'transparent'
-                        };
-                        if (isExternal) {
-                          return (
-                            <a
-                              key={btn.id}
-                              href={targetUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn-hero-primary animated-cta"
-                              style={customStyle}
-                            >
-                              <span>{btn.label}</span>
-                              <ArrowRight size={15} className="cta-arrow" />
-                            </a>
-                          );
-                        }
+                  {currentBanner.buttons && currentBanner.buttons.length > 0 && (
+                    currentBanner.buttons.map(btn => {
+                      const isExternal = btn.link.startsWith('http') || btn.link.startsWith('wa.me');
+                      const targetUrl = btn.link.startsWith('wa.me') ? `https://${btn.link}` : btn.link;
+                      const customStyle = {
+                        backgroundColor: btn.bgColor || currentBanner.btnBgColor || '#0284c7',
+                        color: btn.textColor || currentBanner.btnTextColor || '#ffffff',
+                        borderColor: btn.borderColor || currentBanner.btnBorderColor || 'transparent'
+                      };
+                      if (isExternal) {
                         return (
-                          <Link
+                          <a
                             key={btn.id}
-                            to={btn.link}
+                            href={targetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="btn-hero-primary animated-cta"
                             style={customStyle}
                           >
                             <span>{btn.label}</span>
                             <ArrowRight size={15} className="cta-arrow" />
-                          </Link>
+                          </a>
                         );
-                      })
-                    )}
-                  </div>
+                      }
+                      return (
+                        <Link
+                          key={btn.id}
+                          to={btn.link}
+                          className="btn-hero-primary animated-cta"
+                          style={customStyle}
+                        >
+                          <span>{btn.label}</span>
+                          <ArrowRight size={15} className="cta-arrow" />
+                        </Link>
+                      );
+                    })
+                  )}
+                </div>
 
-                  {/* Instant Trust Micro-points */}
+                {/* Instant Trust Micro-points */}
+                {!groupId && !bannerId && (
                   <div className="hero-trust-bullets">
                     <div className="trust-bullet-item">
                       <Zap size={13} className="trust-bullet-icon zap" />
@@ -321,13 +431,13 @@ export const HeroSection: React.FC = () => {
                       <span>Full Duration Warranty</span>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            ) : null
+            </div>
           )}
 
           {/* Desktop Navigation Arrows */}
-          {banners.length > 1 && (
+          {isSlider && (
             <div className="hero-slider-arrows desktop-only">
               <button 
                 type="button" 
@@ -349,7 +459,7 @@ export const HeroSection: React.FC = () => {
           )}
 
           {/* Pagination Indicators / Dots */}
-          {banners.length > 1 && (
+          {isSlider && (
             <div className="hero-pagination-dots" role="tablist">
               {banners.map((b, idx) => (
                 <button
@@ -367,18 +477,20 @@ export const HeroSection: React.FC = () => {
             </div>
           )}
 
-          {/* Bottom Live Streaming Ticker Strip */}
-          <div className="hero-bottom-ticker">
-            <div className="ticker-track">
-              <span className="ticker-item"><Flame size={13} color="#f97316" /> 240+ Subscriptions Activated Today</span>
-              <span className="ticker-dot">•</span>
-              <span className="ticker-item"><Zap size={13} color="#38bdf8" /> Instant Dispatch: 5-15 Mins</span>
-              <span className="ticker-dot">•</span>
-              <span className="ticker-item"><ShieldCheck size={13} color="#22c55e" /> 100% Genuine Profiles with PIN Lock</span>
-              <span className="ticker-dot">•</span>
-              <span className="ticker-item"><Sparkles size={13} color="#f59e0b" /> 50,000+ Happy Streamers Nationwide</span>
+          {/* Bottom Live Streaming Ticker Strip for Main Hero only */}
+          {!groupId && !bannerId && (
+            <div className="hero-bottom-ticker">
+              <div className="ticker-track">
+                <span className="ticker-item"><Flame size={13} color="#f97316" /> 240+ Subscriptions Activated Today</span>
+                <span className="ticker-dot">•</span>
+                <span className="ticker-item"><Zap size={13} color="#38bdf8" /> Instant Dispatch: 5-15 Mins</span>
+                <span className="ticker-dot">•</span>
+                <span className="ticker-item"><ShieldCheck size={13} color="#22c55e" /> 100% Genuine Profiles with PIN Lock</span>
+                <span className="ticker-dot">•</span>
+                <span className="ticker-item"><Sparkles size={13} color="#f59e0b" /> 50,000+ Happy Streamers Nationwide</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

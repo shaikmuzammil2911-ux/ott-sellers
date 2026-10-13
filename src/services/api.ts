@@ -12,7 +12,8 @@ import { INITIAL_COUPONS } from '../data/couponsData';
 import { 
   Product, ProductPlan, Category, SubCategory, Provider, Catalog, Order, User, 
   HeroBanner, BannerGroup, Course, HomepageSectionCMS, AdminSettings, AuditLog,
-  CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings, ItemsPageCMS 
+  CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings, 
+  ItemsPageCMS, PromoOfferModalSettings, OffersPageCMS 
 } from '../types';
 
 export const ADMIN_CONFIG = {
@@ -42,6 +43,8 @@ export const STORAGE_KEYS = {
   WHATSAPP: 'ott_sellers_whatsapp_cms',
   REFERRAL: 'ott_sellers_referral_cms',
   ITEMS_PAGE_CMS: 'ott_sellers_items_page_cms',
+  PROMO_MODAL: 'ott_sellers_promo_modal',
+  OFFERS_PAGE_CMS: 'ott_sellers_offers_cms',
   ADMIN_AUTH: 'ott_sellers_admin_auth_state',
   ADMIN_OTP: 'ott_sellers_admin_otp'
 };
@@ -52,6 +55,29 @@ export const DEFAULT_ITEMS_PAGE_CMS: ItemsPageCMS = {
   quickSearchHeading: 'Quick Search',
   categoriesHeading: 'Explore Categories',
   itemsListingHeading: 'All Available Plans'
+};
+
+export const DEFAULT_PROMO_MODAL_SETTINGS: PromoOfferModalSettings = {
+  isActive: true,
+  badgeText: 'LIMITED TIME PROMO',
+  heading: 'Unlock Extra 20% OFF Your First Subscription!',
+  description: 'Get instant access to Netflix, Prime Video, Hotstar, and SonyLIV with our exclusive festival promo coupon code.',
+  couponCode: 'OTT20',
+  feature1: '⚡ 5-Min WhatsApp Delivery',
+  feature2: '🔒 100% Replacement Warranty',
+  buttonText: 'Claim Deal & Browse Plans',
+  buttonLink: '/items'
+};
+
+export const DEFAULT_OFFERS_PAGE_CMS: OffersPageCMS = {
+  heading: 'Special Promotional Offers & Binge Deals',
+  subheading: 'Exclusive discounted subscriptions • Instant WhatsApp credentials delivery • 100% Genuine Profiles',
+  bannerMode: 'banner',
+  bannerBadge: 'Verified OTT Platform',
+  bannerTitle: 'Special Promotional Deals',
+  bannerSubtitle: 'Exclusive discounted subscriptions & wholesale packages',
+  bannerImageUrl: '/hero-desktop-2.jpg',
+  bannerLink: '/items'
 };
 
 export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
@@ -628,6 +654,81 @@ export const ottApi = {
         updated_at: new Date().toISOString()
       });
     } catch {}
+  },
+
+  async reorderBannersInGroup(slot: string, bannerId: string, direction: 'up' | 'down'): Promise<HeroBanner[]> {
+    const allBanners = await this.getAllBannersAdmin();
+    const groupBanners = allBanners
+      .filter(b => (b.slot || '01') === slot)
+      .sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1));
+    
+    const index = groupBanners.findIndex(b => b.id === bannerId);
+    if (index === -1) return allBanners;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= groupBanners.length) return allBanners;
+
+    const current = groupBanners[index];
+    const target = groupBanners[targetIndex];
+
+    const currentOrder = current.displayOrder || (index + 1);
+    const targetOrder = target.displayOrder || (targetIndex + 1);
+
+    current.displayOrder = targetOrder;
+    target.displayOrder = currentOrder;
+
+    groupBanners[index] = target;
+    groupBanners[targetIndex] = current;
+
+    groupBanners.forEach((b, idx) => {
+      b.displayOrder = idx + 1;
+    });
+
+    const updatedAll = allBanners.map(b => {
+      const updated = groupBanners.find(gb => gb.id === b.id);
+      return updated || b;
+    });
+
+    await this.saveBanners(updatedAll);
+    return updatedAll;
+  },
+
+  async addExistingBannerToGroup(bannerId: string, targetSlot: string, groupName: string): Promise<void> {
+    const allBanners = await this.getAllBannersAdmin();
+    const targetGroupBanners = allBanners.filter(b => (b.slot || '01') === targetSlot);
+    const nextOrder = targetGroupBanners.length + 1;
+
+    const updatedAll = allBanners.map(b => {
+      if (b.id === bannerId) {
+        return {
+          ...b,
+          slot: targetSlot,
+          groupName: groupName,
+          displayOrder: nextOrder,
+          updatedAt: Date.now()
+        };
+      }
+      return b;
+    });
+
+    await this.saveBanners(updatedAll);
+  },
+
+  async removeBannerFromGroup(bannerId: string): Promise<void> {
+    const allBanners = await this.getAllBannersAdmin();
+    const updatedAll = allBanners.map(b => {
+      if (b.id === bannerId) {
+        return {
+          ...b,
+          slot: 'unassigned',
+          groupName: 'Unassigned Banners',
+          updatedAt: Date.now()
+        };
+      }
+      return b;
+    });
+
+    await this.saveBanners(updatedAll);
   },
 
   // ====================================================================
@@ -1312,6 +1413,43 @@ export const ottApi = {
     try {
       await supabase.from('products').delete().eq('id', id);
     } catch {}
+  },
+
+  async reorderProduct(productId: string, direction: 'up' | 'down'): Promise<Product[]> {
+    const products = await this.getAllProductsAdmin();
+    const index = products.findIndex(p => p.id === productId);
+    if (index === -1) return products;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= products.length) return products;
+
+    const current = products[index];
+    const target = products[targetIndex];
+
+    const currentOrder = current.displayOrder ?? (index + 1);
+    const targetOrder = target.displayOrder ?? (targetIndex + 1);
+
+    current.displayOrder = targetOrder;
+    target.displayOrder = currentOrder;
+
+    products[index] = target;
+    products[targetIndex] = current;
+
+    products.forEach((p, idx) => {
+      p.displayOrder = idx + 1;
+    });
+
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    broadcastDataUpdate('products');
+
+    try {
+      await Promise.all([
+        supabase.from('products').update({ sort_order: current.displayOrder }).eq('id', current.id),
+        supabase.from('products').update({ sort_order: target.displayOrder }).eq('id', target.id)
+      ]);
+    } catch {}
+
+    return products;
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -2190,7 +2328,10 @@ export const ottApi = {
           (item.categoryName && match.applicableCategorySlugs?.some(slug => slug.toLowerCase() === item.categoryName?.toLowerCase()))
         );
       } else if ((match.applicability === 'single_item' || match.applicability === 'multiple_items') && match.applicableProductIds && match.applicableProductIds.length > 0) {
-        eligibleItems = cartItems.filter(item => match.applicableProductIds?.includes(item.productId));
+        eligibleItems = cartItems.filter(item => 
+          match.applicableProductIds?.includes(item.productId) ||
+          ((item as any).productSlug && match.applicableProductIds?.includes((item as any).productSlug))
+        );
       }
 
       if (eligibleItems.length === 0) {
@@ -2256,20 +2397,16 @@ export const ottApi = {
         code: cleanCode,
         discount_type: couponToSave.discountType,
         discount_value: couponToSave.discountValue,
-        min_order_amount: couponToSave.minOrderAmount,
-        max_discount: couponToSave.maxDiscount,
-        description: couponToSave.description,
+        min_order_amount: couponToSave.minOrderAmount != null ? couponToSave.minOrderAmount : null,
+        max_discount: couponToSave.maxDiscount != null ? couponToSave.maxDiscount : null,
+        description: couponToSave.description || null,
         is_active: couponToSave.isActive,
-        start_date: couponToSave.startDate,
-        start_time: couponToSave.startTime,
-        expires_at: couponToSave.expiresAt,
-        expiry_time: couponToSave.expiryTime,
-        message_heading: couponToSave.messageHeading,
-        customer_message: couponToSave.customerMessage,
-        expired_message: couponToSave.expiredMessage,
-        invalid_message: couponToSave.invalidMessage,
-        not_started_message: couponToSave.notStartedMessage,
-        success_message: couponToSave.successMessage,
+        start_date: couponToSave.startDate || null,
+        start_time: couponToSave.startTime || null,
+        expires_at: couponToSave.expiresAt || null,
+        expiry_time: couponToSave.expiryTime || null,
+        message_heading: couponToSave.messageHeading || null,
+        customer_message: couponToSave.customerMessage || null,
         applicability: couponToSave.applicability || 'all',
         applicable_category_slugs: couponToSave.applicableCategorySlugs || [],
         applicable_product_ids: couponToSave.applicableProductIds || [],
@@ -2278,22 +2415,105 @@ export const ottApi = {
 
       const { error } = await supabase.from('coupons').upsert(payload, { onConflict: 'code' });
       if (error) {
+        console.warn('Coupon full payload error, trying core payload:', error);
         const corePayload = {
           id: couponToSave.id,
           code: cleanCode,
           discount_type: couponToSave.discountType,
           discount_value: couponToSave.discountValue,
-          min_order_amount: couponToSave.minOrderAmount,
-          max_discount: couponToSave.maxDiscount,
-          description: couponToSave.description,
+          min_order_amount: couponToSave.minOrderAmount != null ? couponToSave.minOrderAmount : null,
+          max_discount: couponToSave.maxDiscount != null ? couponToSave.maxDiscount : null,
+          description: couponToSave.description || null,
           is_active: couponToSave.isActive,
+          start_date: couponToSave.startDate || null,
+          start_time: couponToSave.startTime || null,
+          expires_at: couponToSave.expiresAt || null,
+          expiry_time: couponToSave.expiryTime || null,
           applicability: couponToSave.applicability || 'all',
+          applicable_product_ids: couponToSave.applicableProductIds || [],
+          applicable_category_slugs: couponToSave.applicableCategorySlugs || [],
           updated_at: new Date().toISOString()
         };
         await supabase.from('coupons').upsert(corePayload, { onConflict: 'code' });
       }
     } catch (e) {
       console.warn('Supabase coupons sync notice:', e);
+    }
+  },
+
+  async getPromoModalSettings(): Promise<PromoOfferModalSettings> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('promo_modal_settings')
+        .eq('id', 'global')
+        .maybeSingle();
+
+      if (!error && (data as any)?.promo_modal_settings) {
+        localStorage.setItem(STORAGE_KEYS.PROMO_MODAL, JSON.stringify((data as any).promo_modal_settings));
+        return (data as any).promo_modal_settings;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PROMO_MODAL);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return DEFAULT_PROMO_MODAL_SETTINGS;
+  },
+
+  async savePromoModalSettings(settings: PromoOfferModalSettings): Promise<void> {
+    const item = { ...settings, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEYS.PROMO_MODAL, JSON.stringify(item));
+    broadcastDataUpdate('promo_modal');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        promo_modal_settings: item,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Failed to sync promo modal to Supabase:', e);
+    }
+  },
+
+  async getOffersPageCMS(): Promise<OffersPageCMS> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('offers_page_cms')
+        .eq('id', 'global')
+        .maybeSingle();
+
+      if (!error && (data as any)?.offers_page_cms) {
+        localStorage.setItem(STORAGE_KEYS.OFFERS_PAGE_CMS, JSON.stringify((data as any).offers_page_cms));
+        return (data as any).offers_page_cms;
+      }
+    } catch {}
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.OFFERS_PAGE_CMS);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+
+    return DEFAULT_OFFERS_PAGE_CMS;
+  },
+
+  async saveOffersPageCMS(cms: OffersPageCMS): Promise<void> {
+    const item = { ...cms, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEYS.OFFERS_PAGE_CMS, JSON.stringify(item));
+    broadcastDataUpdate('offers_cms');
+
+    try {
+      await supabase.from('admin_settings').upsert({
+        id: 'global',
+        offers_page_cms: item,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Failed to sync offers page CMS to Supabase:', e);
     }
   },
 
