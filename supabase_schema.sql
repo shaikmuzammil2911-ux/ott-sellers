@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS public.homepage_sections (
   is_active BOOLEAN DEFAULT true,
   sort_order INT DEFAULT 0,
   display_order INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE public.homepage_sections ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'standard';
