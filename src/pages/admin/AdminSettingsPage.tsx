@@ -13,16 +13,24 @@ import { uploadService } from '../../services/uploadService';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { 
   AdminSettings, FooterSettings, WhatsAppSettings, ReferralSettings, FooterQuickLink, ItemsPageCMS,
-  PromoOfferModalSettings, OffersPageCMS
+  PromoOfferModalSettings, OffersPageCMS, PaymentSettings
 } from '../../types';
 
 export const AdminSettingsPage: React.FC = () => {
   const { changePassword } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'footer' | 'items_cms' | 'promo_modal' | 'offers_cms' | 'security'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'payments' | 'whatsapp' | 'footer' | 'items_cms' | 'promo_modal' | 'offers_cms' | 'security'>('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
+
+  // Payment Methods State
+  const [payOnlineEnabled, setPayOnlineEnabled] = useState(true);
+  const [payOnlineTitle, setPayOnlineTitle] = useState('Pay Now Online');
+  const [payOnlineDesc, setPayOnlineDesc] = useState('Pay securely using UPI apps, Debit/Credit cards, or NetBanking.');
+  const [payWhatsappEnabled, setPayWhatsappEnabled] = useState(true);
+  const [payWhatsappTitle, setPayWhatsappTitle] = useState('Order/Pay on WhatsApp');
+  const [payWhatsappDesc, setPayWhatsappDesc] = useState('Continue on WhatsApp to confirm your order with our team for manual UPI transfer.');
 
   // General & Branding State
   const [siteName, setSiteName] = useState('OTT SELLERS');
@@ -107,14 +115,24 @@ export const AdminSettingsPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [s, footer, ws, itemsCms, promoCms, offersCms] = await Promise.all([
+      const [s, footer, ws, itemsCms, promoCms, offersCms, paySettings] = await Promise.all([
         ottApi.getAdminSettings(),
         ottApi.getFooterSettings(),
         ottApi.getWhatsAppSettings(),
         ottApi.getItemsPageCMS(),
         ottApi.getPromoModalSettings(),
-        ottApi.getOffersPageCMS()
+        ottApi.getOffersPageCMS(),
+        ottApi.getPaymentSettings()
       ]);
+
+      if (paySettings) {
+        setPayOnlineEnabled(paySettings.online?.enabled ?? true);
+        setPayOnlineTitle(paySettings.online?.title || 'Pay Now Online');
+        setPayOnlineDesc(paySettings.online?.description || 'Pay securely using UPI apps, Debit/Credit cards, or NetBanking.');
+        setPayWhatsappEnabled(paySettings.whatsapp?.enabled ?? true);
+        setPayWhatsappTitle(paySettings.whatsapp?.title || 'Order/Pay on WhatsApp');
+        setPayWhatsappDesc(paySettings.whatsapp?.description || 'Continue on WhatsApp to confirm your order with our team for manual UPI transfer.');
+      }
 
       setSiteName(s.siteName || 'OTT SELLERS');
       setLogoUrl(s.logoUrl || '/logo.png');
@@ -296,6 +314,33 @@ export const AdminSettingsPage: React.FC = () => {
       showToast('Store settings & WhatsApp templates saved successfully! Live storefront updated.');
     } catch (err: any) {
       showError(err?.message || 'Failed to save settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePaymentSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const updatedSettings: PaymentSettings = {
+        online: {
+          enabled: payOnlineEnabled,
+          title: payOnlineTitle.trim() || 'Pay Now Online',
+          description: payOnlineDesc.trim() || 'Pay securely using UPI apps, Debit/Credit cards, or NetBanking.'
+        },
+        whatsapp: {
+          enabled: payWhatsappEnabled,
+          title: payWhatsappTitle.trim() || 'Order/Pay on WhatsApp',
+          description: payWhatsappDesc.trim() || 'Continue on WhatsApp to confirm your order with our team for manual UPI transfer.'
+        }
+      };
+
+      await ottApi.savePaymentSettings(updatedSettings);
+      await ottApi.logAudit('UPDATE_PAYMENT_SETTINGS', 'admin_settings', 'payment_settings', updatedSettings);
+      showToast('Payment methods configuration saved & updated live on checkout!');
+    } catch (err: any) {
+      showError(err?.message || 'Failed to save payment settings.');
     } finally {
       setSaving(false);
     }
@@ -514,6 +559,14 @@ export const AdminSettingsPage: React.FC = () => {
         </button>
         <button
           type="button"
+          className={`admin-tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payments')}
+        >
+          <CreditCard size={14} style={{ marginRight: '6px' }} />
+          <span>Payment Methods</span>
+        </button>
+        <button
+          type="button"
           className={`admin-tab-btn ${activeTab === 'whatsapp' ? 'active' : ''}`}
           onClick={() => setActiveTab('whatsapp')}
         >
@@ -627,7 +680,170 @@ export const AdminSettingsPage: React.FC = () => {
         </form>
       )}
 
-      {/* TAB 2: WhatsApp CMS (Module 9.1 & 9.2) */}
+      {/* TAB: Payment Methods Configuration */}
+      {activeTab === 'payments' && (
+        <form onSubmit={handleSavePaymentSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Method 1: Pay Now Online */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CreditCard size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    1. Pay Now Online (Razorpay Gateway)
+                  </h2>
+                  <p style={{ fontSize: '0.76rem', color: '#64748b', margin: '2px 0 0' }}>
+                    Instant online checkout via Google Pay, PhonePe, Paytm, BHIM UPI, Debit/Credit Cards & NetBanking.
+                  </p>
+                </div>
+              </div>
+
+              {/* Enable / Disable Toggle */}
+              <button
+                type="button"
+                onClick={() => setPayOnlineEnabled(!payOnlineEnabled)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  background: payOnlineEnabled ? '#dcfce7' : '#fee2e2',
+                  color: payOnlineEnabled ? '#15803d' : '#dc2626'
+                }}
+              >
+                {payOnlineEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
+                <span>{payOnlineEnabled ? 'Enabled on Checkout' : 'Disabled (Hidden)'}</span>
+              </button>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Payment Method Title *</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Pay Now Online"
+                value={payOnlineTitle}
+                onChange={(e) => setPayOnlineTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Payment Description / Subtext *</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Pay securely using UPI apps, Debit/Credit cards, or NetBanking."
+                value={payOnlineDesc}
+                onChange={(e) => setPayOnlineDesc(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="admin-form-label" style={{ marginBottom: '6px' }}>Supported Customer Badges</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI', 'Visa / Mastercard', 'NetBanking'].map(badge => (
+                  <span key={badge} style={{ fontSize: '0.74rem', background: '#f1f5f9', color: '#334155', padding: '3px 10px', borderRadius: '6px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                    ✓ {badge}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Method 2: Order/Pay on WhatsApp */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MessageSquare size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    2. Order / Pay on WhatsApp
+                  </h2>
+                  <p style={{ fontSize: '0.76rem', color: '#64748b', margin: '2px 0 0' }}>
+                    Connects customer directly to executive WhatsApp with formatted cart order for manual UPI transfer.
+                  </p>
+                </div>
+              </div>
+
+              {/* Enable / Disable Toggle */}
+              <button
+                type="button"
+                onClick={() => setPayWhatsappEnabled(!payWhatsappEnabled)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  background: payWhatsappEnabled ? '#dcfce7' : '#fee2e2',
+                  color: payWhatsappEnabled ? '#15803d' : '#dc2626'
+                }}
+              >
+                {payWhatsappEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
+                <span>{payWhatsappEnabled ? 'Enabled on Checkout' : 'Disabled (Hidden)'}</span>
+              </button>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Payment Method Title *</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Order/Pay on WhatsApp"
+                value={payWhatsappTitle}
+                onChange={(e) => setPayWhatsappTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-form-label">Payment Description / Subtext *</label>
+              <input
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Continue on WhatsApp to confirm your order with our team."
+                value={payWhatsappDesc}
+                onChange={(e) => setPayWhatsappDesc(e.target.value)}
+                required
+              />
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#475569' }}>
+              Connected Receiving Number: <strong>+{whatsappNumber}</strong> (Configured in WhatsApp CMS tab)
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary-action"
+              style={{ padding: '12px 24px', fontSize: '0.9rem' }}
+            >
+              <Save size={16} />
+              <span>{saving ? 'Saving Settings...' : 'Save Payment Methods'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* TAB 3: WhatsApp CMS (Module 9.1 & 9.2) */}
       {activeTab === 'whatsapp' && (
         <form onSubmit={handleSaveGeneralAndWhatsApp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>

@@ -193,8 +193,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ groupId, bannerId, dis
               : '#070d1e'
           }}
         >
-          {/* Background Image Layer */}
-          {(currentBanner.mode !== 'solid-color' || activeBg) && (
+          {/* Background Image Layer (Mode-dependent) */}
+          {currentBanner.mode !== 'solid-color' && (
             <div 
               className={`hero-bg-media-layer ${currentBanner.mode === 'image-blur' ? 'is-blurred' : 'is-sharp'}`}
               style={{
@@ -213,18 +213,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ groupId, bannerId, dis
             </div>
           )}
 
-          {/* Readability treatment only when text overlay is actually present */}
-          {showOverlay && (
+          {/* Readability treatment only when text overlay is actually present and mode is not image-only */}
+          {showOverlay && currentBanner.mode !== 'image-only' && (
             <div className={`hero-readability-scrim align-${currentBanner.textPosition || 'left'}`}></div>
           )}
 
-          {/* Animated Light Sheen Sweep Effect */}
-          <div className="hero-light-sweep" aria-hidden="true"></div>
-
-          {/* Ambient Glow Orbs */}
-          <div className="hero-ambient-orb orb-red" aria-hidden="true"></div>
-          <div className="hero-ambient-orb orb-blue" aria-hidden="true"></div>
-          <div className="hero-ambient-orb orb-gold" aria-hidden="true"></div>
+          {/* Animated Light Sheen Sweep Effect & Ambient Glow (Only for non-image-only modes) */}
+          {currentBanner.mode !== 'image-only' && (
+            <>
+              <div className="hero-light-sweep" aria-hidden="true"></div>
+              <div className="hero-ambient-orb orb-red" aria-hidden="true"></div>
+              <div className="hero-ambient-orb orb-blue" aria-hidden="true"></div>
+              <div className="hero-ambient-orb orb-gold" aria-hidden="true"></div>
+            </>
+          )}
 
           {/* When image has no text overlay and no buttons, make entire card clickable */}
           {!showOverlay && !hasButtons ? (

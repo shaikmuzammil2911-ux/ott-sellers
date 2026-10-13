@@ -65,11 +65,24 @@
 
 .hero-bg-media-layer.is-sharp {
   filter: none !important;
+  transform: none !important;
 }
 
-.hero-bg-media-layer.is-blurred {
-  filter: blur(6px) saturate(1.2);
-  transform: scale(1.04);
+.hero-banner-card.mode-image-only .hero-bg-media-layer {
+  filter: none !important;
+  transform: none !important;
+  background-size: cover;
+  background-position: center center;
+}
+
+.hero-banner-card.mode-solid-color .hero-bg-media-layer {
+  display: none !important;
+}
+
+.hero-bg-media-layer.is-blurred,
+.hero-banner-card.mode-image-blur .hero-bg-media-layer {
+  filter: blur(8px) saturate(1.2) !important;
+  transform: scale(1.05) !important;
 }
 
 .hero-media-preload {

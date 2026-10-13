@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { ottApi } from '../services/api';
 import { paymentService } from '../services/paymentService';
 import { EmptyState } from '../components/common/EmptyState';
+import { PaymentSettings } from '../types';
 import './CartPage.css';
 
 export const CartPage: React.FC = () => {
@@ -35,6 +36,7 @@ export const CartPage: React.FC = () => {
   const [phone, setPhone] = useState(user?.mobile || '');
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp || user?.mobile || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [remarks, setRemarks] = useState('');
 
   // Coupon State
   const [inputCouponCode, setInputCouponCode] = useState('');
@@ -45,19 +47,40 @@ export const CartPage: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // WhatsApp Admin Settings
+  // Admin Settings (WhatsApp & Payment Methods)
   const [whatsappSettings, setWhatsappSettings] = useState<any>(null);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    const loadWs = async () => {
+    const loadSettings = async () => {
       try {
-        const ws = await ottApi.getWhatsAppSettings();
+        const [ws, ps] = await Promise.all([
+          ottApi.getWhatsAppSettings(),
+          ottApi.getPaymentSettings()
+        ]);
         setWhatsappSettings(ws);
-      } catch {}
+        setPaymentSettings(ps);
+      } catch (err) {
+        console.error('Failed to load settings in cart:', err);
+      }
     };
-    loadWs();
+    loadSettings();
   }, []);
+
+  const handleClearCart = () => {
+    setRemarks('');
+    setInputCouponCode('');
+    clearCart();
+  };
+
+  const handleRemoveItem = (productId: string, planDuration: string) => {
+    if (items.length <= 1) {
+      setRemarks('');
+      setInputCouponCode('');
+    }
+    removeFromCart(productId, planDuration as any);
+  };
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +138,11 @@ export const CartPage: React.FC = () => {
         customerPhone: whatsapp || phone,
         description: `OTT Sellers - ${items.length} Subscriptions Order`,
         onSuccess: async (paymentId: string) => {
+          const paymentNotes = [
+            remarks.trim() ? `Customer Note: ${remarks.trim()}` : null,
+            `Razorpay Payment ID: ${paymentId}`
+          ].filter(Boolean).join(' | ');
+
           const newOrder = await ottApi.createOrder({
             customerName: fullName,
             customerEmail: email,
@@ -129,10 +157,10 @@ export const CartPage: React.FC = () => {
             paymentMethod: 'Razorpay Secure Online (UPI / Card / NetBanking)',
             paymentStatus: 'Success',
             orderStatus: 'Paid',
-            notes: `Razorpay Payment ID: ${paymentId}`
+            notes: paymentNotes
           });
 
-          clearCart();
+          handleClearCart();
           setIsPaymentModalOpen(false);
           navigate(`/checkout/success?orderId=${newOrder.id}`);
         },
@@ -170,6 +198,11 @@ export const CartPage: React.FC = () => {
 
       const finalTotal = totalPrice;
 
+      const orderNotes = [
+        remarks.trim() ? `Customer Note: ${remarks.trim()}` : null,
+        'Placed via direct WhatsApp checkout'
+      ].filter(Boolean).join(' | ');
+
       // Create Pending Order Record
       const newOrder = await ottApi.createOrder({
         customerName: fullName,
@@ -185,14 +218,14 @@ export const CartPage: React.FC = () => {
         paymentMethod: 'WhatsApp Instant Verification & UPI',
         paymentStatus: 'Pending',
         orderStatus: 'Pending',
-        notes: 'Placed via direct WhatsApp checkout'
+        notes: orderNotes
       });
 
       // Format dynamic template
       const itemsListText = items.map((it, idx) => `${idx + 1}. ${it.name} [${it.planDuration}] x ${it.quantity} = ₹${it.price * it.quantity}`).join('\n');
       
       const targetPhone = (whatsappSettings?.number || '9441323332').replace(/[^0-9]/g, '');
-      const formattedMsg = ottApi.formatWhatsAppOrderMessage(whatsappSettings?.orderMessageTemplate, {
+      let formattedMsg = ottApi.formatWhatsAppOrderMessage(whatsappSettings?.orderMessageTemplate, {
         order_id: newOrder.id,
         customer_name: fullName,
         customer_phone: whatsapp || phone,
@@ -204,7 +237,11 @@ export const CartPage: React.FC = () => {
         payment_status: 'Pending Verification'
       });
 
-      clearCart();
+      if (remarks.trim()) {
+        formattedMsg += `\n\n*Customer Remarks:* ${remarks.trim()}`;
+      }
+
+      handleClearCart();
       setIsPaymentModalOpen(false);
       window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(formattedMsg)}`, '_blank');
       navigate(`/account/orders/${newOrder.id}`);
@@ -242,7 +279,7 @@ export const CartPage: React.FC = () => {
           <button 
             type="button" 
             className="clear-cart-text-btn"
-            onClick={clearCart}
+            onClick={handleClearCart}
           >
             Clear Cart
           </button>
@@ -287,7 +324,7 @@ export const CartPage: React.FC = () => {
                       <button 
                         type="button" 
                         className="cart-item-delete-btn"
-                        onClick={() => removeFromCart(item.productId, item.planDuration)}
+                        onClick={() => handleRemoveItem(item.productId, item.planDuration)}
                         aria-label={`Remove ${item.name} from cart`}
                         title="Remove item"
                       >
@@ -392,6 +429,18 @@ export const CartPage: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                  />
+                </div>
+
+                <div className="form-group" style={{ gridColumn: '1 / -1', margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Order Remarks / Notes (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ padding: '9px 12px', fontSize: '0.86rem' }}
+                    placeholder="e.g. Any special instructions, custom name preference, etc."
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
                   />
                 </div>
               </div>
@@ -535,43 +584,81 @@ export const CartPage: React.FC = () => {
 
               {/* Payment Methods */}
               <div className="payment-options-stack">
-                {/* Method 1: Razorpay Online Payment Gateway */}
-                <button
-                  type="button"
-                  onClick={handleRazorpayPayment}
-                  disabled={isProcessingPayment}
-                  className="payment-option-card online-gateway-card"
-                >
-                  <div className="payment-option-content">
-                    <div className="payment-option-icon-box online-icon-box">
-                      <CreditCard size={22} />
+                {(!paymentSettings || (paymentSettings.online?.enabled ?? true)) && (
+                  <button
+                    type="button"
+                    onClick={handleRazorpayPayment}
+                    disabled={isProcessingPayment}
+                    className="payment-option-card online-gateway-card"
+                  >
+                    <div className="payment-option-content">
+                      <div className="payment-option-icon-box online-icon-box">
+                        <CreditCard size={22} />
+                      </div>
+                      <div className="payment-option-texts">
+                        <div className="payment-option-header-row">
+                          <strong className="payment-option-heading">
+                            {paymentSettings?.online?.title || 'Pay Now Online'}
+                          </strong>
+                          <span className="payment-fast-tag">Instant</span>
+                        </div>
+                        <span className="payment-option-subtext">
+                          {paymentSettings?.online?.description || 'Pay securely using UPI apps, Debit/Credit cards, or NetBanking.'}
+                        </span>
+                        {/* Supported Apps / Cards Chips */}
+                        <div className="payment-methods-chips-row">
+                          <span className="pay-chip gpay">Google Pay</span>
+                          <span className="pay-chip phonepe">PhonePe</span>
+                          <span className="pay-chip paytm">Paytm</span>
+                          <span className="pay-chip upi">BHIM UPI</span>
+                          <span className="pay-chip cards">Cards</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="payment-option-texts">
-                      <strong className="payment-option-heading">Online Payment Gateway</strong>
-                      <span className="payment-option-subtext">Pay securely using supported UPI apps, cards, or NetBanking.</span>
-                    </div>
-                  </div>
-                  <ArrowRight size={18} className="payment-option-arrow" />
-                </button>
+                    <ArrowRight size={18} className="payment-option-arrow" />
+                  </button>
+                )}
 
-                {/* Method 2: Direct WhatsApp Instant Order */}
-                <button
-                  type="button"
-                  onClick={handleWhatsAppOrder}
-                  disabled={isProcessingPayment}
-                  className="payment-option-card whatsapp-instant-card"
-                >
-                  <div className="payment-option-content">
-                    <div className="payment-option-icon-box whatsapp-icon-box">
-                      <MessageCircle size={22} />
+                {(!paymentSettings || (paymentSettings.whatsapp?.enabled ?? true)) && (
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppOrder}
+                    disabled={isProcessingPayment}
+                    className="payment-option-card whatsapp-instant-card"
+                  >
+                    <div className="payment-option-content">
+                      <div className="payment-option-icon-box whatsapp-icon-box">
+                        <MessageCircle size={22} />
+                      </div>
+                      <div className="payment-option-texts">
+                        <div className="payment-option-header-row">
+                          <strong className="payment-option-heading">
+                            {paymentSettings?.whatsapp?.title || 'Order/Pay on WhatsApp'}
+                          </strong>
+                          <span className="payment-manual-tag">WhatsApp Support</span>
+                        </div>
+                        <span className="payment-option-subtext">
+                          {paymentSettings?.whatsapp?.description || 'Chat directly with our team to verify and pay via manual UPI transfer.'}
+                        </span>
+                        <div className="payment-methods-chips-row">
+                          <span className="pay-chip whatsapp">Direct Support</span>
+                          <span className="pay-chip upi">Manual UPI QR</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="payment-option-texts">
-                      <strong className="payment-option-heading">WhatsApp Instant Order</strong>
-                      <span className="payment-option-subtext">Continue on WhatsApp to confirm your order with our team.</span>
-                    </div>
+                    <ArrowRight size={18} className="payment-option-arrow" />
+                  </button>
+                )}
+
+                {paymentSettings && !paymentSettings.online?.enabled && !paymentSettings.whatsapp?.enabled && (
+                  <div className="payment-unavailable-alert" style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', padding: '14px', borderRadius: '10px', fontSize: '0.85rem', textAlign: 'center' }}>
+                    <AlertCircle size={20} style={{ margin: '0 auto 6px', display: 'block' }} />
+                    <strong>Checkout is Temporarily Paused</strong>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#7f1d1d' }}>
+                      Please contact customer support via WhatsApp or email to complete your purchase.
+                    </p>
                   </div>
-                  <ArrowRight size={18} className="payment-option-arrow" />
-                </button>
+                )}
               </div>
             </div>
           </div>

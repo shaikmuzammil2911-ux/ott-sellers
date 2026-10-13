@@ -58,6 +58,7 @@ export interface Product {
   deliverables: string[];
   rules: string[];
   faqs: { question: string; answer: string }[];
+  description?: string;
   isTrending?: boolean;
   isPopular?: boolean;
   isFeatured?: boolean;
@@ -470,6 +471,22 @@ export interface OffersPageCMS {
   bannerImageUrl?: string;
   bannerLink?: string;
   bannerGroupSlot?: string;
+  updatedAt?: number;
+}
+
+export interface PaymentMethodConfig {
+  id?: 'online' | 'whatsapp' | string;
+  title: string;
+  description: string;
+  isEnabled?: boolean;
+  enabled?: boolean;
+  displayOrder?: number;
+  supportedIcons?: string[];
+}
+
+export interface PaymentSettings {
+  online: PaymentMethodConfig;
+  whatsapp: PaymentMethodConfig;
   updatedAt?: number;
 }
 

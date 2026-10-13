@@ -210,6 +210,7 @@ export const ProductDetailPage: React.FC = () => {
         {/* Main Product Layout: Focused Purchase Flow */}
         <div className="product-main-grid">
           {/* Left Column: Square Product Showcase */}
+          {/* Left Column: Square Product Showcase, Trust Assurances & Description */}
           <div className="product-media-column">
             <div 
               className="product-large-preview"
@@ -220,11 +221,6 @@ export const ProductDetailPage: React.FC = () => {
                 alt={product.name} 
                 className="product-detail-img"
               />
-              <div className="product-detail-media-overlay">
-                <span className="product-detail-brand-badge">
-                  {product.brandLogoText || (product.name ? product.name.split(' ')[0] : 'OTT')}
-                </span>
-              </div>
               {discountPct > 0 && (
                 <span className="detail-discount-tag">
                   {discountPct}% OFF
@@ -232,7 +228,7 @@ export const ProductDetailPage: React.FC = () => {
               )}
             </div>
 
-            {/* Trust Assurances */}
+            {/* Trust Assurances (Directly Below Image) */}
             <div className="product-trust-assurances">
               <div className="assurance-item">
                 <Clock size={16} className="assurance-icon icon-clock" />
@@ -250,9 +246,42 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Product Description Below Image */}
+            {product.description && (
+              <div className="product-detail-desc-card" style={{ marginTop: '14px', background: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>About This Subscription</h3>
+                <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
+                  {product.description}
+                </p>
+              </div>
+            )}
+
+            {/* Key Deliverables Highlights Below Image */}
+            {(() => {
+              const feats = Array.isArray(product.features)
+                ? product.features
+                : (typeof product.features === 'string'
+                  ? (() => { try { const p = JSON.parse(product.features); return Array.isArray(p) ? p : []; } catch { return []; } })()
+                  : []);
+              if (feats.length === 0) return null;
+              return (
+                <div className="product-quick-features" style={{ marginTop: '14px' }}>
+                  <h3 className="quick-features-title">Subscription Highlights:</h3>
+                  <ul className="features-checklist">
+                    {feats.map((f: any, idx: number) => (
+                      <li key={idx}>
+                        <Check size={14} className="feature-check" />
+                        <span>{typeof f === 'string' ? f : String(f)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
           </div>
 
-          {/* Right Column: Pricing, Plan Selector, CTA */}
+          {/* Right Column: Pricing, CTAs & Purchase Controls */}
           <div className="product-info-column">
             <div className="product-title-row">
               <h1 className="product-detail-title">{product.name}</h1>
@@ -266,14 +295,6 @@ export const ProductDetailPage: React.FC = () => {
                 </span>
               )}
             </div>
-
-            {product.providerName && (
-              <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.78rem', background: 'rgba(168, 85, 247, 0.1)', color: '#9333ea', padding: '3px 10px', borderRadius: '6px', fontWeight: 700, border: '1px solid rgba(168, 85, 247, 0.2)' }}>
-                  ⚡ Quick Select Provider: {product.providerName}
-                </span>
-              </div>
-            )}
 
             {product.tagline && (
               <p className="product-tagline">{product.tagline}</p>
@@ -306,43 +327,7 @@ export const ProductDetailPage: React.FC = () => {
               <span className="detail-tax-note">All taxes included • Instant WhatsApp activation</span>
             </div>
 
-            {/* Plan Selector if multiple plans exist */}
-            {safePlans.length > 1 && (
-              <div className="plan-selector-container">
-                <label className="plan-selector-label">
-                  <span>Select Subscription Duration:</span>
-                  <span className="selected-duration-highlight">{selectedDuration}</span>
-                </label>
-                
-                <div className="plan-options-grid">
-                  {safePlans.map(plan => {
-                    const isSelected = plan.duration === selectedDuration;
-                    return (
-                      <button
-                        key={plan.duration}
-                        type="button"
-                        className={`plan-option-card ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedDuration(plan.duration)}
-                      >
-                        {plan.isPopular && (
-                          <span className="popular-plan-badge">Popular</span>
-                        )}
-                        <div className="plan-duration-title">
-                          <span className="duration-text">{plan.duration}</span>
-                          {isSelected && <Check size={14} className="plan-check-icon" />}
-                        </div>
-                        <div className="plan-card-pricing">
-                          <span className="plan-card-price">₹ {plan.price}</span>
-                          <span className="plan-card-original">₹ {plan.originalPrice}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Quantity Selector & Action Buttons */}
+            {/* Quantity Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--admin-text-main)' }}>Quantity:</span>
@@ -386,7 +371,7 @@ export const ProductDetailPage: React.FC = () => {
                 {isInCart ? (
                   <>
                     <Check size={16} />
-                    <span>In Cart ({selectedDuration})</span>
+                    <span>In Cart</span>
                   </>
                 ) : (
                   <>
@@ -418,29 +403,6 @@ export const ProductDetailPage: React.FC = () => {
               <MessageCircle size={16} />
               <span>Direct WhatsApp Enquiry</span>
             </a>
-
-            {/* Key Deliverables Highlights */}
-            {(() => {
-              const feats = Array.isArray(product.features)
-                ? product.features
-                : (typeof product.features === 'string'
-                  ? (() => { try { const p = JSON.parse(product.features); return Array.isArray(p) ? p : []; } catch { return []; } })()
-                  : []);
-              if (feats.length === 0) return null;
-              return (
-                <div className="product-quick-features" style={{ marginTop: '16px' }}>
-                  <h3 className="quick-features-title">Subscription Highlights:</h3>
-                  <ul className="features-checklist">
-                    {feats.slice(0, 4).map((f: any, idx: number) => (
-                      <li key={idx}>
-                        <Check size={14} className="feature-check" />
-                        <span>{typeof f === 'string' ? f : String(f)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })()}
           </div>
         </div>
 

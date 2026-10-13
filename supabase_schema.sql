@@ -632,6 +632,7 @@ ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS random_notifications_
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS banner_groups JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS promo_modal_settings JSONB;
 ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS offers_page_cms JSONB;
+ALTER TABLE public.admin_settings ADD COLUMN IF NOT EXISTS payment_settings JSONB;
 
 -- Update products with provider columns
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_id TEXT;

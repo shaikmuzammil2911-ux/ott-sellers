@@ -187,7 +187,27 @@ export const AdminProductsPage: React.FC = () => {
     const errors: Record<string, string> = {};
     if (!formName.trim()) errors.formName = 'Item name is required.';
     if (!formCategorySlug) errors.formCategorySlug = 'Please select a category.';
-    if (!formPrice || Number(formPrice) <= 0) errors.formPrice = 'Please enter a valid price.';
+    
+    const priceNum = Number(formPrice);
+    const origPriceNum = Number(formOriginalPrice);
+    if (!formPrice || isNaN(priceNum) || priceNum <= 0) {
+      errors.formPrice = 'Please enter a valid regular Selling Price.';
+    }
+
+    if (formOriginalPrice && (!isNaN(origPriceNum) && origPriceNum < priceNum)) {
+      errors.formOriginalPrice = 'MRP (Compare Price) must be greater than or equal to regular Selling Price.';
+    }
+
+    const isInOffers = formDisplayPages.includes('offers') || formInOffers;
+    if (isInOffers || formOfferPrice.trim()) {
+      const offerNum = Number(formOfferPrice);
+      if (!formOfferPrice.trim() || isNaN(offerNum) || offerNum <= 0) {
+        errors.formOfferPrice = 'Please enter a valid Special Offer Price for deals.';
+      } else if (offerNum > priceNum) {
+        errors.formOfferPrice = `Special Offer Price (₹${offerNum}) cannot be higher than regular Selling Price (₹${priceNum}).`;
+      }
+    }
+
     if (!formImageUrl.trim()) errors.formImageUrl = 'Product image is required.';
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -208,6 +228,9 @@ export const AdminProductsPage: React.FC = () => {
       ? formSlug.trim().toLowerCase().replace(/\s+/g, '-')
       : formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
+    const isOffersActive = formDisplayPages.includes('offers') || formInOffers;
+    const offerNum = formOfferPrice.trim() ? Number(formOfferPrice) : undefined;
+
     const updatedProduct: Product = {
       id: editingProduct?.id || `prod-${Date.now()}`,
       name: formName.trim(),
@@ -218,8 +241,8 @@ export const AdminProductsPage: React.FC = () => {
       providerId: prov?.id,
       providerSlug: prov?.slug || (formProviderSlug || undefined),
       providerName: prov?.name,
-      subcategorySlug: editingProduct?.subcategorySlug || 'ott',
-      subcategoryName: editingProduct?.subcategoryName || 'Streaming',
+      subcategorySlug: editingProduct?.subcategorySlug || '',
+      subcategoryName: editingProduct?.subcategoryName || '',
       catalogSlugs: editingProduct?.catalogSlugs || [],
       image: formImageUrl.trim(),
       brandColor: prov?.brandColor || editingProduct?.brandColor || '#0b132b',
@@ -258,11 +281,11 @@ export const AdminProductsPage: React.FC = () => {
       ],
       displayOrder: Number(formDisplayOrder) || 1,
       displayPages: formDisplayPages,
-      inOffers: formDisplayPages.includes('offers') || formInOffers,
-      offerPrice: formOfferPrice ? Number(formOfferPrice) : undefined,
-      offerOriginalPrice: formOfferPrice ? origPriceNum : undefined,
-      offerDiscountPercentage: formOfferPrice && origPriceNum > Number(formOfferPrice)
-        ? Math.round(((origPriceNum - Number(formOfferPrice)) / origPriceNum) * 100)
+      inOffers: isOffersActive,
+      offerPrice: isOffersActive ? offerNum : undefined,
+      offerOriginalPrice: isOffersActive ? priceNum : undefined,
+      offerDiscountPercentage: isOffersActive && offerNum && priceNum > offerNum
+        ? Math.round(((priceNum - offerNum) / priceNum) * 100)
         : undefined,
       status: formStatus,
       inStock: formInStock,
@@ -734,7 +757,19 @@ export const AdminProductsPage: React.FC = () => {
 
                   <div style={{ marginTop: '8px' }}>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.82rem', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={formInOffers} onChange={(e) => setFormInOffers(e.target.checked)} />
+                      <input 
+                        type="checkbox" 
+                        checked={formInOffers || formDisplayPages.includes('offers')} 
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormInOffers(checked);
+                          if (checked) {
+                            if (!formDisplayPages.includes('offers')) setFormDisplayPages([...formDisplayPages, 'offers']);
+                          } else {
+                            setFormDisplayPages(formDisplayPages.filter(x => x !== 'offers'));
+                          }
+                        }} 
+                      />
                       <span>Feature in Special Deals & Limited Offers Section</span>
                     </label>
                   </div>
@@ -828,8 +863,10 @@ export const AdminProductsPage: React.FC = () => {
                             onChange={(e) => {
                               if (e.target.checked) {
                                 setFormDisplayPages([...formDisplayPages, pItem.key]);
+                                if (pItem.key === 'offers') setFormInOffers(true);
                               } else {
                                 setFormDisplayPages(formDisplayPages.filter(x => x !== pItem.key));
+                                if (pItem.key === 'offers') setFormInOffers(false);
                               }
                             }}
                           />

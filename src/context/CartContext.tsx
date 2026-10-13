@@ -66,6 +66,69 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
   }, [appliedCoupon]);
 
+  // Re-verify coupon applicability whenever items change
+  // If the customer deletes the coupon-offered item or drops below minimum, immediately invalidate the coupon
+  useEffect(() => {
+    if (!appliedCoupon) return;
+
+    if (items.length === 0) {
+      setAppliedCoupon(null);
+      setCouponError(null);
+      return;
+    }
+
+    const rawTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // If coupon is tied to specific products
+    if (
+      (appliedCoupon.applicability === 'single_item' || appliedCoupon.applicability === 'multiple_items') &&
+      appliedCoupon.applicableProductIds &&
+      appliedCoupon.applicableProductIds.length > 0
+    ) {
+      const hasQualifyingItem = items.some(
+        item =>
+          appliedCoupon.applicableProductIds?.includes(item.productId) ||
+          ((item as any).productSlug && appliedCoupon.applicableProductIds?.includes((item as any).productSlug))
+      );
+
+      if (!hasQualifyingItem) {
+        const removedCode = appliedCoupon.code;
+        setAppliedCoupon(null);
+        setCouponError(`Coupon "${removedCode}" was removed because the qualifying item was deleted from your cart.`);
+        showToast(`Coupon "${removedCode}" removed: promotional item deleted from cart.`);
+        return;
+      }
+    }
+
+    // If coupon is tied to category
+    if (
+      appliedCoupon.applicability === 'category' &&
+      appliedCoupon.applicableCategorySlugs &&
+      appliedCoupon.applicableCategorySlugs.length > 0
+    ) {
+      const hasCategoryItem = items.some(
+        item =>
+          item.categoryName && appliedCoupon.applicableCategorySlugs?.some(slug => slug.toLowerCase() === item.categoryName?.toLowerCase())
+      );
+      if (!hasCategoryItem) {
+        const removedCode = appliedCoupon.code;
+        setAppliedCoupon(null);
+        setCouponError(`Coupon "${removedCode}" removed: qualifying category items no longer in cart.`);
+        showToast(`Coupon "${removedCode}" removed: qualifying item no longer in cart.`);
+        return;
+      }
+    }
+
+    // If coupon has minimum order amount
+    if (appliedCoupon.minOrderAmount && rawTotal < appliedCoupon.minOrderAmount) {
+      const removedCode = appliedCoupon.code;
+      setAppliedCoupon(null);
+      setCouponError(`Coupon "${removedCode}" requires a minimum order of ₹${appliedCoupon.minOrderAmount}.`);
+      showToast(`Coupon "${removedCode}" removed: order total is below ₹${appliedCoupon.minOrderAmount}.`);
+      return;
+    }
+  }, [items, appliedCoupon]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {

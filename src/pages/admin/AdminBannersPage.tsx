@@ -1288,7 +1288,98 @@ export const AdminBannersPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* 1. Basic Info & Artwork */}
+              {/* 1. Background Mode Selector (Solid Color, Image Only, Image + Blur Color) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+                <label className="admin-form-label" style={{ fontWeight: 800, color: '#0284c7', marginBottom: '6px' }}>
+                  Background Style Mode *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormMode('solid-color')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${formMode === 'solid-color' ? '#0284c7' : '#cbd5e1'}`,
+                      background: formMode === 'solid-color' ? 'rgba(2, 132, 199, 0.1)' : '#ffffff',
+                      color: formMode === 'solid-color' ? '#0284c7' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Solid Color
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormMode('image-only')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${formMode === 'image-only' ? '#0284c7' : '#cbd5e1'}`,
+                      background: formMode === 'image-only' ? 'rgba(2, 132, 199, 0.1)' : '#ffffff',
+                      color: formMode === 'image-only' ? '#0284c7' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Image Only (Crisp)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormMode('image-blur')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${formMode === 'image-blur' ? '#0284c7' : '#cbd5e1'}`,
+                      background: formMode === 'image-blur' ? 'rgba(2, 132, 199, 0.1)' : '#ffffff',
+                      color: formMode === 'image-blur' ? '#0284c7' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Image + Blur Color
+                  </button>
+                </div>
+
+                {formMode === 'solid-color' && (
+                  <div style={{ marginTop: '12px' }}>
+                    <label className="admin-form-label">Solid Background Color</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input
+                        type="color"
+                        value={formSolidColor}
+                        onChange={(e) => setFormSolidColor(e.target.value)}
+                        style={{ width: '42px', height: '36px', border: 'none', borderRadius: '6px', cursor: 'pointer', background: 'none' }}
+                      />
+                      <input
+                        type="text"
+                        className="admin-form-input"
+                        value={formSolidColor}
+                        onChange={(e) => setFormSolidColor(e.target.value)}
+                        style={{ maxWidth: '120px' }}
+                      />
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {COLOR_PRESETS.slice(4).map(p => (
+                          <button
+                            key={p.hex}
+                            type="button"
+                            onClick={() => setFormSolidColor(p.hex)}
+                            title={p.name}
+                            style={{ width: '22px', height: '22px', borderRadius: '4px', backgroundColor: p.hex, border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Basic Info & Artwork Images */}
               <div className="admin-form-group">
                 <label className="admin-form-label">Banner Internal Label / Name *</label>
                 <input
@@ -1301,66 +1392,141 @@ export const AdminBannersPage: React.FC = () => {
                 />
               </div>
 
-              {/* Desktop Image Upload & URL */}
+              {formMode !== 'solid-color' && (
+                <>
+                  {/* Desktop Image Upload & URL */}
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Desktop Image Artwork *</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        className="admin-form-input"
+                        placeholder="https://... or /hero-bg.png"
+                        value={formDesktopImage}
+                        onChange={(e) => setFormDesktopImage(e.target.value)}
+                      />
+                      <label className="btn-primary-action" style={{ padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        <Upload size={14} />
+                        <span>{isUploadingDesktop ? 'Uploading...' : 'Upload'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleImageUpload(e, 'desktop')}
+                        />
+                      </label>
+                    </div>
+                    <span className="admin-form-hint">Recommended desktop size: 1920x600 or 1200x400.</span>
+                  </div>
+
+                  {/* Mobile Image Upload & URL */}
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">Mobile Image Artwork (Optional)</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        className="admin-form-input"
+                        placeholder="e.g. /hero-mobile-1.png"
+                        value={formMobileImage}
+                        onChange={(e) => setFormMobileImage(e.target.value)}
+                      />
+                      <label className="btn-refresh-action" style={{ padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        <Upload size={14} />
+                        <span>{isUploadingMobile ? 'Uploading...' : 'Upload'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleImageUpload(e, 'mobile')}
+                        />
+                      </label>
+                    </div>
+                    <span className="admin-form-hint">If left empty, desktop image is used on mobile.</span>
+                  </div>
+                </>
+              )}
+
+              {/* Text Alignment Controls */}
               <div className="admin-form-group">
-                <label className="admin-form-label">Desktop Image Artwork *</label>
+                <label className="admin-form-label">Text Content Alignment</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="https://... or /hero-bg.png"
-                    value={formDesktopImage}
-                    onChange={(e) => setFormDesktopImage(e.target.value)}
-                  />
-                  <label className="btn-primary-action" style={{ padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    <Upload size={14} />
-                    <span>{isUploadingDesktop ? 'Uploading...' : 'Upload'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageUpload(e, 'desktop')}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setFormTextPosition('left')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${formTextPosition === 'left' ? '#0284c7' : '#cbd5e1'}`,
+                      background: formTextPosition === 'left' ? 'rgba(2, 132, 199, 0.1)' : '#ffffff',
+                      color: formTextPosition === 'left' ? '#0284c7' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <AlignLeft size={14} />
+                    <span>Left</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormTextPosition('center')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${formTextPosition === 'center' ? '#0284c7' : '#cbd5e1'}`,
+                      background: formTextPosition === 'center' ? 'rgba(2, 132, 199, 0.1)' : '#ffffff',
+                      color: formTextPosition === 'center' ? '#0284c7' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <AlignCenter size={14} />
+                    <span>Center</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormTextPosition('right')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${formTextPosition === 'right' ? '#0284c7' : '#cbd5e1'}`,
+                      background: formTextPosition === 'right' ? 'rgba(2, 132, 199, 0.1)' : '#ffffff',
+                      color: formTextPosition === 'right' ? '#0284c7' : '#334155',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <AlignRight size={14} />
+                    <span>Right</span>
+                  </button>
                 </div>
-                <span className="admin-form-hint">Recommended desktop size: 1920x600 or 1200x400.</span>
               </div>
 
-              {/* Mobile Image Upload & URL */}
+              {/* Text Overlays (Optional) & Color Pickers */}
               <div className="admin-form-group">
-                <label className="admin-form-label">Mobile Image Artwork (Optional)</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. /hero-mobile-1.png"
-                    value={formMobileImage}
-                    onChange={(e) => setFormMobileImage(e.target.value)}
-                  />
-                  <label className="btn-refresh-action" style={{ padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    <Upload size={14} />
-                    <span>{isUploadingMobile ? 'Uploading...' : 'Upload'}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="admin-form-label">Banner Heading / Title (Optional)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Title Color:</span>
                     <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageUpload(e, 'mobile')}
+                      type="color"
+                      value={formTitleColor}
+                      onChange={(e) => setFormTitleColor(e.target.value)}
+                      style={{ width: '28px', height: '24px', border: 'none', cursor: 'pointer', background: 'none' }}
                     />
-                  </label>
+                  </div>
                 </div>
-                <span className="admin-form-hint">If left empty, desktop image is used on mobile.</span>
-              </div>
-
-              {/* Notice regarding optional headings */}
-              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '10px 12px', margin: '14px 0' }}>
-                <span style={{ fontSize: '0.8rem', color: '#0369a1', fontWeight: 600 }}>
-                  💡 Tip: If your image already contains text graphics, leave Heading, Sub-Heading, and Description EMPTY. The clean image artwork will display directly without text overlap!
-                </span>
-              </div>
-
-              {/* Text Overlays (Optional) */}
-              <div className="admin-form-group">
-                <label className="admin-form-label">Banner Heading / Title (Optional)</label>
                 <input
                   type="text"
                   className="admin-form-input"
@@ -1371,7 +1537,18 @@ export const AdminBannersPage: React.FC = () => {
               </div>
 
               <div className="admin-form-group">
-                <label className="admin-form-label">Sub-Heading / Tagline (Optional)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="admin-form-label">Sub-Heading / Tagline (Optional)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Subtitle Color:</span>
+                    <input
+                      type="color"
+                      value={formSubtitleColor}
+                      onChange={(e) => setFormSubtitleColor(e.target.value)}
+                      style={{ width: '28px', height: '24px', border: 'none', cursor: 'pointer', background: 'none' }}
+                    />
+                  </div>
+                </div>
                 <input
                   type="text"
                   className="admin-form-input"
@@ -1382,7 +1559,18 @@ export const AdminBannersPage: React.FC = () => {
               </div>
 
               <div className="admin-form-group">
-                <label className="admin-form-label">Description (Optional)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="admin-form-label">Description (Optional)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Text Color:</span>
+                    <input
+                      type="color"
+                      value={formDescriptionColor}
+                      onChange={(e) => setFormDescriptionColor(e.target.value)}
+                      style={{ width: '28px', height: '24px', border: 'none', cursor: 'pointer', background: 'none' }}
+                    />
+                  </div>
+                </div>
                 <textarea
                   className="admin-form-input"
                   rows={2}
@@ -1392,51 +1580,238 @@ export const AdminBannersPage: React.FC = () => {
                 />
               </div>
 
-              {/* Primary CTA Button */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Button Text (Optional)</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. Shop Now"
-                    value={formCtaText}
-                    onChange={(e) => setFormCtaText(e.target.value)}
-                  />
+              {/* Action Buttons & Colors */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+                <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a' }}>
+                  Primary Button
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label" style={{ fontSize: '0.75rem' }}>Button Text</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="e.g. Shop Now"
+                      value={formCtaText}
+                      onChange={(e) => setFormCtaText(e.target.value)}
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label className="admin-form-label" style={{ fontSize: '0.75rem' }}>Button URL Link</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="e.g. /items"
+                      value={formCtaLink}
+                      onChange={(e) => setFormCtaLink(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Button URL Link</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. /items or /offers"
-                    value={formCtaLink}
-                    onChange={(e) => setFormCtaLink(e.target.value)}
-                  />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>Button BG:</span>
+                    <input
+                      type="color"
+                      value={formBtnBgColor}
+                      onChange={(e) => setFormBtnBgColor(e.target.value)}
+                      style={{ width: '28px', height: '24px', border: 'none', cursor: 'pointer', background: 'none' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>Text Color:</span>
+                    <input
+                      type="color"
+                      value={formBtnTextColor}
+                      onChange={(e) => setFormBtnTextColor(e.target.value)}
+                      style={{ width: '28px', height: '24px', border: 'none', cursor: 'pointer', background: 'none' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Secondary CTA Button */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Secondary Button Text (Optional)</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. View Plans"
-                    value={formSecondaryCtaText}
-                    onChange={(e) => setFormSecondaryCtaText(e.target.value)}
-                  />
+              {/* Repeatable Multiple Custom Buttons */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+                <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                  Additional Multiple Buttons ({formButtons.length})
+                </label>
+
+                {formButtons.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {formButtons.map((btn) => (
+                      <div 
+                        key={btn.id}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 12px' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ background: btn.bgColor || '#0284c7', color: btn.textColor || '#ffffff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                            {btn.label}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>→ {btn.link}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormButtons(formButtons.filter(b => b.id !== btn.id))}
+                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                          title="Remove button"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'flex-end' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>New Button Label</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="e.g. WhatsApp Direct"
+                      value={newBtnLabel}
+                      onChange={(e) => setNewBtnLabel(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>URL / WhatsApp Link</label>
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="e.g. wa.me/919441323332"
+                      value={newBtnLink}
+                      onChange={(e) => setNewBtnLink(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newBtnLabel.trim() || !newBtnLink.trim()) return;
+                      const nb: BannerButton = {
+                        id: 'btn-' + Date.now(),
+                        label: newBtnLabel.trim(),
+                        link: newBtnLink.trim(),
+                        bgColor: formBtnBgColor || '#0284c7',
+                        textColor: formBtnTextColor || '#ffffff'
+                      };
+                      setFormButtons([...formButtons, nb]);
+                      setNewBtnLabel('');
+                      setNewBtnLink('');
+                    }}
+                    className="btn-refresh-action"
+                    style={{ padding: '8px 12px', fontSize: '0.78rem' }}
+                  >
+                    <Plus size={14} />
+                    <span>Add</span>
+                  </button>
                 </div>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Secondary Button URL</label>
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="e.g. /offers"
-                    value={formSecondaryCtaLink}
-                    onChange={(e) => setFormSecondaryCtaLink(e.target.value)}
-                  />
+              </div>
+
+              {/* LIVE MODAL PREVIEW */}
+              <div style={{ marginBottom: '16px' }}>
+                <label className="admin-form-label" style={{ fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Eye size={14} style={{ color: '#0284c7' }} />
+                  <span>Live Banner Preview</span>
+                </label>
+                <div 
+                  style={{
+                    position: 'relative',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    height: '180px',
+                    backgroundColor: formMode === 'solid-color' ? formSolidColor : '#070d1e',
+                    border: '1.5px solid #cbd5e1',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    padding: '20px 24px'
+                  }}
+                >
+                  {formMode !== 'solid-color' && (
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: `url(${formDesktopImage || '/hero-bg.png'})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: formMode === 'image-blur' ? 'blur(8px) saturate(1.2)' : 'none',
+                        transform: formMode === 'image-blur' ? 'scale(1.06)' : 'none'
+                      }}
+                    />
+                  )}
+
+                  {/* Scrim if text present and not image-only */}
+                  {Boolean(formTitle || formSubtitle || formDescription) && formMode !== 'image-only' && (
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: formTextPosition === 'right' 
+                          ? 'linear-gradient(270deg, rgba(7, 13, 30, 0.9) 0%, transparent 100%)' 
+                          : formTextPosition === 'center'
+                          ? 'rgba(7, 13, 30, 0.65)'
+                          : 'linear-gradient(90deg, rgba(7, 13, 30, 0.9) 0%, transparent 100%)'
+                      }}
+                    />
+                  )}
+
+                  <div 
+                    style={{
+                      position: 'relative',
+                      zIndex: 3,
+                      textAlign: formTextPosition,
+                      alignSelf: formTextPosition === 'center' ? 'center' : formTextPosition === 'right' ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    {formTitle && (
+                      <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: formTitleColor }}>
+                        {formTitle}
+                      </h3>
+                    )}
+                    {formSubtitle && (
+                      <p style={{ margin: '0 0 4px', fontSize: '0.82rem', fontWeight: 600, color: formSubtitleColor }}>
+                        {formSubtitle}
+                      </p>
+                    )}
+                    {formDescription && (
+                      <p style={{ margin: '0 0 10px', fontSize: '0.74rem', color: formDescriptionColor, maxWidth: '320px' }}>
+                        {formDescription}
+                      </p>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: formTextPosition === 'center' ? 'center' : formTextPosition === 'right' ? 'flex-end' : 'flex-start', marginTop: '6px' }}>
+                      {formCtaText && (
+                        <span 
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '6px',
+                            background: formBtnBgColor,
+                            color: formBtnTextColor,
+                            fontSize: '0.74rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          {formCtaText}
+                        </span>
+                      )}
+                      {formButtons.map(b => (
+                        <span 
+                          key={b.id}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '6px',
+                            background: b.bgColor || formBtnBgColor,
+                            color: b.textColor || formBtnTextColor,
+                            fontSize: '0.74rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          {b.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 

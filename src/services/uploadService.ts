@@ -70,11 +70,54 @@ export const uploadService = {
       console.warn('Supabase Storage upload fallback attempt:', err);
     }
 
-    // 4. Client-side Base64 Data URL fallback (ensures offline / local test previews never fail)
+    // 4. Client-side Compressed WebP Data URL fallback
+    // Compresses large images to max 1200px width at 0.82 quality (~40-80KB)
+    // to prevent browser localStorage quota exceeded errors and sluggish sync.
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve({ success: true, url: reader.result as string });
+      reader.onload = (e) => {
+        const rawDataUrl = e.target?.result as string;
+        if (!rawDataUrl) {
+          resolve({ success: false, error: 'Failed to read image.' });
+          return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const maxDim = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedUrl = canvas.toDataURL('image/webp', 0.82);
+              resolve({ success: true, url: compressedUrl });
+              return;
+            }
+          } catch {
+            // Fallback to raw data url if canvas context fails
+          }
+          resolve({ success: true, url: rawDataUrl });
+        };
+        img.onerror = () => {
+          resolve({ success: true, url: rawDataUrl });
+        };
+        img.src = rawDataUrl;
       };
       reader.onerror = () => {
         resolve({ success: false, error: 'Failed to read image file data.' });

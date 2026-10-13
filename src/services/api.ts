@@ -13,7 +13,7 @@ import {
   Product, ProductPlan, Category, SubCategory, Provider, Catalog, Order, User, 
   HeroBanner, BannerGroup, Course, HomepageSectionCMS, AdminSettings, AuditLog,
   CustomerReview, SiteNotification, Coupon, FooterSettings, WhatsAppSettings, ReferralSettings, 
-  ItemsPageCMS, PromoOfferModalSettings, OffersPageCMS 
+  ItemsPageCMS, PromoOfferModalSettings, OffersPageCMS, PaymentMethodConfig, PaymentSettings 
 } from '../types';
 
 export const ADMIN_CONFIG = {
@@ -45,6 +45,7 @@ export const STORAGE_KEYS = {
   ITEMS_PAGE_CMS: 'ott_sellers_items_page_cms',
   PROMO_MODAL: 'ott_sellers_promo_modal',
   OFFERS_PAGE_CMS: 'ott_sellers_offers_cms',
+  PAYMENT_SETTINGS: 'ott_sellers_payment_settings',
   ADMIN_AUTH: 'ott_sellers_admin_auth_state',
   ADMIN_OTP: 'ott_sellers_admin_otp'
 };
@@ -131,6 +132,25 @@ Please verify and send credentials.`,
   updatedAt: Date.now()
 };
 
+export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
+  online: {
+    id: 'online',
+    title: 'Pay Now Online',
+    description: 'Pay securely using supported UPI apps, cards, or net banking.',
+    isEnabled: true,
+    displayOrder: 1,
+    supportedIcons: ['gpay', 'phonepe', 'paytm', 'upi', 'cards']
+  },
+  whatsapp: {
+    id: 'whatsapp',
+    title: 'Order/Pay on WhatsApp',
+    description: 'Payments will be processed through WhatsApp. Continue on WhatsApp to confirm your order with our team.',
+    isEnabled: true,
+    displayOrder: 2
+  },
+  updatedAt: Date.now()
+};
+
 export const DEFAULT_REFERRAL_SETTINGS: ReferralSettings = {
   isEnabled: true,
   rewardAmount: 50,
@@ -204,6 +224,17 @@ export const mapProductFromDb = (p: any): Product => {
     }
   ];
 
+  const rawSubName = p.subcategory_name || p.subcategoryName;
+  const rawProvName = p.provider_name || p.providerName;
+  const validSubName = (rawSubName && rawSubName.trim() !== 'Streaming') ? rawSubName.trim() : '';
+  const validProvName = (rawProvName && rawProvName.trim() !== 'Streaming') ? rawProvName.trim() : (validSubName || undefined);
+
+  // Robust displayPages resolution (independent controls for home, items, offers)
+  const displayPagesRaw = p.display_pages || p.displayPages;
+  const resolvedDisplayPages: ('home' | 'items' | 'offers' | string)[] = Array.isArray(displayPagesRaw) && displayPagesRaw.length > 0
+    ? displayPagesRaw
+    : ((p.in_offers || p.inOffers) ? ['home', 'items', 'offers'] : ['home', 'items']);
+
   return {
     id: String(p.id || ''),
     slug: String(p.slug || p.id || ''),
@@ -212,10 +243,10 @@ export const mapProductFromDb = (p: any): Product => {
     categorySlug: String(p.category_slug || p.categorySlug || 'movies-series'),
     categoryName: String(p.category_name || p.categoryName || 'Movies & Series'),
     subcategorySlug: p.subcategory_slug || p.subcategorySlug || p.provider_slug || p.providerSlug || '',
-    subcategoryName: p.subcategory_name || p.subcategoryName || p.provider_name || p.providerName || '',
+    subcategoryName: validSubName,
     providerId: p.provider_id || p.providerId,
     providerSlug: p.provider_slug || p.providerSlug || p.subcategory_slug || p.subcategorySlug,
-    providerName: p.provider_name || p.providerName || p.subcategory_name || p.subcategoryName,
+    providerName: validProvName,
     catalogSlugs,
     image: p.image_url || p.image || '/placeholder-ott.png',
     bannerImage: p.banner_image_url || p.bannerImage,
@@ -234,7 +265,7 @@ export const mapProductFromDb = (p: any): Product => {
     isTrending: Boolean(p.is_trending ?? p.isTrending),
     isPopular: Boolean(p.is_popular ?? p.isPopular),
     isFeatured: Boolean(p.is_featured ?? p.isFeatured),
-    inOffers: Boolean(p.in_offers ?? p.inOffers),
+    inOffers: resolvedDisplayPages.includes('offers') || Boolean(p.in_offers ?? p.inOffers),
     offerPrice: (p.offer_price != null || p.offerPrice != null) ? Number(p.offer_price ?? p.offerPrice) : undefined,
     offerOriginalPrice: (p.offer_original_price != null || p.offerOriginalPrice != null) ? Number(p.offer_original_price ?? p.offerOriginalPrice) : undefined,
     offerDiscountPercentage: p.offer_discount_percentage ?? p.offerDiscountPercentage,
@@ -243,7 +274,8 @@ export const mapProductFromDb = (p: any): Product => {
     inStock: p.in_stock !== false && p.inStock !== false,
     stockCount: Number(p.stock ?? p.stockCount) || 999,
     warrantyPeriod: p.warranty_period || p.warrantyPeriod || 'Full Duration Replacement Warranty',
-    badge: p.badge,
+    badge: (p.badge && p.badge !== 'Streaming') ? p.badge : undefined,
+    displayPages: resolvedDisplayPages,
     updatedAt: new Date(p.updated_at || p.updatedAt || Date.now()).getTime()
   };
 };
@@ -506,17 +538,91 @@ export const ottApi = {
   },
 
   async saveBanner(banner: HeroBanner): Promise<void> {
+    const isLive = banner.status === 'ON';
+    const desktopImg = banner.desktopImage || banner.mobileImage || '/hero-bg.png';
+    const mobileImg = banner.mobileImage || banner.desktopImage || '/hero-mobile-1.png';
+    const resolvedMode = banner.mode || 'image-only';
+    const safeTitle = (banner.title && banner.title.trim()) ? banner.title.trim() : (banner.name || 'Banner');
+
+    const payload: any = {
+      id: banner.id,
+      name: banner.name || safeTitle,
+      group_name: banner.groupName || (banner.slot === '01' ? 'Hero Main Slideshow' : `Group ${banner.slot || '01'}`),
+      title: safeTitle,
+      subtitle: banner.subtitle || '',
+      description: banner.description || '',
+      button_text: banner.ctaText || '',
+      button_url: banner.ctaLink || '/items',
+      secondary_button_text: banner.secondaryCtaText || null,
+      secondary_button_url: banner.secondaryCtaLink || null,
+      buttons: banner.buttons || [],
+      image_url: desktopImg,
+      desktop_image_url: desktopImg,
+      mobile_image_url: mobileImg,
+      mode: resolvedMode,
+      solid_color: banner.solidColor || '#070d1e',
+      text_position: banner.textPosition || 'left',
+      content_placement: banner.contentPlacement || 'center',
+      button_placement: banner.buttonPlacement || banner.textPosition || 'left',
+      btn_bg_color: banner.btnBgColor || '#0284c7',
+      btn_text_color: banner.btnTextColor || '#ffffff',
+      btn_border_color: banner.btnBorderColor || 'transparent',
+      overlay_color: banner.overlayColor || '#000000',
+      overlay_opacity: banner.overlayOpacity ?? 0.4,
+      sort_order: banner.displayOrder || 1,
+      display_order: banner.displayOrder || 1,
+      page: banner.page || 'home',
+      slot: banner.slot || '01',
+      style: banner.style || 'auto-slide',
+      autoplay: banner.autoplay ?? true,
+      interval: banner.interval || 5,
+      status: isLive ? 'ON' : 'OFF',
+      is_active: isLive,
+      badge_text: banner.badgeText || null,
+      title_color: banner.titleColor || '#ffffff',
+      subtitle_color: banner.subtitleColor || '#cbd5e1',
+      badge_color: banner.badgeColor || '#38bdf8',
+      description_color: banner.descriptionColor || '#94a3b8',
+      show_text: banner.showText ?? true,
+      updated_at: new Date().toISOString()
+    };
+
+    // 1. Save directly to Supabase
+    try {
+      const { error: upsertErr } = await supabase.from('banners').upsert(payload, { onConflict: 'id' });
+      if (upsertErr) {
+        console.warn('Upsert fallback without buttons/group_name:', upsertErr);
+        delete payload.buttons;
+        delete payload.group_name;
+        const { error: retryErr } = await supabase.from('banners').upsert(payload, { onConflict: 'id' });
+        if (retryErr) {
+          console.error('Failed to save banner to Supabase:', retryErr);
+          throw new Error(retryErr.message || 'Database error saving banner');
+        }
+      }
+    } catch (dbErr: any) {
+      console.error('Database save banner error:', dbErr);
+      throw dbErr;
+    }
+
+    // 2. Update local state
     const all = await this.getAllBannersAdmin();
     const idx = all.findIndex(b => b.id === banner.id);
     let updated: HeroBanner[];
-    const bannerToSave = { ...banner, updatedAt: Date.now() };
+    const bannerToSave = { ...banner, title: safeTitle, updatedAt: Date.now() };
     if (idx >= 0) {
       updated = [...all];
       updated[idx] = bannerToSave;
     } else {
       updated = [...all, bannerToSave];
     }
-    await this.saveBanners(updated);
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(updated));
+    } catch (lsErr) {
+      console.warn('LocalStorage quota warning:', lsErr);
+    }
+    broadcastDataUpdate('banners');
   },
 
   async deleteBanner(id: string): Promise<void> {
@@ -1257,7 +1363,7 @@ export const ottApi = {
   // ====================================================================
   // 5. PRODUCTS MANAGEMENT (In Stock / Out of Stock & Provider Mapping)
   // ====================================================================
-  async getProducts(categorySlug?: string, providerSlug?: string): Promise<Product[]> {
+  async getProducts(categorySlug?: string, providerSlug?: string, targetPage?: 'home' | 'items' | 'offers'): Promise<Product[]> {
     try {
       const { data, error } = await supabase
         .from('products')
@@ -1267,9 +1373,13 @@ export const ottApi = {
       if (!error && data && data.length > 0) {
         const products: Product[] = data.map(mapProductFromDb);
 
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        try {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        } catch {}
+
         return products
           .filter(p => p.status !== 'OFF')
+          .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true))
           .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
           .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase());
       }
@@ -1285,6 +1395,7 @@ export const ottApi = {
           return parsed
             .map(mapProductFromDb)
             .filter(p => p.status !== 'OFF')
+            .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true))
             .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
             .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase())
             .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
@@ -1292,7 +1403,10 @@ export const ottApi = {
       }
     } catch {}
 
-    return [...PRODUCTS_DATA].map(mapProductFromDb).filter(p => p.status !== 'OFF');
+    return [...PRODUCTS_DATA]
+      .map(mapProductFromDb)
+      .filter(p => p.status !== 'OFF')
+      .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true));
   },
 
   async getProductsBySubcategory(subcategorySlug: string): Promise<Product[]> {
@@ -1374,7 +1488,8 @@ export const ottApi = {
         is_featured: productToSave.isFeatured ?? false,
         is_popular: productToSave.isPopular ?? false,
         is_trending: productToSave.isTrending ?? false,
-        in_offers: productToSave.inOffers ?? false,
+        in_offers: (productToSave.displayPages?.includes('offers') || productToSave.inOffers === true),
+        display_pages: productToSave.displayPages || ['items'],
         offer_price: productToSave.offerPrice,
         offer_original_price: productToSave.offerOriginalPrice,
         offer_discount_percentage: productToSave.offerDiscountPercentage,
@@ -1383,7 +1498,7 @@ export const ottApi = {
         rules: productToSave.rules,
         faqs: productToSave.faqs,
         warranty_period: productToSave.warrantyPeriod,
-        badge: productToSave.badge,
+        badge: (productToSave.badge && productToSave.badge !== 'Streaming') ? productToSave.badge : null,
         sort_order: productToSave.displayOrder || 0,
         updated_at: new Date().toISOString()
       };
@@ -1395,6 +1510,8 @@ export const ottApi = {
           in_stock: productToSave.inStock,
           is_featured: productToSave.isFeatured ?? false,
           is_trending: productToSave.isTrending ?? false,
+          in_offers: (productToSave.displayPages?.includes('offers') || productToSave.inOffers === true),
+          display_pages: productToSave.displayPages || ['items'],
           sort_order: productToSave.displayOrder || 0,
           updated_at: new Date().toISOString()
         }).eq('id', productToSave.id);
@@ -1568,16 +1685,23 @@ export const ottApi = {
 
   async getFeaturedProducts(): Promise<Product[]> {
     const products = await this.getProducts();
-    return products.filter(p => (p.isFeatured ?? p.isPopular ?? false) && p.status !== 'OFF');
+    return products.filter(p => 
+      (p.isFeatured ?? p.isPopular ?? false) && 
+      p.status !== 'OFF' &&
+      (!p.displayPages || p.displayPages.includes('home'))
+    );
   },
 
   async getOfferProducts(): Promise<Product[]> {
     const products = await this.getProducts();
     return products.filter(p => {
       if (p.status === 'OFF') return false;
-      if (p.inOffers === true) return true;
-      const discount = p.plans?.[0]?.discountPercentage || 0;
-      return discount >= 15;
+      // Must have Offers Page visibility enabled
+      const offersEnabled = (p.displayPages ? p.displayPages.includes('offers') : false) || p.inOffers === true;
+      if (!offersEnabled) return false;
+      // Must have a valid Special Offer Price
+      const validOfferPrice = typeof p.offerPrice === 'number' && !isNaN(p.offerPrice) && p.offerPrice > 0;
+      return validOfferPrice;
     });
   },
 
@@ -2721,8 +2845,82 @@ export const ottApi = {
         referral_settings: item,
         updated_at: new Date().toISOString()
       });
+    } catch {}
+  },
+
+  async getPaymentSettings(): Promise<PaymentSettings> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('id', 'global')
+        .maybeSingle();
+
+      if (!error && data) {
+        const paySettings = data.payment_settings || data.whatsapp_settings?.payment_settings;
+        if (paySettings && (paySettings.online || paySettings.whatsapp)) {
+          const merged: PaymentSettings = {
+            online: { ...DEFAULT_PAYMENT_SETTINGS.online, ...(paySettings.online || {}) },
+            whatsapp: { ...DEFAULT_PAYMENT_SETTINGS.whatsapp, ...(paySettings.whatsapp || {}) },
+            updatedAt: paySettings.updatedAt || Date.now()
+          };
+          try {
+            localStorage.setItem(STORAGE_KEYS.PAYMENT_SETTINGS, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        }
+      }
     } catch (e) {
-      console.warn('Supabase referral save error:', e);
+      console.warn('Supabase getPaymentSettings fallback:', e);
+    }
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PAYMENT_SETTINGS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          online: { ...DEFAULT_PAYMENT_SETTINGS.online, ...(parsed.online || {}) },
+          whatsapp: { ...DEFAULT_PAYMENT_SETTINGS.whatsapp, ...(parsed.whatsapp || {}) },
+          updatedAt: parsed.updatedAt || Date.now()
+        };
+      }
+    } catch {}
+
+    return { ...DEFAULT_PAYMENT_SETTINGS };
+  },
+
+  async savePaymentSettings(settings: PaymentSettings): Promise<void> {
+    const toSave: PaymentSettings = {
+      online: { ...DEFAULT_PAYMENT_SETTINGS.online, ...(settings.online || {}) },
+      whatsapp: { ...DEFAULT_PAYMENT_SETTINGS.whatsapp, ...(settings.whatsapp || {}) },
+      updatedAt: Date.now()
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.PAYMENT_SETTINGS, JSON.stringify(toSave));
+    } catch {}
+    broadcastDataUpdate('settings');
+
+    try {
+      const { error } = await supabase.from('admin_settings').upsert({
+        id: 'global',
+        payment_settings: toSave,
+        updated_at: new Date().toISOString()
+      });
+
+      if (error) {
+        const currentWs = await this.getWhatsAppSettings();
+        await supabase.from('admin_settings').upsert({
+          id: 'global',
+          whatsapp_settings: {
+            ...currentWs,
+            payment_settings: toSave
+          },
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to sync payment_settings to Supabase:', err);
     }
   },
 

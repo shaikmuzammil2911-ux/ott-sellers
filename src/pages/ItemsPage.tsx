@@ -43,7 +43,7 @@ export const ItemsPage: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       const [allProds, allCats, allSubs, allProvs, cms] = await Promise.all([
-        ottApi.getProducts(),
+        ottApi.getProducts(undefined, undefined, 'items'),
         ottApi.getCategories('items'),
         ottApi.getSubcategories(),
         ottApi.getProviders(),
@@ -212,86 +212,7 @@ export const ItemsPage: React.FC = () => {
           </div>
         ) : null}
 
-        {/* 1. Categories Section (On Top) */}
-        <div className="items-categories-grid-section">
-          <div className="categories-section-header">
-            <div className="categories-header-left">
-              <Layers size={17} color="#0284c7" />
-              <h2 className="categories-section-title">
-                {formatHeading(cmsHeadings.categoriesHeading, 'Explore Categories')}
-              </h2>
-            </div>
-            {selectedCategory !== 'all' && (
-              <button 
-                type="button" 
-                className="btn-clear-category"
-                onClick={() => handleCategorySelect('all')}
-              >
-                Show All Categories
-              </button>
-            )}
-          </div>
-
-          <div className="categories-responsive-grid">
-            {/* All Plans Card */}
-            <button
-              type="button"
-              className={`category-grid-card ${selectedCategory === 'all' ? 'selected' : ''}`}
-              onClick={() => handleCategorySelect('all')}
-            >
-              <div className="category-card-icon-wrap" style={{ background: '#0b132b', color: '#38bdf8' }}>
-                <Layers size={20} />
-              </div>
-              <div className="category-card-content">
-                <span className="category-card-name">All Plans</span>
-                <span className="category-card-count">
-                  {selectedProvider === 'all' 
-                    ? products.length 
-                    : products.filter(p => p.providerSlug?.toLowerCase() === selectedProvider.toLowerCase()).length} Plans
-                </span>
-              </div>
-            </button>
-
-            {/* Individual Category Cards */}
-            {availableCategories.map((cat) => {
-              const isSelected = selectedCategory.toLowerCase() === cat.slug.toLowerCase();
-              const count = products.filter(p => {
-                const matchCat = p.categorySlug?.toLowerCase() === cat.slug.toLowerCase();
-                if (!matchCat) return false;
-                if (selectedProvider !== 'all') {
-                  return p.providerSlug?.toLowerCase() === selectedProvider.toLowerCase() ||
-                         p.subcategorySlug?.toLowerCase() === selectedProvider.toLowerCase();
-                }
-                return true;
-              }).length;
-
-              return (
-                <button
-                  key={cat.id || cat.slug}
-                  type="button"
-                  className={`category-grid-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => handleCategorySelect(cat.slug)}
-                >
-                  <div 
-                    className="category-card-icon-wrap" 
-                    style={{ 
-                      background: cat.badgeColor ? `${cat.badgeColor}18` : 'rgba(2, 132, 199, 0.1)',
-                      color: cat.badgeColor || '#0284c7' 
-                    }}
-                  >
-                    {getCategoryIcon(cat.iconName)}
-                  </div>
-                  <div className="category-card-content">
-                    <span className="category-card-name">{formatHeading(cat.name)}</span>
-                    <span className="category-card-count">{count} {count === 1 ? 'Subscription' : 'Subscriptions'}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 2. Quick Search (Provider-Based Horizontal 2-Row Dragging) */}
+        {/* 1. Quick Search (Provider-Based Horizontal 2-Row Dragging) - Positioned First */}
         <div className="items-quick-search-section">
           <div className="quick-search-header-row">
             <div className="quick-search-badge-title">
@@ -340,6 +261,77 @@ export const ItemsPage: React.FC = () => {
                     <img src={prov.logo} alt="" className="provider-chip-logo" />
                   )}
                   <span>{prov.name}</span>
+                  <span className="chip-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. Explore Categories (Compact 2-Row Horizontal Scroll Chips) */}
+        <div className="items-categories-chips-section">
+          <div className="categories-section-header">
+            <div className="categories-header-left">
+              <Layers size={16} color="#0284c7" />
+              <h2 className="categories-section-title">
+                {formatHeading(cmsHeadings.categoriesHeading, 'Explore Categories')}
+              </h2>
+            </div>
+            {selectedCategory !== 'all' && (
+              <button 
+                type="button" 
+                className="btn-clear-category"
+                onClick={() => handleCategorySelect('all')}
+              >
+                Show All Categories
+              </button>
+            )}
+          </div>
+
+          <div className="categories-chips-list">
+            {/* All Categories Chip */}
+            <button
+              type="button"
+              className={`category-chip-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => handleCategorySelect('all')}
+            >
+              <Layers size={14} className="category-chip-icon" />
+              <span>All Categories</span>
+              <span className="chip-count">
+                {selectedProvider === 'all' 
+                  ? products.length 
+                  : products.filter(p => p.providerSlug?.toLowerCase() === selectedProvider.toLowerCase()).length}
+              </span>
+            </button>
+
+            {/* Individual Category Chips */}
+            {availableCategories.map((cat) => {
+              const isSelected = selectedCategory.toLowerCase() === cat.slug.toLowerCase();
+              const count = products.filter(p => {
+                const matchCat = p.categorySlug?.toLowerCase() === cat.slug.toLowerCase();
+                if (!matchCat) return false;
+                if (selectedProvider !== 'all') {
+                  return p.providerSlug?.toLowerCase() === selectedProvider.toLowerCase() ||
+                         p.subcategorySlug?.toLowerCase() === selectedProvider.toLowerCase();
+                }
+                return true;
+              }).length;
+
+              return (
+                <button
+                  key={cat.id || cat.slug}
+                  type="button"
+                  className={`category-chip-btn ${isSelected ? 'active' : ''}`}
+                  onClick={() => handleCategorySelect(cat.slug)}
+                  style={{
+                    backgroundColor: isSelected ? (cat.badgeColor || '#0284c7') : undefined,
+                    borderColor: isSelected ? (cat.badgeColor || '#0284c7') : undefined
+                  }}
+                >
+                  <span className="category-chip-icon" style={{ color: isSelected ? '#ffffff' : (cat.badgeColor || 'inherit') }}>
+                    {getCategoryIcon(cat.iconName)}
+                  </span>
+                  <span>{formatHeading(cat.name)}</span>
                   <span className="chip-count">{count}</span>
                 </button>
               );
