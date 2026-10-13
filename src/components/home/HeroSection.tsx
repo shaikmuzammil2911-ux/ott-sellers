@@ -169,7 +169,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ groupId, bannerId, dis
     (currentBanner.buttons && currentBanner.buttons.length > 0)
   );
 
-  const showOverlay = currentBanner.showText !== false && currentBanner.mode !== 'image-only' && hasTextContent;
+  const showOverlay = currentBanner.showText !== false && hasTextContent;
 
   return (
     <section 
