@@ -5,7 +5,11 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/google87b8f7951c546a7f.html",
+      "destination": "/api/google-verify"
+    },
+    {
+      "source": "/((?!google.*|favicon\\.ico|robots\\.txt|sitemap\\.xml|assets/.*).*)",
       "destination": "/index.html"
     }
   ]
