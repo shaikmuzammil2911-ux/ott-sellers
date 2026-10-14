@@ -596,17 +596,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  background: #ffffff;
-  border-radius: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   width: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .payment-option-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
 }
 
 .payment-option-content {
@@ -618,37 +619,152 @@
 }
 
 .payment-option-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.25s ease;
 }
 
-.online-gateway-card {
-  border: 1.5px solid #0284c7;
+.payment-option-card:hover .payment-option-icon-box {
+  transform: scale(1.08);
 }
+
+/* 1. ONLINE PAYMENT GATEWAY CARD (Vibrant Electric Azure / Brand Blue) */
+.online-gateway-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 45%, #ffffff 100%);
+  border: 2px solid #0284c7;
+  box-shadow: 0 4px 16px -2px rgba(2, 132, 199, 0.18), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.online-gateway-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #0284c7 0%, #38bdf8 100%);
+}
+
 .online-gateway-card:hover {
   border-color: #0369a1;
-  box-shadow: 0 8px 18px rgba(2, 132, 199, 0.15);
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 60%, #f0f9ff 100%);
+  box-shadow: 0 12px 28px -4px rgba(2, 132, 199, 0.32), 0 0 0 1px #0284c7;
 }
+
 .online-icon-box {
-  background: #e0f2fe;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+}
+
+.online-gateway-card .payment-option-heading {
+  color: #0369a1;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.payment-fast-tag {
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28);
+}
+
+.payment-arrow-disc {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 10px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.online-arrow-disc {
+  background: rgba(2, 132, 199, 0.12);
   color: #0284c7;
 }
 
-.whatsapp-instant-card {
-  border: 1.5px solid #22c55e;
+.online-gateway-card:hover .online-arrow-disc {
+  background: #0284c7;
+  color: #ffffff;
+  transform: translateX(4px);
 }
+
+/* 2. WHATSAPP INSTANT ORDER CARD (Authentic Vibrant WhatsApp Green) */
+.whatsapp-instant-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 45%, #ffffff 100%);
+  border: 2px solid #22c55e;
+  box-shadow: 0 4px 16px -2px rgba(34, 197, 94, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.whatsapp-instant-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+}
+
 .whatsapp-instant-card:hover {
   border-color: #16a34a;
-  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.15);
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 60%, #f0fdf4 100%);
+  box-shadow: 0 12px 28px -4px rgba(34, 197, 94, 0.35), 0 0 0 1px #16a34a;
 }
+
 .whatsapp-icon-box {
-  background: #dcfce7;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.whatsapp-instant-card .payment-option-heading {
+  color: #14532d;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.payment-manual-tag {
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.28);
+}
+
+.whatsapp-arrow-disc {
+  background: rgba(34, 197, 94, 0.14);
   color: #16a34a;
+}
+
+.whatsapp-instant-card:hover .whatsapp-arrow-disc {
+  background: #16a34a;
+  color: #ffffff;
+  transform: translateX(4px);
 }
 
 .payment-option-texts {
@@ -658,56 +774,17 @@
   min-width: 0;
 }
 
-.payment-option-heading {
-  font-size: 0.94rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
 .payment-option-subtext {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   color: #64748b;
   line-height: 1.35;
-}
-
-.online-gateway-card .payment-option-arrow {
-  color: #0284c7;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.whatsapp-instant-card .payment-option-arrow {
-  color: #16a34a;
-  flex-shrink: 0;
-  margin-left: 8px;
 }
 
 .payment-option-header-row {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.payment-fast-tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.payment-manual-tag {
-  background: #dcfce7;
-  color: #15803d;
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  flex-wrap: wrap;
 }
 
 .payment-methods-chips-row {
@@ -715,7 +792,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 5px;
-  margin-top: 5px;
+  margin-top: 6px;
 }
 
 .pay-chip {
@@ -728,19 +805,19 @@
 }
 
 .pay-chip.gpay {
-  background: #f1f5f9;
+  background: #ffffff;
   color: #1e293b;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #bae6fd;
 }
 
 .pay-chip.phonepe {
-  background: #ede9fe;
+  background: #ffffff;
   color: #5b21b6;
   border: 1px solid #ddd6fe;
 }
 
 .pay-chip.paytm {
-  background: #e0f2fe;
+  background: #ffffff;
   color: #0284c7;
   border: 1px solid #bae6fd;
 }
@@ -752,13 +829,13 @@
 }
 
 .pay-chip.cards {
-  background: #f1f5f9;
+  background: #ffffff;
   color: #334155;
   border: 1px solid #cbd5e1;
 }
 
 .pay-chip.whatsapp {
-  background: #dcfce7;
+  background: #ffffff;
   color: #166534;
   border: 1px solid #bbf7d0;
 }

@@ -37,7 +37,7 @@ export const ItemsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCat);
   const [selectedProvider, setSelectedProvider] = useState<string>(initialProvider);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>(initialSub);
-  const [sortBy, setSortBy] = useState<string>('popularity');
+  const [sortBy, setSortBy] = useState<string>('default');
 
   // Load data & CMS Headings
   const loadData = useCallback(async () => {
@@ -168,7 +168,10 @@ export const ItemsPage: React.FC = () => {
         if (sortBy === 'rating') {
           return (b.rating || 4.9) - (a.rating || 4.9);
         }
-        return (b.reviewsCount || 100) - (a.reviewsCount || 100);
+        if (sortBy === 'popularity') {
+          return (b.reviewsCount || 100) - (a.reviewsCount || 100);
+        }
+        return (a.displayOrder || 0) - (b.displayOrder || 0);
       });
   }, [products, searchQuery, selectedProvider, selectedCategory, selectedSubcategory, sortBy]);
 
@@ -360,6 +363,7 @@ export const ItemsPage: React.FC = () => {
                 value={sortBy} 
                 onChange={(e) => setSortBy(e.target.value)}
               >
+                <option value="default">Curated (Default)</option>
                 <option value="popularity">Most Popular</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>

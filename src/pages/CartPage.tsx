@@ -31,10 +31,28 @@ export const CartPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Helper: Sanitize to 10 digits
+  const sanitizePhone = (val: string): string => {
+    if (!val) return '';
+    const digits = val.replace(/\D/g, '');
+    if (digits.length > 10 && digits.startsWith('91')) {
+      return digits.slice(2, 12);
+    }
+    if (digits.length === 11 && digits.startsWith('0')) {
+      return digits.slice(1, 11);
+    }
+    return digits.slice(0, 10);
+  };
+
+  const isValidIndianMobile = (val: string): boolean => {
+    const clean = sanitizePhone(val);
+    return /^[6-9]\d{9}$/.test(clean);
+  };
+
   // Customer Contact Fields
   const [fullName, setFullName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.mobile || '');
-  const [whatsapp, setWhatsapp] = useState(user?.whatsapp || user?.mobile || '');
+  const [phone, setPhone] = useState(sanitizePhone(user?.mobile || ''));
+  const [whatsapp, setWhatsapp] = useState(sanitizePhone(user?.whatsapp || user?.mobile || ''));
   const [email, setEmail] = useState(user?.email || '');
   const [remarks, setRemarks] = useState('');
 
@@ -68,6 +86,21 @@ export const CartPage: React.FC = () => {
     loadSettings();
   }, []);
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const clean = sanitizePhone(e.target.value);
+    setPhone(clean);
+    if (!whatsapp || whatsapp === phone) {
+      setWhatsapp(clean);
+    }
+    if (formError) setFormError(null);
+  };
+
+  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const clean = sanitizePhone(e.target.value);
+    setWhatsapp(clean);
+    if (formError) setFormError(null);
+  };
+
   const handleClearCart = () => {
     setRemarks('');
     setInputCouponCode('');
@@ -93,8 +126,21 @@ export const CartPage: React.FC = () => {
 
   const handleOpenPaymentModal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !phone.trim() || !email.trim()) {
-      setFormError('Please enter your Name, Phone Number, and Email to proceed.');
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      setFormError('Please enter your full name (minimum 2 characters).');
+      return;
+    }
+    if (!isValidIndianMobile(phone)) {
+      setFormError('Please enter a valid 10-digit Mobile Number starting with 6, 7, 8, or 9.');
+      return;
+    }
+    if (!isValidIndianMobile(whatsapp)) {
+      setFormError('Please enter a valid 10-digit WhatsApp Number for credentials delivery.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email.trim())) {
+      setFormError('Please enter a valid email address.');
       return;
     }
     setFormError(null);
@@ -391,32 +437,89 @@ export const CartPage: React.FC = () => {
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Mobile Number *</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    style={{ padding: '9px 12px', fontSize: '0.86rem' }}
-                    placeholder="10-digit mobile"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      if (!whatsapp) setWhatsapp(e.target.value);
-                    }}
-                    required
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', margin: 0 }}>Mobile Number *</label>
+                    <span style={{ fontSize: '0.7rem', color: phone.length === 10 ? '#16a34a' : '#64748b', fontWeight: 600 }}>
+                      {phone.length === 10 ? '✓ 10 digits valid' : `${phone.length}/10 digits`}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: '#ffffff',
+                    border: `1.5px solid ${phone.length === 10 && isValidIndianMobile(phone) ? '#16a34a' : phone.length > 0 && phone.length < 10 ? '#f59e0b' : '#cbd5e1'}`,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}>
+                    <span style={{
+                      padding: '9px 10px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      color: '#334155',
+                      background: '#f8fafc',
+                      borderRight: '1px solid #e2e8f0',
+                      userSelect: 'none'
+                    }}>
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      className="form-input"
+                      style={{ border: 'none', borderRadius: 0, padding: '9px 12px', fontSize: '0.86rem', flex: 1, outline: 'none', background: 'transparent' }}
+                      placeholder="Enter 10 digits"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      required
+                    />
+                    {phone.length === 10 && isValidIndianMobile(phone) && (
+                      <Check size={16} color="#16a34a" style={{ marginRight: '10px', flexShrink: 0 }} />
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>WhatsApp Number (for Credentials) *</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    style={{ padding: '9px 12px', fontSize: '0.86rem' }}
-                    placeholder="WhatsApp number"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    required
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', margin: 0 }}>WhatsApp Number (for Credentials) *</label>
+                    <span style={{ fontSize: '0.7rem', color: whatsapp.length === 10 ? '#16a34a' : '#64748b', fontWeight: 600 }}>
+                      {whatsapp.length === 10 ? '✓ 10 digits valid' : `${whatsapp.length}/10 digits`}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: '#ffffff',
+                    border: `1.5px solid ${whatsapp.length === 10 && isValidIndianMobile(whatsapp) ? '#16a34a' : whatsapp.length > 0 && whatsapp.length < 10 ? '#f59e0b' : '#cbd5e1'}`,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}>
+                    <span style={{
+                      padding: '9px 10px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      color: '#334155',
+                      background: '#f8fafc',
+                      borderRight: '1px solid #e2e8f0',
+                      userSelect: 'none'
+                    }}>
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      className="form-input"
+                      style={{ border: 'none', borderRadius: 0, padding: '9px 12px', fontSize: '0.86rem', flex: 1, outline: 'none', background: 'transparent' }}
+                      placeholder="Enter 10 digits"
+                      value={whatsapp}
+                      onChange={handleWhatsAppChange}
+                      required
+                    />
+                    {whatsapp.length === 10 && isValidIndianMobile(whatsapp) && (
+                      <Check size={16} color="#16a34a" style={{ marginRight: '10px', flexShrink: 0 }} />
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
@@ -593,17 +696,20 @@ export const CartPage: React.FC = () => {
                   >
                     <div className="payment-option-content">
                       <div className="payment-option-icon-box online-icon-box">
-                        <CreditCard size={22} />
+                        <CreditCard size={24} />
                       </div>
                       <div className="payment-option-texts">
                         <div className="payment-option-header-row">
                           <strong className="payment-option-heading">
-                            {paymentSettings?.online?.title || 'Pay Now Online'}
+                            {paymentSettings?.online?.title || 'Online Payment Gateway'}
                           </strong>
-                          <span className="payment-fast-tag">Instant</span>
+                          <span className="payment-fast-tag">
+                            <span className="live-pulse-dot" style={{ width: '6px', height: '6px', background: '#38bdf8', display: 'inline-block', borderRadius: '50%', marginRight: '4px' }}></span>
+                            Instant & Automated
+                          </span>
                         </div>
                         <span className="payment-option-subtext">
-                          {paymentSettings?.online?.description || 'Pay securely using UPI apps, Debit/Credit cards, or NetBanking.'}
+                          {paymentSettings?.online?.description || 'Pay securely using supported UPI apps (GPay, PhonePe, Paytm), Cards, or NetBanking.'}
                         </span>
                         {/* Supported Apps / Cards Chips */}
                         <div className="payment-methods-chips-row">
@@ -615,7 +721,9 @@ export const CartPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <ArrowRight size={18} className="payment-option-arrow" />
+                    <div className="payment-arrow-disc online-arrow-disc">
+                      <ArrowRight size={18} className="payment-option-arrow" />
+                    </div>
                   </button>
                 )}
 
@@ -628,25 +736,31 @@ export const CartPage: React.FC = () => {
                   >
                     <div className="payment-option-content">
                       <div className="payment-option-icon-box whatsapp-icon-box">
-                        <MessageCircle size={22} />
+                        <MessageCircle size={24} />
                       </div>
                       <div className="payment-option-texts">
                         <div className="payment-option-header-row">
                           <strong className="payment-option-heading">
-                            {paymentSettings?.whatsapp?.title || 'Order/Pay on WhatsApp'}
+                            {paymentSettings?.whatsapp?.title || 'WhatsApp Instant Order'}
                           </strong>
-                          <span className="payment-manual-tag">WhatsApp Support</span>
+                          <span className="payment-manual-tag">
+                            <span className="live-pulse-dot" style={{ width: '6px', height: '6px', background: '#22c55e', display: 'inline-block', borderRadius: '50%', marginRight: '4px' }}></span>
+                            Direct Team Support
+                          </span>
                         </div>
                         <span className="payment-option-subtext">
-                          {paymentSettings?.whatsapp?.description || 'Chat directly with our team to verify and pay via manual UPI transfer.'}
+                          {paymentSettings?.whatsapp?.description || 'Continue on WhatsApp to confirm your order with our team via manual UPI transfer.'}
                         </span>
                         <div className="payment-methods-chips-row">
-                          <span className="pay-chip whatsapp">Direct Support</span>
-                          <span className="pay-chip upi">Manual UPI QR</span>
+                          <span className="pay-chip whatsapp">Chat & Pay</span>
+                          <span className="pay-chip upi">Direct UPI QR</span>
+                          <span className="pay-chip whatsapp">1-on-1 Assistance</span>
                         </div>
                       </div>
                     </div>
-                    <ArrowRight size={18} className="payment-option-arrow" />
+                    <div className="payment-arrow-disc whatsapp-arrow-disc">
+                      <ArrowRight size={18} className="payment-option-arrow" />
+                    </div>
                   </button>
                 )}
 

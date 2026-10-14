@@ -23,13 +23,28 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'ott_sellers_cart_v2';
-const COUPON_STORAGE_KEY = 'ott_sellers_applied_coupon_v2';
+const CART_STORAGE_KEY = 'ott_sellers_cart_session';
+const COUPON_STORAGE_KEY = 'ott_sellers_applied_coupon_session';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Wipe legacy localStorage cart and coupon keys on startup so stale test data never persists
+  useEffect(() => {
+    try {
+      localStorage.removeItem('ott_sellers_cart_v2');
+      localStorage.removeItem('ott_sellers_applied_coupon_v2');
+      localStorage.removeItem('ott_sellers_cart');
+      localStorage.removeItem('ott_sellers_coupon_error');
+    } catch {}
+  }, []);
+
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      // Clear legacy localStorage data
+      localStorage.removeItem('ott_sellers_cart_v2');
+      localStorage.removeItem('ott_sellers_applied_coupon_v2');
+      localStorage.removeItem('ott_sellers_cart');
+
+      const saved = sessionStorage.getItem(CART_STORAGE_KEY);
       if (saved) return JSON.parse(saved);
     } catch {
       // Ignore
@@ -39,7 +54,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(() => {
     try {
-      const saved = localStorage.getItem(COUPON_STORAGE_KEY);
+      const saved = sessionStorage.getItem(COUPON_STORAGE_KEY);
       if (saved) return JSON.parse(saved);
     } catch {}
     return null;
@@ -50,7 +65,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      if (items.length > 0) {
+        sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      } else {
+        sessionStorage.removeItem(CART_STORAGE_KEY);
+      }
     } catch {
       // Ignore
     }
@@ -59,9 +78,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     try {
       if (appliedCoupon) {
-        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(appliedCoupon));
+        sessionStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(appliedCoupon));
       } else {
-        localStorage.removeItem(COUPON_STORAGE_KEY);
+        sessionStorage.removeItem(COUPON_STORAGE_KEY);
       }
     } catch {}
   }, [appliedCoupon]);
@@ -207,6 +226,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     setItems([]);
     setAppliedCoupon(null);
+    setCouponError(null);
+    try {
+      sessionStorage.removeItem(CART_STORAGE_KEY);
+      sessionStorage.removeItem(COUPON_STORAGE_KEY);
+      localStorage.removeItem('ott_sellers_cart_v2');
+      localStorage.removeItem('ott_sellers_applied_coupon_v2');
+      localStorage.removeItem('ott_sellers_cart');
+    } catch {}
   };
 
   // Pricing calculations

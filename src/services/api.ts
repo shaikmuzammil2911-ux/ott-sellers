@@ -1371,7 +1371,9 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const products: Product[] = data.map(mapProductFromDb);
+        const products: Product[] = data
+          .map(mapProductFromDb)
+          .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
         try {
           localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
@@ -1406,7 +1408,8 @@ export const ottApi = {
     return [...PRODUCTS_DATA]
       .map(mapProductFromDb)
       .filter(p => p.status !== 'OFF')
-      .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true));
+      .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true))
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
   async getProductsBySubcategory(subcategorySlug: string): Promise<Product[]> {
@@ -1421,7 +1424,9 @@ export const ottApi = {
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const products: Product[] = data.map(mapProductFromDb);
+        const products: Product[] = data
+          .map(mapProductFromDb)
+          .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
         return products;
       }
@@ -1431,27 +1436,45 @@ export const ottApi = {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (stored) {
         const parsed: any[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed.map(mapProductFromDb);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map(mapProductFromDb)
+            .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        }
       }
     } catch {}
 
-    return [...PRODUCTS_DATA].map(mapProductFromDb);
+    return [...PRODUCTS_DATA]
+      .map(mapProductFromDb)
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
   async saveProduct(product: Product): Promise<void> {
     const all = await this.getAllProductsAdmin();
-    const existingIndex = all.findIndex(p => p.id === product.id || p.slug === product.slug);
+    all.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+    const cleanDisplayOrder = Number(product.displayOrder) || (all.length + 1);
     const productToSave: Product = {
       ...product,
+      displayOrder: cleanDisplayOrder,
       updatedAt: Date.now()
     };
 
-    let updated: Product[];
-    if (existingIndex >= 0) {
-      updated = [...all];
-      updated[existingIndex] = productToSave;
-    } else {
-      updated = [...all, productToSave];
+    // Remove existing if present
+    const filtered = all.filter(p => p.id !== product.id && p.slug !== product.slug);
+
+    // Insert at desired order position
+    const updated = [...filtered, productToSave].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+    // Re-index sequentially 1..N so there are no holes or duplicates
+    updated.forEach((p, idx) => {
+      p.displayOrder = idx + 1;
+    });
+
+    // Find the saved product's normalized displayOrder
+    const finalSaved = updated.find(p => p.id === productToSave.id || p.slug === productToSave.slug);
+    if (finalSaved) {
+      productToSave.displayOrder = finalSaved.displayOrder;
     }
 
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
@@ -1534,23 +1557,19 @@ export const ottApi = {
 
   async reorderProduct(productId: string, direction: 'up' | 'down'): Promise<Product[]> {
     const products = await this.getAllProductsAdmin();
+    products.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    products.forEach((p, idx) => {
+      p.displayOrder = idx + 1;
+    });
+
     const index = products.findIndex(p => p.id === productId);
     if (index === -1) return products;
 
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= products.length) return products;
 
-    const current = products[index];
-    const target = products[targetIndex];
-
-    const currentOrder = current.displayOrder ?? (index + 1);
-    const targetOrder = target.displayOrder ?? (targetIndex + 1);
-
-    current.displayOrder = targetOrder;
-    target.displayOrder = currentOrder;
-
-    products[index] = target;
-    products[targetIndex] = current;
+    const [moved] = products.splice(index, 1);
+    products.splice(targetIndex, 0, moved);
 
     products.forEach((p, idx) => {
       p.displayOrder = idx + 1;
@@ -1561,8 +1580,8 @@ export const ottApi = {
 
     try {
       await Promise.all([
-        supabase.from('products').update({ sort_order: current.displayOrder }).eq('id', current.id),
-        supabase.from('products').update({ sort_order: target.displayOrder }).eq('id', target.id)
+        supabase.from('products').update({ sort_order: products[targetIndex].displayOrder }).eq('id', products[targetIndex].id),
+        supabase.from('products').update({ sort_order: products[index].displayOrder }).eq('id', products[index].id)
       ]);
     } catch {}
 
@@ -2930,9 +2949,14 @@ export const ottApi = {
   getCachedProductsAdmin(): Product[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        }
+      }
     } catch {}
-    return [...PRODUCTS_DATA];
+    return [...PRODUCTS_DATA].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
   getCachedCategoriesAdmin(): Category[] {

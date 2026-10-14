@@ -164,7 +164,11 @@ export const AdminCouponsPage: React.FC = () => {
 
   const handleToggleProductSelection = (id: string) => {
     if (formApplicability === 'single_item') {
-      setFormApplicableProductIds([id]);
+      if (formApplicableProductIds.includes(id)) {
+        setFormApplicableProductIds([]);
+      } else {
+        setFormApplicableProductIds([id]);
+      }
       return;
     }
     if (formApplicableProductIds.includes(id)) {
@@ -737,6 +741,36 @@ export const AdminCouponsPage: React.FC = () => {
                           style={{ fontSize: '0.8rem', padding: '6px 12px' }}
                         />
                       </div>
+
+                      {/* Selected Item Pill (for Single Item mode) */}
+                      {formApplicability === 'single_item' && formApplicableProductIds.length > 0 && (
+                        <div style={{ marginBottom: '10px', padding: '8px 10px', background: '#0b132b', borderRadius: '8px', border: '1px solid #38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.74rem', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CheckSquare size={13} color="#38bdf8" />
+                            <span>Selected: <strong style={{ color: '#38bdf8' }}>{products.find(p => p.id === formApplicableProductIds[0])?.name || formApplicableProductIds[0]}</strong></span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setFormApplicableProductIds([])}
+                            style={{
+                              background: '#ef4444',
+                              border: 'none',
+                              borderRadius: '4px',
+                              color: '#fff',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <X size={11} />
+                            <span>Deselect</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Selected Items Pills (for Multiple Items mode) */}
                       {formApplicability === 'multiple_items' && formApplicableProductIds.length > 0 && (

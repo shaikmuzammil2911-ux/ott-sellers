@@ -39,10 +39,36 @@ export const CheckoutPage: React.FC = () => {
     );
   }
 
+  const sanitizePhone = (val: string): string => {
+    if (!val) return '';
+    const digits = val.replace(/\D/g, '');
+    if (digits.length > 10 && digits.startsWith('91')) return digits.slice(2, 12);
+    if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1, 11);
+    return digits.slice(0, 10);
+  };
+
+  const isValidIndianMobile = (val: string): boolean => {
+    const clean = sanitizePhone(val);
+    return /^[6-9]\d{9}$/.test(clean);
+  };
+
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !mobileNumber.trim() || !email.trim() || !whatsappNumber.trim()) {
-      setErrorMsg('Please complete all required customer contact details.');
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      setErrorMsg('Please enter your full name (at least 2 characters).');
+      return;
+    }
+    if (!isValidIndianMobile(mobileNumber)) {
+      setErrorMsg('Please enter a valid 10-digit Mobile Number starting with 6, 7, 8, or 9.');
+      return;
+    }
+    if (!isValidIndianMobile(whatsappNumber)) {
+      setErrorMsg('Please enter a valid 10-digit WhatsApp Number for credentials delivery.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email.trim())) {
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
 
@@ -172,15 +198,31 @@ export const CheckoutPage: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">WhatsApp Number (For Instant Delivery) *</label>
-                  <input
-                    type="tel"
-                    required
-                    className="form-input"
-                    value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    placeholder="+91 98765 43210"
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>WhatsApp Number (For Instant Delivery) *</label>
+                    <span style={{ fontSize: '0.72rem', color: whatsappNumber.length === 10 ? '#16a34a' : '#64748b', fontWeight: 600 }}>
+                      {whatsappNumber.length === 10 ? '✓ 10 digits valid' : `${whatsappNumber.length}/10 digits`}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', background: '#ffffff', border: `1.5px solid ${whatsappNumber.length === 10 && isValidIndianMobile(whatsappNumber) ? '#16a34a' : '#cbd5e1'}`, borderRadius: '8px', overflow: 'hidden' }}>
+                    <span style={{ padding: '9px 10px', fontSize: '0.84rem', fontWeight: 700, color: '#334155', background: '#f8fafc', borderRight: '1px solid #e2e8f0', userSelect: 'none' }}>
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      required
+                      className="form-input"
+                      style={{ border: 'none', borderRadius: 0, padding: '9px 12px', fontSize: '0.86rem', flex: 1, outline: 'none', background: 'transparent' }}
+                      value={whatsappNumber}
+                      onChange={(e) => {
+                        const clean = sanitizePhone(e.target.value);
+                        setWhatsappNumber(clean);
+                        if (!mobileNumber) setMobileNumber(clean);
+                      }}
+                      placeholder="10-digit number"
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -196,15 +238,27 @@ export const CheckoutPage: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Mobile Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    className="form-input"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    placeholder="+91 98765 43210"
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>Mobile Number *</label>
+                    <span style={{ fontSize: '0.72rem', color: mobileNumber.length === 10 ? '#16a34a' : '#64748b', fontWeight: 600 }}>
+                      {mobileNumber.length === 10 ? '✓ 10 digits valid' : `${mobileNumber.length}/10 digits`}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', background: '#ffffff', border: `1.5px solid ${mobileNumber.length === 10 && isValidIndianMobile(mobileNumber) ? '#16a34a' : '#cbd5e1'}`, borderRadius: '8px', overflow: 'hidden' }}>
+                    <span style={{ padding: '9px 10px', fontSize: '0.84rem', fontWeight: 700, color: '#334155', background: '#f8fafc', borderRight: '1px solid #e2e8f0', userSelect: 'none' }}>
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      required
+                      className="form-input"
+                      style={{ border: 'none', borderRadius: 0, padding: '9px 12px', fontSize: '0.86rem', flex: 1, outline: 'none', background: 'transparent' }}
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(sanitizePhone(e.target.value))}
+                      placeholder="10-digit number"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

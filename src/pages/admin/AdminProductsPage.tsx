@@ -310,9 +310,9 @@ export const AdminProductsPage: React.FC = () => {
   };
 
   const handleReorder = async (productId: string, direction: 'up' | 'down') => {
-    await ottApi.reorderProduct(productId, direction);
+    const updated = await ottApi.reorderProduct(productId, direction);
+    setProducts([...updated]);
     showToast(`Product order updated.`);
-    await loadData();
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {
@@ -466,7 +466,10 @@ export const AdminProductsPage: React.FC = () => {
               filteredProducts.map((p, idx) => (
                 <tr key={p.id}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#38bdf8', minWidth: '22px' }}>
+                        #{p.displayOrder || idx + 1}
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleReorder(p.id, 'up')}
@@ -580,7 +583,10 @@ export const AdminProductsPage: React.FC = () => {
                       {p.name}
                     </h4>
                     {/* Up & Down Order Controls */}
-                    <div style={{ display: 'flex', gap: '3px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38bdf8', padding: '1px 5px', background: 'rgba(56, 189, 248, 0.12)', borderRadius: '4px', marginRight: '2px' }}>
+                        #{p.displayOrder || idx + 1}
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleReorder(p.id, 'up')}
