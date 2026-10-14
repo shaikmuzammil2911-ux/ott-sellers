@@ -38,7 +38,7 @@ export const AdminSettingsPage: React.FC = () => {
   const [supportEmail, setSupportEmail] = useState(ADMIN_CONFIG.EMAIL);
   const [supportPhone, setSupportPhone] = useState('+91 9441323332');
   const [announcementText, setAnnouncementText] = useState('🔥 Flash Sale: Flat 70% Off on All Annual OTT Subscriptions! Instant WhatsApp Credentials Delivery.');
-  const [razorpayKeyId, setRazorpayKeyId] = useState('rzp_test_placeholder');
+  const [razorpayKeyId, setRazorpayKeyId] = useState('rzp_test_TnmR2QaJbFFCcJ');
   const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
   const [smtpUser, setSmtpUser] = useState(ADMIN_CONFIG.EMAIL);
   const [randomNotifs, setRandomNotifs] = useState(true);
@@ -139,7 +139,7 @@ export const AdminSettingsPage: React.FC = () => {
       setSupportEmail(s.supportEmail || ADMIN_CONFIG.EMAIL);
       setSupportPhone(s.supportPhone || '+91 9441323332');
       setAnnouncementText(s.announcementText || '');
-      setRazorpayKeyId(s.razorpayKeyId || 'rzp_test_placeholder');
+      setRazorpayKeyId(s.razorpayKeyId || 'rzp_test_TnmR2QaJbFFCcJ');
       setSmtpHost(s.smtpHost || 'smtp.gmail.com');
       setSmtpUser(s.smtpUser || ADMIN_CONFIG.EMAIL);
       setRandomNotifs(s.randomNotificationsActive ?? true);

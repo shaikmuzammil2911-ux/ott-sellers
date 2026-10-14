@@ -2080,7 +2080,7 @@ export const ottApi = {
       supportPhone: '+91 9441323332',
       supportWhatsApp: '9441323332',
       announcementText: '🔥 Flash Sale: Flat 70% Off on All Annual OTT Subscriptions! Instant WhatsApp Credentials Delivery.',
-      razorpayKeyId: 'rzp_test_placeholder',
+      razorpayKeyId: 'rzp_test_TnmR2QaJbFFCcJ',
       smtpHost: 'smtp.gmail.com',
       smtpUser: ADMIN_CONFIG.EMAIL,
       randomNotificationsActive: true

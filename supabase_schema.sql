@@ -554,7 +554,7 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
   support_whatsapp TEXT DEFAULT '9441323332',
   announcement_text TEXT DEFAULT '🔥 Flash Sale: Flat 70% Off on All Annual OTT Subscriptions! Instant WhatsApp Credentials Delivery.',
   admin_password_hash TEXT,
-  razorpay_key_id TEXT DEFAULT 'rzp_test_placeholder',
+  razorpay_key_id TEXT DEFAULT 'rzp_test_TnmR2QaJbFFCcJ',
   razorpay_key_secret TEXT,
   smtp_host TEXT DEFAULT 'smtp.gmail.com',
   smtp_port INT DEFAULT 465,

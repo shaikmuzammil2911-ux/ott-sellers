@@ -37,16 +37,67 @@ export const paymentService = {
   },
 
   /**
+   * Resolve Razorpay Key ID
+   */
+  getRazorpayKey(): string {
+    const envKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+    if (envKey && envKey !== 'rzp_test_placeholder') {
+      return envKey;
+    }
+
+    try {
+      const stored = localStorage.getItem('ott_admin_settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.razorpayKeyId && parsed.razorpayKeyId !== 'rzp_test_placeholder') {
+          return parsed.razorpayKeyId;
+        }
+      }
+    } catch {}
+
+    return 'rzp_test_TnmR2QaJbFFCcJ';
+  },
+
+  /**
    * Initiate Razorpay Payment
    */
   async openCheckout(options: PaymentOptions) {
     const isLoaded = await this.loadRazorpayScript();
+    const razorpayKey = this.getRazorpayKey();
 
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+    // If Razorpay SDK is loaded
+    if (isLoaded && window.Razorpay) {
+      let razorpayOrderId: string | undefined = undefined;
 
-    // If Razorpay SDK is loaded and a real live key is present
-    if (isLoaded && window.Razorpay && razorpayKey !== 'rzp_test_placeholder') {
-      const rzpOptions = {
+      // Attempt to create a backend order via Vercel serverless API
+      try {
+        const orderRes = await fetch('/api/create-razorpay-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: options.amount,
+            currency: 'INR',
+            receipt: options.orderId,
+            notes: {
+              customerName: options.customerName,
+              customerEmail: options.customerEmail,
+              customerPhone: options.customerPhone,
+              description: options.description
+            }
+          })
+        });
+
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          if (orderData?.id) {
+            razorpayOrderId = orderData.id;
+          }
+        }
+      } catch {
+        // Fallback gracefully to direct client-side checkout
+      }
+
+      const rzpOptions: any = {
         key: razorpayKey,
         amount: Math.round(options.amount * 100), // in paise
         currency: 'INR',
@@ -71,7 +122,17 @@ export const paymentService = {
         }
       };
 
+      if (razorpayOrderId) {
+        rzpOptions.order_id = razorpayOrderId;
+      }
+
       const rzp = new window.Razorpay(rzpOptions);
+
+      rzp.on('payment.failed', function (resp: any) {
+        const errorDesc = resp?.error?.description || resp?.error?.reason || 'Payment failed';
+        options.onFailure(errorDesc);
+      });
+
       rzp.open();
     } else {
       // Smooth fallback / test mode simulator
