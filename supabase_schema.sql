@@ -103,6 +103,9 @@ CREATE TABLE IF NOT EXISTS public.products (
   subcategory_id TEXT,
   subcategory_slug TEXT,
   subcategory_name TEXT,
+  provider_id TEXT,
+  provider_slug TEXT,
+  provider_name TEXT,
   catalog_slugs JSONB DEFAULT '[]'::jsonb,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -133,8 +136,10 @@ CREATE TABLE IF NOT EXISTS public.products (
   rules JSONB DEFAULT '[]'::jsonb,
   faqs JSONB DEFAULT '[]'::jsonb,
   warranty_period TEXT DEFAULT 'Full Duration Replacement Warranty',
+  show_trust_assurances BOOLEAN DEFAULT true,
   badge TEXT,
   sort_order INT DEFAULT 0,
+  display_pages TEXT[] DEFAULT ARRAY['home', 'items']::TEXT[],
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -157,9 +162,13 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS deliverables JSONB DEFAULT 
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS rules JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS warranty_period TEXT DEFAULT 'Full Duration Replacement Warranty';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS show_trust_assurances BOOLEAN DEFAULT true;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge TEXT;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS display_pages TEXT[] DEFAULT ARRAY['home', 'items']::TEXT[];
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_id TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_slug TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS provider_name TEXT;
 
 -- ====================================================================
 -- 5. BANNERS & SLOTS CMS TABLE

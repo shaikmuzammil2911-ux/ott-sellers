@@ -1569,12 +1569,18 @@ export const ottApi = {
       rules: productToSave.rules,
       faqs: productToSave.faqs,
       warranty_period: warrantyVal,
+      show_trust_assurances: (productToSave.showTrustAssurances !== false && warrantyVal !== '__HIDDEN__'),
       badge: (productToSave.badge && productToSave.badge !== 'Streaming') ? productToSave.badge : null,
       sort_order: productToSave.displayOrder || 0,
       updated_at: new Date().toISOString()
     };
 
     let { error: upsertError } = await supabase.from('products').upsert(payload, { onConflict: 'id' });
+    if (upsertError && (upsertError.message?.includes('show_trust_assurances') || (upsertError as any).details?.includes('show_trust_assurances'))) {
+      delete payload.show_trust_assurances;
+      const resWithoutCol = await supabase.from('products').upsert(payload, { onConflict: 'id' });
+      upsertError = resWithoutCol.error;
+    }
     if (upsertError && upsertError.code === '23505') {
       // Postgres unique constraint collision (slug) - append timestamp and retry
       payload.slug = `${payload.slug}-${Date.now()}`;
@@ -1589,7 +1595,7 @@ export const ottApi = {
     }
 
     if (productToSave.id) {
-      await supabase.from('products').update({
+      const updateData: any = {
         status: productToSave.status || 'ON',
         in_stock: productToSave.inStock,
         is_featured: productToSave.isFeatured ?? false,
@@ -1599,7 +1605,13 @@ export const ottApi = {
         sort_order: productToSave.displayOrder || 0,
         warranty_period: warrantyVal,
         updated_at: new Date().toISOString()
-      }).eq('id', productToSave.id);
+      };
+      if (payload.show_trust_assurances !== undefined) {
+        updateData.show_trust_assurances = payload.show_trust_assurances;
+      }
+      try {
+        await supabase.from('products').update(updateData).eq('id', productToSave.id);
+      } catch {}
     }
 
     // Persist to local cache only after successful DB commit
