@@ -375,8 +375,8 @@ export const AdminCategoriesPage: React.FC = () => {
       {/* CREATE / EDIT CATEGORY MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box" style={{ maxWidth: '640px' }}>
-            <div className="admin-modal-header">
+          <div className="admin-modal-box" style={{ maxWidth: '640px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="admin-modal-header" style={{ flexShrink: 0 }}>
               <h2 className="admin-modal-title">
                 {editingCategory ? `Edit Category: ${editingCategory.name}` : 'Create New Category'}
               </h2>
@@ -385,8 +385,8 @@ export const AdminCategoriesPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveCategory}>
-              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSaveCategory} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 <div className="admin-form-row-2">
                   <div className="admin-form-group">
                     <label className="admin-form-label">Category Name *</label>
@@ -548,7 +548,7 @@ export const AdminCategoriesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="admin-modal-footer">
+              <div className="admin-modal-footer" style={{ flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

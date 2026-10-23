@@ -637,6 +637,7 @@
   justify-content: center;
   z-index: 1000;
   padding: 16px;
+  overflow-y: auto;
 }
 
 .admin-modal-box {
@@ -650,6 +651,15 @@
   flex-direction: column;
   box-shadow: var(--admin-shadow-lg);
   animation: adminModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.admin-modal-box form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @keyframes adminModalIn {
@@ -664,6 +674,7 @@
 }
 
 .admin-modal-header {
+  flex-shrink: 0;
   padding: 16px 20px;
   border-bottom: 1px solid var(--admin-border);
   display: flex;
@@ -694,9 +705,12 @@
 .admin-modal-body {
   padding: 20px;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .admin-modal-footer {
+  flex-shrink: 0;
   padding: 14px 20px;
   border-top: 1px solid var(--admin-border);
   display: flex;

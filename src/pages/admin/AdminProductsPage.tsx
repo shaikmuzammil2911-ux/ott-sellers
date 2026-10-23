@@ -52,6 +52,7 @@ export const AdminProductsPage: React.FC = () => {
   // Form Fields - Group 5: Preserved Business Fields
   const [formFeatures, setFormFeatures] = useState('');
   const [formWarranty, setFormWarranty] = useState('Full Duration Replacement Warranty');
+  const [formShowTrustAssurances, setFormShowTrustAssurances] = useState<boolean>(true);
 
   // Validation Errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -110,15 +111,16 @@ export const AdminProductsPage: React.FC = () => {
     setFormOriginalPrice('499');
     setFormOfferPrice('');
     setFormInOffers(false);
-    setFormDisplayPages(['items']);
+    setFormDisplayPages(['home', 'items']);
     setFormImageUrl('');
     setFormStatus('ON');
     setFormInStock(true);
     setFormIsFeatured(false);
     setFormIsTrending(false);
     setFormDisplayOrder(String(products.length + 1));
-    setFormFeatures('Private Screen with 4-Digit PIN\n4K Ultra HD Streaming\nFull Duration Replacement Warranty');
+    setFormFeatures('Private Screen with 4-Digit PIN\n4K Ultra HD Streaming');
     setFormWarranty('Full Duration Replacement Warranty');
+    setFormShowTrustAssurances(true);
     setFieldErrors({});
     setUploadError(null);
     setIsModalOpen(true);
@@ -136,7 +138,7 @@ export const AdminProductsPage: React.FC = () => {
     setFormOriginalPrice(String(p.plans?.[0]?.originalPrice || p.comparePrice || 499));
     setFormOfferPrice(p.offerPrice ? String(p.offerPrice) : '');
     setFormInOffers(p.inOffers ?? false);
-    setFormDisplayPages(p.displayPages && p.displayPages.length > 0 ? p.displayPages : (p.inOffers ? ['items', 'offers'] : ['items']));
+    setFormDisplayPages(p.displayPages && p.displayPages.length > 0 ? p.displayPages : (p.inOffers ? ['home', 'items', 'offers'] : ['home', 'items']));
     setFormImageUrl(p.image);
     setFormStatus(p.status || 'ON');
     setFormInStock(p.inStock);
@@ -144,7 +146,8 @@ export const AdminProductsPage: React.FC = () => {
     setFormIsTrending(p.isTrending ?? false);
     setFormDisplayOrder(String(p.displayOrder || 1));
     setFormFeatures((p.features || []).join('\n'));
-    setFormWarranty(p.warrantyPeriod || 'Full Duration Replacement Warranty');
+    setFormWarranty(p.warrantyPeriod === '__HIDDEN__' ? '' : (p.warrantyPeriod || ''));
+    setFormShowTrustAssurances(p.showTrustAssurances ?? (p.warrantyPeriod !== '__HIDDEN__' && p.warrantyPeriod !== ''));
     setFieldErrors({});
     setUploadError(null);
     setIsModalOpen(true);
@@ -227,6 +230,7 @@ export const AdminProductsPage: React.FC = () => {
     const generatedSlug = formSlug.trim() 
       ? formSlug.trim().toLowerCase().replace(/\s+/g, '-')
       : formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const cleanSlug = generatedSlug.replace(/^-+|-+$/g, '') || `item-${Date.now().toString().slice(-4)}`;
 
     const isOffersActive = formDisplayPages.includes('offers') || formInOffers;
     const offerNum = formOfferPrice.trim() ? Number(formOfferPrice) : undefined;
@@ -234,7 +238,7 @@ export const AdminProductsPage: React.FC = () => {
     const updatedProduct: Product = {
       id: editingProduct?.id || `prod-${Date.now()}`,
       name: formName.trim(),
-      slug: generatedSlug,
+      slug: cleanSlug,
       tagline: formTagline.trim(),
       categorySlug: formCategorySlug,
       categoryName: cat?.name || 'OTT Subscriptions',
@@ -279,8 +283,8 @@ export const AdminProductsPage: React.FC = () => {
       faqs: editingProduct?.faqs || [
         { question: 'How quickly will I receive my subscription?', answer: 'Credentials are dispatched in 5-15 minutes on WhatsApp.' }
       ],
-      displayOrder: Number(formDisplayOrder) || 1,
-      displayPages: formDisplayPages,
+      displayOrder: Number(formDisplayOrder) || (products.length + 1),
+      displayPages: formDisplayPages.length > 0 ? formDisplayPages : ['home', 'items'],
       inOffers: isOffersActive,
       offerPrice: isOffersActive ? offerNum : undefined,
       offerOriginalPrice: isOffersActive ? priceNum : undefined,
@@ -291,22 +295,28 @@ export const AdminProductsPage: React.FC = () => {
       inStock: formInStock,
       isFeatured: formIsFeatured,
       isTrending: formIsTrending,
-      warrantyPeriod: formWarranty.trim() || 'Full Duration Replacement Warranty',
+      warrantyPeriod: formShowTrustAssurances ? formWarranty.trim() : '__HIDDEN__',
+      showTrustAssurances: formShowTrustAssurances,
       badge: discountPct >= 20 ? `${discountPct}% OFF` : undefined,
       updatedAt: Date.now()
     };
 
-    await ottApi.saveProduct(updatedProduct);
-    await ottApi.logAudit(editingProduct ? 'UPDATE_PRODUCT' : 'CREATE_PRODUCT', 'products', updatedProduct.id, {
-      name: updatedProduct.name,
-      price: updatedProduct.price,
-      inStock: updatedProduct.inStock,
-      providerSlug: updatedProduct.providerSlug
-    });
+    try {
+      await ottApi.saveProduct(updatedProduct);
+      await ottApi.logAudit(editingProduct ? 'UPDATE_PRODUCT' : 'CREATE_PRODUCT', 'products', updatedProduct.id, {
+        name: updatedProduct.name,
+        price: updatedProduct.price,
+        inStock: updatedProduct.inStock,
+        providerSlug: updatedProduct.providerSlug
+      });
 
-    showToast(`Product "${updatedProduct.name}" saved & live on storefront!`);
-    setIsModalOpen(false);
-    await loadData();
+      showToast(`Product "${updatedProduct.name}" saved & live on storefront!`);
+      setIsModalOpen(false);
+      await loadData();
+    } catch (saveErr: any) {
+      console.error('Failed to save product:', saveErr);
+      setUploadError(`Failed to save: ${saveErr.message || 'Please check fields and try again.'}`);
+    }
   };
 
   const handleReorder = async (productId: string, direction: 'up' | 'down') => {
@@ -676,8 +686,8 @@ export const AdminProductsPage: React.FC = () => {
       {/* SIMPLIFIED LOGICALLY GROUPED ADDING / EDITING FORM MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box" style={{ maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div className="admin-modal-header">
+          <div className="admin-modal-box" style={{ maxWidth: '750px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="admin-modal-header" style={{ flexShrink: 0 }}>
               <h2 className="admin-modal-title">
                 {editingProduct ? `Edit Item: ${editingProduct.name}` : 'Add New Item / Subscription'}
               </h2>
@@ -686,8 +696,8 @@ export const AdminProductsPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct}>
-              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <form onSubmit={handleSaveProduct} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 {uploadError && (
                   <div className="admin-alert-banner error">
                     <AlertCircle size={16} />
@@ -890,20 +900,55 @@ export const AdminProductsPage: React.FC = () => {
                     <span>5. Product Deliverables & Warranty</span>
                   </h3>
 
-                  <div className="admin-form-group">
+                  <div className="admin-form-group" style={{ marginBottom: '14px' }}>
                     <label className="admin-form-label">Key Features (One feature per line)</label>
                     <textarea rows={3} className="admin-form-input" value={formFeatures} onChange={(e) => setFormFeatures(e.target.value)} />
                   </div>
 
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Warranty Guarantee Period</label>
-                    <input type="text" className="admin-form-input" value={formWarranty} onChange={(e) => setFormWarranty(e.target.value)} />
+                  {/* Toggle: Show / Hide Trust & Warranty Badges on Product Page */}
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', color: '#f1f5f9', fontWeight: 600 }}>
+                      <input
+                        type="checkbox"
+                        checked={formShowTrustAssurances}
+                        onChange={(e) => setFormShowTrustAssurances(e.target.checked)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#0284c7' }}
+                      />
+                      <span>Show Instant Delivery & Warranty Box on Product Details Page</span>
+                    </label>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px', marginLeft: '24px' }}>
+                      Uncheck this option to completely hide the Instant Delivery & Warranty badge section marked on the product page.
+                    </span>
                   </div>
+
+                  {formShowTrustAssurances && (
+                    <div className="admin-form-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label className="admin-form-label" style={{ margin: 0 }}>Warranty Guarantee Period</label>
+                        {formWarranty && (
+                          <button
+                            type="button"
+                            onClick={() => setFormWarranty('')}
+                            style={{ background: 'none', border: 'none', color: '#fb7185', fontSize: '0.74rem', cursor: 'pointer', textDecoration: 'underline' }}
+                          >
+                            Clear (Hide Warranty)
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        className="admin-form-input"
+                        placeholder="e.g. Full Duration Replacement Warranty (Leave blank to hide)"
+                        value={formWarranty}
+                        onChange={(e) => setFormWarranty(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="admin-modal-footer" style={{ borderTop: '1px solid #1e293b', paddingTop: '14px', marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div className="admin-modal-footer" style={{ flexShrink: 0, borderTop: '1px solid #1e293b', padding: '14px 20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#070d1e' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn-refresh-action">
                   Cancel
                 </button>

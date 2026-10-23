@@ -70,7 +70,8 @@ export interface Product {
   status?: 'ON' | 'OFF';
   inStock: boolean;
   stockCount?: number;
-  warrantyPeriod: string;
+  warrantyPeriod?: string;
+  showTrustAssurances?: boolean;
   badge?: string;
   displayPages?: ('home' | 'items' | 'offers' | string)[];
   updatedAt?: number;

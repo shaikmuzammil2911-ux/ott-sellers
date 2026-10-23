@@ -228,24 +228,26 @@ export const ProductDetailPage: React.FC = () => {
               )}
             </div>
 
-            {/* Trust Assurances (Directly Below Image) */}
-            <div className="product-trust-assurances">
-              <div className="assurance-item">
-                <Clock size={16} className="assurance-icon icon-clock" />
-                <div>
-                  <strong>Instant Delivery</strong>
-                  <p>Credentials in 5-15 mins via WhatsApp & Email</p>
+            {/* Trust Assurances (Directly Below Image) - Conditionally rendered, completely hidden if turned off or empty */}
+            {product.showTrustAssurances !== false && Boolean(product.warrantyPeriod && product.warrantyPeriod.trim() !== '' && product.warrantyPeriod !== '__HIDDEN__') && (
+              <div className="product-trust-assurances">
+                <div className="assurance-item">
+                  <Clock size={16} className="assurance-icon icon-clock" />
+                  <div>
+                    <strong>Instant Delivery</strong>
+                    <p>Credentials in 5-15 mins via WhatsApp & Email</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="assurance-item">
-                <ShieldCheck size={16} className="assurance-icon icon-shield" />
-                <div>
-                  <strong>{product.warrantyPeriod || 'Full Duration Warranty'}</strong>
-                  <p>100% replacement guarantee if any issue arises</p>
+                <div className="assurance-item">
+                  <ShieldCheck size={16} className="assurance-icon icon-shield" />
+                  <div>
+                    <strong>{product.warrantyPeriod}</strong>
+                    <p>100% replacement guarantee if any issue arises</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Product Description Below Image */}
             {product.description && (

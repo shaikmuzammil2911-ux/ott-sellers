@@ -273,7 +273,10 @@ export const mapProductFromDb = (p: any): Product => {
     status: p.status || 'ON',
     inStock: p.in_stock !== false && p.inStock !== false,
     stockCount: Number(p.stock ?? p.stockCount) || 999,
-    warrantyPeriod: p.warranty_period || p.warrantyPeriod || 'Full Duration Replacement Warranty',
+    warrantyPeriod: (p.warranty_period === '__HIDDEN__' || p.warrantyPeriod === '__HIDDEN__') 
+      ? '' 
+      : (p.warranty_period !== undefined ? (p.warranty_period || '') : (p.warrantyPeriod !== undefined ? (p.warrantyPeriod || '') : 'Full Duration Replacement Warranty')),
+    showTrustAssurances: (p.warranty_period !== '__HIDDEN__' && p.warrantyPeriod !== '__HIDDEN__') && Boolean(p.show_trust_assurances ?? p.showTrustAssurances ?? true),
     badge: (p.badge && p.badge !== 'Streaming') ? p.badge : undefined,
     displayPages: resolvedDisplayPages,
     updatedAt: new Date(p.updated_at || p.updatedAt || Date.now()).getTime()
@@ -1381,7 +1384,19 @@ export const ottApi = {
 
         return products
           .filter(p => p.status !== 'OFF')
-          .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true))
+          .filter(p => {
+            if (!targetPage) return true;
+            if (targetPage === 'items') {
+              return !p.displayPages || p.displayPages.length === 0 || p.displayPages.includes('items');
+            }
+            if (targetPage === 'home') {
+              return !p.displayPages || p.displayPages.length === 0 || p.displayPages.includes('home') || Boolean(p.isFeatured || p.isPopular);
+            }
+            if (targetPage === 'offers') {
+              return (p.displayPages ? p.displayPages.includes('offers') : false) || Boolean(p.inOffers);
+            }
+            return true;
+          })
           .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
           .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase());
       }
@@ -1393,11 +1408,23 @@ export const ottApi = {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (stored) {
         const parsed: any[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed
             .map(mapProductFromDb)
             .filter(p => p.status !== 'OFF')
-            .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true))
+            .filter(p => {
+              if (!targetPage) return true;
+              if (targetPage === 'items') {
+                return !p.displayPages || p.displayPages.length === 0 || p.displayPages.includes('items');
+              }
+              if (targetPage === 'home') {
+                return !p.displayPages || p.displayPages.length === 0 || p.displayPages.includes('home') || Boolean(p.isFeatured || p.isPopular);
+              }
+              if (targetPage === 'offers') {
+                return (p.displayPages ? p.displayPages.includes('offers') : false) || Boolean(p.inOffers);
+              }
+              return true;
+            })
             .filter(p => !categorySlug || p.categorySlug.toLowerCase() === categorySlug.toLowerCase())
             .filter(p => !providerSlug || p.providerSlug?.toLowerCase() === providerSlug.toLowerCase() || p.subcategorySlug?.toLowerCase() === providerSlug.toLowerCase())
             .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
@@ -1408,7 +1435,6 @@ export const ottApi = {
     return [...PRODUCTS_DATA]
       .map(mapProductFromDb)
       .filter(p => p.status !== 'OFF')
-      .filter(p => !targetPage || (p.displayPages ? p.displayPages.includes(targetPage) : true))
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
@@ -1427,7 +1453,9 @@ export const ottApi = {
         const products: Product[] = data
           .map(mapProductFromDb)
           .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        try {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        } catch {}
         return products;
       }
     } catch {}
@@ -1436,7 +1464,7 @@ export const ottApi = {
       const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (stored) {
         const parsed: any[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed
             .map(mapProductFromDb)
             .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
@@ -1460,8 +1488,28 @@ export const ottApi = {
       updatedAt: Date.now()
     };
 
-    // Remove existing if present
-    const filtered = all.filter(p => p.id !== product.id && p.slug !== product.slug);
+    // Ensure candidate slug is clean and deduplicated
+    let candidateSlug = (productToSave.slug || productToSave.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/^-+|-+$/g, '');
+    if (!candidateSlug) candidateSlug = `item-${Date.now().toString().slice(-4)}`;
+
+    // Verify slug uniqueness against Supabase
+    try {
+      const { data: existingWithSlug } = await supabase
+        .from('products')
+        .select('id, slug')
+        .eq('slug', candidateSlug)
+        .neq('id', productToSave.id);
+
+      if (existingWithSlug && existingWithSlug.length > 0) {
+        candidateSlug = `${candidateSlug}-${Date.now().toString().slice(-4)}`;
+      }
+    } catch (e) {
+      console.warn('Slug check error:', e);
+    }
+    productToSave.slug = candidateSlug;
+
+    // Filter by ID only so other products with different IDs aren't wiped
+    const filtered = all.filter(p => p.id !== productToSave.id);
 
     // Insert at desired order position
     const updated = [...filtered, productToSave].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
@@ -1472,76 +1520,91 @@ export const ottApi = {
     });
 
     // Find the saved product's normalized displayOrder
-    const finalSaved = updated.find(p => p.id === productToSave.id || p.slug === productToSave.slug);
+    const finalSaved = updated.find(p => p.id === productToSave.id);
     if (finalSaved) {
       productToSave.displayOrder = finalSaved.displayOrder;
     }
 
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
-    broadcastDataUpdate('products');
+    const warrantyVal = (productToSave.showTrustAssurances === false || !productToSave.warrantyPeriod || productToSave.warrantyPeriod.trim() === '' || productToSave.warrantyPeriod === '__HIDDEN__')
+      ? '__HIDDEN__'
+      : productToSave.warrantyPeriod.trim();
 
-    try {
-      const payload: any = {
-        id: productToSave.id,
-        name: productToSave.name,
-        slug: productToSave.slug,
-        tagline: productToSave.tagline,
-        description: productToSave.deliverables?.join('\n') || '',
-        category_slug: productToSave.categorySlug,
-        category_name: productToSave.categoryName,
-        subcategory_slug: productToSave.subcategorySlug || productToSave.providerSlug || '',
-        subcategory_name: productToSave.subcategoryName || productToSave.providerName || '',
-        provider_id: productToSave.providerId,
-        provider_slug: productToSave.providerSlug || productToSave.subcategorySlug,
-        provider_name: productToSave.providerName || productToSave.subcategoryName,
-        catalog_slugs: productToSave.catalogSlugs,
-        image_url: productToSave.image,
-        banner_image_url: productToSave.bannerImage,
-        brand_color: productToSave.brandColor,
-        brand_logo_text: productToSave.brandLogoText,
-        rating: productToSave.rating,
-        reviews_count: productToSave.reviewsCount,
-        default_plan: productToSave.defaultPlan,
-        plans: productToSave.plans,
-        price: productToSave.plans?.[0]?.price || productToSave.price,
-        compare_price: productToSave.plans?.[0]?.originalPrice || productToSave.comparePrice,
-        stock: productToSave.stockCount ?? 999,
-        in_stock: productToSave.inStock,
+    const payload: any = {
+      id: productToSave.id,
+      name: productToSave.name,
+      slug: productToSave.slug,
+      tagline: productToSave.tagline,
+      description: productToSave.deliverables?.join('\n') || '',
+      category_slug: productToSave.categorySlug,
+      category_name: productToSave.categoryName,
+      subcategory_slug: productToSave.subcategorySlug || productToSave.providerSlug || '',
+      subcategory_name: productToSave.subcategoryName || productToSave.providerName || '',
+      provider_id: productToSave.providerId,
+      provider_slug: productToSave.providerSlug || productToSave.subcategorySlug,
+      provider_name: productToSave.providerName || productToSave.subcategoryName,
+      catalog_slugs: productToSave.catalogSlugs,
+      image_url: productToSave.image,
+      banner_image_url: productToSave.bannerImage,
+      brand_color: productToSave.brandColor,
+      brand_logo_text: productToSave.brandLogoText,
+      rating: productToSave.rating,
+      reviews_count: productToSave.reviewsCount,
+      default_plan: productToSave.defaultPlan,
+      plans: productToSave.plans,
+      price: productToSave.plans?.[0]?.price || productToSave.price,
+      compare_price: productToSave.plans?.[0]?.originalPrice || productToSave.comparePrice,
+      stock: productToSave.stockCount ?? 999,
+      in_stock: productToSave.inStock,
+      status: productToSave.status || 'ON',
+      is_featured: productToSave.isFeatured ?? false,
+      is_popular: productToSave.isPopular ?? false,
+      is_trending: productToSave.isTrending ?? false,
+      in_offers: (productToSave.displayPages?.includes('offers') || productToSave.inOffers === true),
+      display_pages: productToSave.displayPages || ['home', 'items'],
+      offer_price: productToSave.offerPrice,
+      offer_original_price: productToSave.offerOriginalPrice,
+      offer_discount_percentage: productToSave.offerDiscountPercentage,
+      features: productToSave.features,
+      deliverables: productToSave.deliverables,
+      rules: productToSave.rules,
+      faqs: productToSave.faqs,
+      warranty_period: warrantyVal,
+      badge: (productToSave.badge && productToSave.badge !== 'Streaming') ? productToSave.badge : null,
+      sort_order: productToSave.displayOrder || 0,
+      updated_at: new Date().toISOString()
+    };
+
+    let { error: upsertError } = await supabase.from('products').upsert(payload, { onConflict: 'id' });
+    if (upsertError && upsertError.code === '23505') {
+      // Postgres unique constraint collision (slug) - append timestamp and retry
+      payload.slug = `${payload.slug}-${Date.now()}`;
+      productToSave.slug = payload.slug;
+      const retryRes = await supabase.from('products').upsert(payload, { onConflict: 'id' });
+      upsertError = retryRes.error;
+    }
+
+    if (upsertError) {
+      console.error('Failed to sync product to Supabase:', upsertError);
+      throw new Error(`Database error saving product: ${upsertError.message || 'Unknown database error'}`);
+    }
+
+    if (productToSave.id) {
+      await supabase.from('products').update({
         status: productToSave.status || 'ON',
+        in_stock: productToSave.inStock,
         is_featured: productToSave.isFeatured ?? false,
-        is_popular: productToSave.isPopular ?? false,
         is_trending: productToSave.isTrending ?? false,
         in_offers: (productToSave.displayPages?.includes('offers') || productToSave.inOffers === true),
-        display_pages: productToSave.displayPages || ['items'],
-        offer_price: productToSave.offerPrice,
-        offer_original_price: productToSave.offerOriginalPrice,
-        offer_discount_percentage: productToSave.offerDiscountPercentage,
-        features: productToSave.features,
-        deliverables: productToSave.deliverables,
-        rules: productToSave.rules,
-        faqs: productToSave.faqs,
-        warranty_period: productToSave.warrantyPeriod,
-        badge: (productToSave.badge && productToSave.badge !== 'Streaming') ? productToSave.badge : null,
+        display_pages: productToSave.displayPages || ['home', 'items'],
         sort_order: productToSave.displayOrder || 0,
+        warranty_period: warrantyVal,
         updated_at: new Date().toISOString()
-      };
-
-      await supabase.from('products').upsert(payload, { onConflict: 'id' });
-      if (productToSave.id) {
-        await supabase.from('products').update({
-          status: productToSave.status || 'ON',
-          in_stock: productToSave.inStock,
-          is_featured: productToSave.isFeatured ?? false,
-          is_trending: productToSave.isTrending ?? false,
-          in_offers: (productToSave.displayPages?.includes('offers') || productToSave.inOffers === true),
-          display_pages: productToSave.displayPages || ['items'],
-          sort_order: productToSave.displayOrder || 0,
-          updated_at: new Date().toISOString()
-        }).eq('id', productToSave.id);
-      }
-    } catch (e) {
-      console.error('Failed to sync product to Supabase:', e);
+      }).eq('id', productToSave.id);
     }
+
+    // Persist to local cache only after successful DB commit
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
+    broadcastDataUpdate('products');
   },
 
   async deleteProduct(id: string): Promise<void> {
@@ -1704,11 +1767,14 @@ export const ottApi = {
 
   async getFeaturedProducts(): Promise<Product[]> {
     const products = await this.getProducts();
-    return products.filter(p => 
-      (p.isFeatured ?? p.isPopular ?? false) && 
-      p.status !== 'OFF' &&
-      (!p.displayPages || p.displayPages.includes('home'))
-    );
+    return products.filter(p => {
+      if (p.status === 'OFF') return false;
+      const hasHomePlacement = Array.isArray(p.displayPages) && p.displayPages.length > 0
+        ? p.displayPages.includes('home')
+        : true;
+      const isMarked = Boolean(p.isFeatured || p.isPopular);
+      return hasHomePlacement || isMarked;
+    }).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   },
 
   async getOfferProducts(): Promise<Product[]> {

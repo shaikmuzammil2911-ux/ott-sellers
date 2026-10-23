@@ -45,7 +45,7 @@ export const HomeCatalogPreview: React.FC = () => {
     if (selectedCategory !== 'all') {
       list = list.filter(p => p.categorySlug === selectedCategory);
     }
-    return list.slice(0, 5); // Keep homepage clean - 5 items max!
+    return list.slice(0, 20);
   }, [products, selectedCategory]);
 
   return (

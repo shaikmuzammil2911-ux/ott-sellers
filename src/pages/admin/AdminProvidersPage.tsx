@@ -416,8 +416,8 @@ export const AdminProvidersPage: React.FC = () => {
       {/* CREATE / EDIT PROVIDER MODAL */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box" style={{ maxWidth: '620px' }}>
-            <div className="admin-modal-header">
+          <div className="admin-modal-box" style={{ maxWidth: '620px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="admin-modal-header" style={{ flexShrink: 0 }}>
               <h2 className="admin-modal-title">
                 {editingProvider ? `Edit Provider: ${editingProvider.name}` : 'Create New Provider (Quick Select)'}
               </h2>
@@ -426,8 +426,8 @@ export const AdminProvidersPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProvider}>
-              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSaveProvider} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 {uploadError && (
                   <div className="admin-alert-banner error">
                     <AlertCircle size={16} />
@@ -791,7 +791,7 @@ export const AdminProvidersPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="admin-modal-footer">
+              <div className="admin-modal-footer" style={{ flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
